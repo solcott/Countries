@@ -67,7 +67,7 @@ fun CountryListPresenter(
             }
       }
   val continentsState by
-      produceRetainedState(initialValue = ContinentsState(loading = false), key1 = reloadKey) {
+      produceRetainedState(initialValue = ContinentsState(loading = true), key1 = reloadKey) {
         continentRepository.continentsAsFlow().distinctUntilChanged().collect {
           value =
               ContinentsState(

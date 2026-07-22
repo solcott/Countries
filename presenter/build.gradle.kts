@@ -22,8 +22,6 @@ dependencies {
   implementation(libs.androidx.compose.foundation)
   implementation(libs.androidx.compose.ui)
 
-  // Presenter tests fake CountriesApi and wrap it in the real (pass-through) repository.
-  testImplementation(project(":network"))
   testImplementation(libs.junit)
   testImplementation(libs.turbine)
   testImplementation(libs.kotlinx.coroutines.test)
