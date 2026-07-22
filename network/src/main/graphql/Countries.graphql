@@ -1,0 +1,18 @@
+# Filtering by name-prefix and/or continent is driven by a single CountryFilterInput, assembled in
+# the network layer (ApolloCountriesApi). A null name or continent is sent as an *absent* sub-field
+# so it imposes no constraint; an absent/empty filter returns all countries.
+#
+# The filter object is built in Kotlin rather than inlined here on purpose: this API treats an empty
+# operator object such as `name: {}` as "match nothing", so the "return all" case requires omitting
+# the whole sub-field, which a nested query variable cannot express.
+query Countries($filter: CountryFilterInput) {
+  countries(filter: $filter) {
+    code
+    name
+    emoji
+    capital
+    continent {
+      name
+    }
+  }
+}

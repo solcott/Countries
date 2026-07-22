@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capital">Capital: %1$s</string>
+    <string name="continent">Continent: %1$s</string>
+    <string name="currency">Currency: %1$s</string>
+    <string name="calling_code">Calling code: +%1$s</string>
+    <string name="languages">Languages: %1$s</string>
+    <string name="unknown_error_occurred">An unknown error occurred</string>
+    <string name="no_countries_found">No countries found</string>
+    <string name="countries">Countries</string>
+    <string name="clear">Clear</string>
+    <string name="filter">Filter</string>
+    <string name="search_by_name">Search By Name</string>
+    <string name="retry">Retry</string>
+    <string name="country_with_code_not_found">Country with code %1$s not found</string>
+</resources>
