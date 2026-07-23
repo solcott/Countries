@@ -16,11 +16,7 @@ https://countries.trevorblades.com/ and displays them.
 | Testing | JUnit + Turbine |
 | Build | Gradle with a version catalog (`gradle/libs.versions.toml`) |
 
-SDK levels: `minSdk 28`, `targetSdk 36`, `compileSdk 37`.
-
-`compileSdk` is 37 because Circuit 0.35.x requires consumers to compile against API 37
-or later; the build fails outright at 36. `targetSdk` stays at 36 — it governs runtime
-behavior and is intentionally independent of `compileSdk`.
+SDK levels: `minSdk 28`, `targetSdk 37`, `compileSdk 37`.
 
 Android-only. **No Kotlin Multiplatform support** — do not add `commonMain`
 source sets, KMP targets, or `expect`/`actual` declarations.
