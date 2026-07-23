@@ -18,6 +18,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.slack.circuit.codegen.annotations.CircuitInject
 import dev.zacsweers.metro.AppScope
 import io.github.solcott.countries.presenter.CountryDetailScreen
+import io.github.solcott.countries.presenter.errorOrNull
+import io.github.solcott.countries.presenter.isLoading
+import io.github.solcott.countries.presenter.isNotFound
 import io.github.solcott.countries.ui.databinding.ViewCountryDetailBinding
 
 /**
@@ -47,15 +50,18 @@ fun CountryDetailUi(state: CountryDetailScreen.State, screen: CountryDetailScree
             .padding(innerPadding),
         contentAlignment = Alignment.Center,
     ) {
+      val content = state.content
+      val country = content.data
+      val error = content.errorOrNull
       when {
-        state.isLoading -> CircularProgressIndicator()
-        state.isError ->
+        country == null && content.isLoading -> CircularProgressIndicator()
+        country == null && error != null ->
             ErrorContent(
-                message = state.errorMessage ?: stringResource(R.string.unknown_error_occurred),
+                message = error.toUserMessage(),
                 onRetry = { state.eventSink(CountryDetailScreen.Event.Retry) },
             )
-        state.countryNotFound -> {
-            Text(stringResource(R.string.country_with_code_not_found, screen.code))
+        content.isNotFound -> {
+          Text(stringResource(R.string.country_with_code_not_found, screen.code))
         }
         else -> {
           AndroidView(
@@ -65,7 +71,7 @@ fun CountryDetailUi(state: CountryDetailScreen.State, screen: CountryDetailScree
               },
               update = { root ->
                 val context = root.context
-                val country = checkNotNull(state.country)
+                val country = checkNotNull(country)
                 with(ViewCountryDetailBinding.bind(root)) {
                   flag.text = country.emoji
                   name.text = country.name

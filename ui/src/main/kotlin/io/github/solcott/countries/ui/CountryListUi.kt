@@ -21,6 +21,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -39,9 +40,10 @@ import com.slack.circuit.codegen.annotations.CircuitInject
 import dev.zacsweers.metro.AppScope
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
-import io.github.solcott.countries.presenter.ContinentsState
-import io.github.solcott.countries.presenter.CountriesState
+import io.github.solcott.countries.presenter.ContentState
 import io.github.solcott.countries.presenter.CountryListScreen
+import io.github.solcott.countries.presenter.errorOrNull
+import io.github.solcott.countries.presenter.isLoading
 
 @OptIn(ExperimentalMaterial3Api::class)
 @CircuitInject(CountryListScreen::class, AppScope::class)
@@ -58,12 +60,12 @@ fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier)
         contentAlignment = Alignment.Center,
     ) {
       val countriesState = state.countriesState
+      val error = countriesState.errorOrNull
       when {
-        countriesState.loading -> CircularProgressIndicator()
-        countriesState.error ->
+        countriesState.data.isEmpty() && countriesState.isLoading -> CircularProgressIndicator()
+        countriesState.data.isEmpty() && error != null ->
             ErrorContent(
-                message =
-                    countriesState.errorMessage ?: stringResource(R.string.unknown_error_occurred),
+                message = error.toUserMessage(),
                 onRetry = { state.eventSink(CountryListScreen.Event.Retry) },
             )
         else -> CountriesList(state, countriesState, Modifier.fillMaxSize())
@@ -75,10 +77,10 @@ fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier)
 @Composable
 private fun CountriesList(
     state: CountryListScreen.State,
-    countriesState: CountriesState,
+    countriesState: ContentState<List<Country>>,
     modifier: Modifier = Modifier,
 ) {
-  LazyColumn(modifier = modifier.imePadding()) {
+  LazyColumn(modifier = modifier.fillMaxSize().imePadding()) {
     stickyHeader {
       SearchAndFilterHeader(
           state.continentsState,
@@ -87,7 +89,15 @@ private fun CountriesList(
           onToggleContinentSelection = { continent ->
             state.eventSink(CountryListScreen.Event.ToggleContinentSelection(continent))
           },
+          modifier = Modifier.animateItem()
       )
+    }
+    // Data is already on screen while a refresh runs (e.g. cache shown, network in flight) — keep
+    // it visible and surface the in-flight request rather than blanking to a spinner.
+    if (countriesState.isLoading) {
+      item("loading_network", "loading_network") {
+        RefreshingIndicator(modifier = Modifier.animateItem())
+      }
     }
     val countries = countriesState.data
     if (countries.isNotEmpty()) {
@@ -97,12 +107,13 @@ private fun CountriesList(
             onClick = {
               state.eventSink(CountryListScreen.Event.CountryClicked(country.code))
             },
+            modifier = Modifier.animateItem()
         )
-        HorizontalDivider()
+        HorizontalDivider(modifier = Modifier.animateItem(), )
       }
     } else {
       item(key = "empty", "empty") {
-        Box(Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillParentMaxSize().animateItem(), contentAlignment = Alignment.Center) {
           Text(
               stringResource(R.string.no_countries_found),
           )
@@ -113,16 +124,33 @@ private fun CountriesList(
 }
 
 @Composable
+private fun RefreshingIndicator(modifier: Modifier = Modifier) {
+  Row(
+      modifier =
+          modifier
+              .fillMaxWidth()
+              .background(MaterialTheme.colorScheme.surface)
+              .padding(horizontal = 16.dp, vertical = 8.dp),
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+      verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Text(stringResource(R.string.updating))
+    LinearProgressIndicator(modifier = Modifier.weight(1f))
+  }
+}
+
+@Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun SearchAndFilterHeader(
-    continentsState: ContinentsState,
+    continentsState: ContentState<List<Continent>>,
     nameStartsWithText: TextFieldState,
     selectedContinents: List<Continent>,
     onToggleContinentSelection: (Continent) -> Unit,
+    modifier: Modifier = Modifier
 ) {
   var continentDropdownExpanded by remember { mutableStateOf(false) }
   Row(
-      Modifier.fillMaxWidth()
+      modifier.fillMaxWidth()
           .background(MaterialTheme.colorScheme.surface)
           .padding(vertical = 8.dp, horizontal = 16.dp),
       horizontalArrangement = Arrangement.spacedBy(16.dp),

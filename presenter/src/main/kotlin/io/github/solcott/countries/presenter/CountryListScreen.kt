@@ -6,6 +6,7 @@ import com.slack.circuit.runtime.CircuitUiState
 import com.slack.circuit.runtime.screen.Screen
 import dev.zacsweers.redacted.annotations.Redacted
 import io.github.solcott.countries.model.Continent
+import io.github.solcott.countries.model.Country
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -13,8 +14,8 @@ data object CountryListScreen : Screen {
 
   data class State(
       val nameStartsWithText: TextFieldState,
-      val countriesState: CountriesState,
-      val continentsState: ContinentsState,
+      val countriesState: ContentState<List<Country>>,
+      val continentsState: ContentState<List<Continent>>,
       val selectedContinents: List<Continent>,
       @Redacted val eventSink: (Event) -> Unit,
   ) : CircuitUiState
