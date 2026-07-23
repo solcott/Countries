@@ -1,0 +1,15 @@
+# Client-side cache configuration (not part of the server schema).
+#
+# Normalize these types by their `code` so every query that returns them shares a single cache
+# record per entity instead of storing independent copies. With a shared record, a future cache
+# write to one entity is visible to every query that read it. Normalization by key requires `code`
+# to be selected in every selection of the type — including the nested `continent { code name }` in
+# the Countries and CountryDetail queries.
+extend schema
+@link(url: "https://specs.apollo.dev/kotlin_labs/v0.3", import: ["@typePolicy"])
+
+extend type Country @typePolicy(keyFields: "code")
+
+extend type Continent @typePolicy(keyFields: "code")
+
+extend type Language @typePolicy(keyFields: "code")
