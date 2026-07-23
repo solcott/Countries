@@ -120,9 +120,9 @@ class CountryListPresenterTest {
 
     presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
       val state = awaitItem() // Loading
-      state.eventSink(CountryListScreen.Event.ContinentSelected(europe))
+      state.eventSink(CountryListScreen.Event.ToggleContinentSelection(europe))
       assertEquals(listOf(europe), state.selectedContinents)
-      state.eventSink(CountryListScreen.Event.ContinentSelected(europe))
+      state.eventSink(CountryListScreen.Event.ToggleContinentSelection(europe))
       assertTrue(state.selectedContinents.isEmpty())
     }
   }

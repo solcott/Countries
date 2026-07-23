@@ -22,7 +22,7 @@ data object CountryListScreen : Screen {
   sealed interface Event : CircuitUiEvent {
     data class CountryClicked(val code: String) : Event
 
-    data class ContinentSelected(val continent: Continent) : Event
+    data class ToggleContinentSelection(val continent: Continent) : Event
 
     data object Retry : Event
   }

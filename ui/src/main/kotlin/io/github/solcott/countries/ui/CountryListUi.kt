@@ -85,7 +85,7 @@ private fun CountriesList(
           state.nameStartsWithText,
           state.selectedContinents,
           onToggleContinentSelection = { continent ->
-            state.eventSink(CountryListScreen.Event.ContinentSelected(continent))
+            state.eventSink(CountryListScreen.Event.ToggleContinentSelection(continent))
           },
       )
     }
