@@ -1,5 +1,7 @@
 .gradle/
 build/
+# Don't ignore any build directories that are under a src directory
+!**/src/**/build/
 local.properties
 .idea/
 *.iml
