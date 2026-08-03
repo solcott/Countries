@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.slack.circuit.codegen.annotations.CircuitInject
+import com.slack.circuit.retained.produceAndCollectAsRetainedState
 import com.slack.circuit.retained.produceRetainedState
 import com.slack.circuit.runtime.Navigator
 import dev.zacsweers.metro.AppScope
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 
@@ -43,7 +45,7 @@ fun CountryListPresenter(
   val selectedContinents: SnapshotStateList<Continent> = rememberSaveable { mutableStateListOf() }
   val countriesState by
       produceRetainedState(
-          initialValue = ContentState<List<Country>>(data = emptyList()),
+          initialValue = ContentState(data = emptyList()),
           key1 = reloadKey,
       ) {
         combine(
@@ -54,10 +56,11 @@ fun CountryListPresenter(
             }
             .collectLatest { (name, continents) ->
               // A new filter starts a fresh request: keep the current list visible but flag loading.
-              value = value.copy(status = LoadStatus.Loading)
+              value = value.reloading()
               repository
                   .countriesAsFlow(name.toString(), continents.map { it.code })
                   .distinctUntilChanged()
+
                   .onEach { value = value.applyEmission(it) }
                   .onCompletion { cause -> if (cause == null) value = value.settled() }
                   .collect()
@@ -65,7 +68,7 @@ fun CountryListPresenter(
       }
   val continentsState by
       produceRetainedState(
-          initialValue = ContentState<List<Continent>>(data = emptyList()),
+          initialValue = ContentState(data = emptyList()),
           key1 = reloadKey,
       ) {
         continentRepository
