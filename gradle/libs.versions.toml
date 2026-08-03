@@ -3,7 +3,7 @@
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
 agp = "9.3.1"
 kotlin = "2.4.10"
-metro = "1.3.2"
+metro = "1.4.0"
 apollo = "5.0.1"
 apollo-normalized-cache = "1.0.6"
 ktfmt = "0.26.0"
@@ -14,7 +14,7 @@ circuit = "0.35.1"
 # Compose. Explicit versions rather than the BOM, so the alpha Material3 line can be
 # pinned independently of the stable UI/foundation line.
 composeUi = "1.11.4"
-material3 = "1.5.0-alpha24"
+material3 = "1.5.0-alpha25"
 
 # AndroidX
 coreKtx = "1.19.0"
@@ -38,7 +38,6 @@ androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-ru
 
 # Compose
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "composeUi" }
-androidx-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics", version.ref = "composeUi" }
 androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "composeUi" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "composeUi" }
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "composeUi" }
