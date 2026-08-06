@@ -1,4 +1,4 @@
 plugins {
-  id("library")
-  id("org.jetbrains.kotlin.plugin.parcelize")
+  id("kmp-library")
+  alias(libs.plugins.kmp.parcelize)
 }

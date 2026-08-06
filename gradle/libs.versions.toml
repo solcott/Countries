@@ -8,6 +8,10 @@ apollo = "5.0.1"
 apollo-normalized-cache = "1.0.6"
 ktfmt = "0.27.0"
 
+# @Parcelize/Parcelable usable from commonMain: real android.os.Parcelable on Android,
+# no-ops elsewhere. kotlin-parcelize itself does not support the KMP Android library plugin.
+kmp-parcelize = "1.0.4"
+
 # Circuit (MVI). Metro provides the @CircuitInject codegen.
 circuit = "0.36.0"
 
@@ -82,4 +86,5 @@ detekt = { id = "dev.detekt", version = "2.0.0-alpha.6" }
 metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
+kmp-parcelize = { id = "io.github.solcott.kmp.parcelize", version.ref = "kmp-parcelize" }
 redacted = { id = "dev.zacsweers.redacted", version = "1.18.0" }

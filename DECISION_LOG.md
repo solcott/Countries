@@ -73,6 +73,50 @@ debounce keeps keystrokes from spamming the network.
   simpler — but doesn't scale, and wouldn't show any GraphQL query capability, which is a
   core thing this exercise is evaluating.
 
+## How is the Kotlin Multiplatform migration structured?
+
+The app was originally Android-only. It is now migrating to KMP **bottom-up, one module at a
+time** — `model` first, then `network`, `repository`, `presenter`, `ui`. `model` is the leaf of
+the dependency graph with no dependencies of its own, so it exercises the whole build setup
+without any library-compatibility risk. Targets: android, jvm, iosArm64, iosSimulatorArm64,
+macosArm64, js, wasmJs.
+
+Everything platform-related lives in a single `kmp-library` convention plugin in `build-logic`,
+alongside the existing `library` (Android-only) and `app` plugins. Module build files stay two
+lines. `library.gradle.kts` is retired when the last module migrates.
+
+**Why `com.android.kotlin.multiplatform.library` rather than `com.android.library`.** Not a
+preference — a requirement. As of AGP 9, the Kotlin Multiplatform plugin is no longer compatible
+with `com.android.application`/`com.android.library` in the same module; the legacy path is
+opt-in under AGP 9 and removed in AGP 10. The new plugin also moves Android config into an
+`android { }` block *inside* `kotlin { }` and is single-variant (no debug/release, no
+`BuildConfig`, no view binding, resources off by default). None of that costs `model` anything,
+and Android consumers still resolve the right variant through Gradle module metadata — `:app`,
+`:ui`, `:presenter`, `:repository` and `:network` needed no changes at all.
+
+**Why `kmp-parcelize` for `Continent`.** `Continent` is `Parcelable` because
+`CountryListPresenter` keeps the selected continents in `rememberSaveable`, which needs them to
+survive process death. `kotlin-parcelize` requires an AGP Android plugin and does not support
+the KMP Android library plugin, so it can't come along. Three options:
+
+- *`expect`/`actual` typealiases* (`CommonParcelize` → `kotlinx.parcelize.Parcelize` on Android,
+  no-op elsewhere) — the usual community workaround, but it still leans on `kotlin-parcelize`
+  underneath, which is the part that doesn't work here.
+- *Drop `Parcelable` and use a `listSaver` in the presenter* — works, but pushes a persistence
+  concern into the presenter and has to be repeated for every future saved type.
+- *[`kmp-parcelize`](https://github.com/solcott/kmp-parcelize)* (chosen) — a Gradle plugin that
+  provides `@Parcelize`/`Parcelable` for common code, lowering to a real `android.os.Parcelable`
+  with a generated `CREATOR` on Android and to no-ops everywhere else. `Continent.kt` changed by
+  exactly two imports, and nothing downstream changed.
+
+**Why `PREFER_SETTINGS` for repositories.** The js/wasmJs targets download their own toolchains
+(Node, Yarn, Binaryen), and the Kotlin plugin registers project-level repositories to do it —
+which `FAIL_ON_PROJECT_REPOS` rejects at *registration* time, so pre-declaring those repositories
+in settings isn't enough on its own. `PREFER_SETTINGS` ignores project repositories instead of
+failing, preserving the same "everything resolves from settings" guarantee. The three toolchain
+repositories are declared in `settings.gradle.kts` with `content { includeModule(...) }` filters
+so each can only ever serve the one artifact it exists for.
+
 ## What tradeoffs did I make due to time constraints?
 
 - Minimal error handling/presentation (generic messages, swallowed cache misses).

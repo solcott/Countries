@@ -1,6 +1,6 @@
 package io.github.solcott.countries.model
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
+import io.github.solcott.kmp.parcelize.Parcelable
+import io.github.solcott.kmp.parcelize.Parcelize
 
 @Parcelize data class Continent(val code: String, val name: String) : Parcelable

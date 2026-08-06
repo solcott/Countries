@@ -12,14 +12,51 @@ https://countries.trevorblades.com/ and displays them.
 | UI | Jetpack Compose |
 | Architecture | MVI via [Circuit](https://slackhq.github.io/circuit/) |
 | Dependency injection | [Metro](https://zacsweers.github.io/metro/) |
+| Multiplatform | Kotlin Multiplatform (migration in progress — see below) |
+| Parcelable | [kmp-parcelize](https://github.com/solcott/kmp-parcelize) for `@Parcelize` in common code |
 | Formatting | ktfmt via the `com.ncorti.ktfmt.gradle` plugin |
 | Testing | JUnit + Turbine |
 | Build | Gradle with a version catalog (`gradle/libs.versions.toml`) |
 
 SDK levels: `minSdk 28`, `targetSdk 37`, `compileSdk 37`.
 
-Android-only. **No Kotlin Multiplatform support** — do not add `commonMain`
-source sets, KMP targets, or `expect`/`actual` declarations.
+## Kotlin Multiplatform
+
+The project is **migrating to Kotlin Multiplatform**, one module at a time, bottom-up:
+`model` → `network` → `repository` → `presenter` → `ui`. `app` stays an Android
+application module.
+
+Migrated so far: **`model`**.
+
+Supported targets, declared once in the `kmp-library` convention plugin:
+
+| Target | Kotlin target |
+| --- | --- |
+| Android | `android` (via `com.android.kotlin.multiplatform.library`) |
+| Desktop | `jvm` |
+| iOS | `iosArm64`, `iosSimulatorArm64` |
+| macOS | `macosArm64` |
+| Web | `js`, `wasmJs` (both with `browser()` and `nodejs()`) |
+
+Rules for migrated modules:
+
+- Apply `id("kmp-library")`, never `id("library")`. Sources live in
+  `src/commonMain/kotlin`, with `src/androidMain`, `src/jvmMain`, `src/iosMain` etc.
+  only for genuinely platform-specific code. Tests go in `src/commonTest/kotlin`;
+  `kotlin("test")` is already wired up by the convention plugin.
+- **Do not apply `com.android.library` or `org.jetbrains.kotlin.plugin.parcelize`.**
+  AGP 9 dropped KMP support from `com.android.library`, and `kotlin-parcelize` does not
+  work with the KMP Android plugin. Use `alias(libs.plugins.kmp.parcelize)` and import
+  `@Parcelize`/`Parcelable` from `io.github.solcott.kmp.parcelize` — real
+  `android.os.Parcelable` on Android, no-ops everywhere else.
+- The Android target is configured in an `android { }` block *inside* `kotlin { }`,
+  not a top-level `android` extension. The namespace is derived from the project name
+  by the convention plugin, same as `library.gradle.kts` does.
+- Prefer keeping code in `commonMain`. Reach for `expect`/`actual` only when a platform
+  genuinely differs, not to preserve an existing Android-shaped API.
+
+`library.gradle.kts` is the legacy Android-only convention; it is retired once the last
+module migrates.
 
 ## Module structure
 
@@ -97,11 +134,26 @@ Metro's Circuit codegen is switched on by `metro.enableCircuitCodegen=true` in
 `gradle.properties`, which generates the `Presenter.Factory` / `Ui.Factory` multibindings
 from `@CircuitInject`. No separate Circuit KSP processor is needed.
 
+`settings.gradle.kts` uses `RepositoriesMode.PREFER_SETTINGS`, not `FAIL_ON_PROJECT_REPOS`.
+The Kotlin plugin unconditionally registers project-level repositories for the js/wasmJs
+toolchain downloads, which `FAIL_ON_PROJECT_REPOS` rejects at registration time. Those
+downloads (Node, Yarn, Binaryen) are declared as content-filtered `ivy` repositories in the
+settings `repositories` block instead, so every dependency still resolves from there.
+
+`kotlin-js-store/yarn.lock` is a committed lockfile for the js/wasmJs npm dependencies.
+Regenerate it with `./gradlew kotlinUpgradeYarnLock` rather than editing it.
+
 ## Commands
 
 ```
-./gradlew assembleDebug     # build
-./gradlew test              # unit tests
+./gradlew assembleDebug     # build the Android app
+./gradlew test              # JVM unit tests
 ./gradlew ktfmtFormat       # apply formatting
 ./gradlew ktfmtCheck        # verify formatting
+
+./gradlew :model:assemble   # build a KMP module for every target
+./gradlew :model:allTests   # run a KMP module's tests on every target
 ```
+
+`ktfmtCheck` at the root does not cover `build-logic` — that is a separate included build.
+Run it from inside `build-logic/` to check the convention plugins.
