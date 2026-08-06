@@ -1,9 +1,7 @@
 import io.github.solcott.countries.build.Versions
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-plugins {
-  id("com.android.application")
-}
+plugins { id("com.android.application") }
 
 android {
   compileSdk = Versions.compileSdk
