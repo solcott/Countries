@@ -78,7 +78,6 @@ debounce keeps keystrokes from spamming the network.
 - Minimal error handling/presentation (generic messages, swallowed cache misses).
 - Normalized caching (memory → SQLite) was added but not deeply tuned; first launch still
   hits the network, and cache hits are per-exact-filter.
-- Formatting is not enforced on the Android modules yet (ktfmt-gradle + AGP 9 gap).
 - Tests focus on the presenter; mapping and the query builder are untested.
 
 ---
