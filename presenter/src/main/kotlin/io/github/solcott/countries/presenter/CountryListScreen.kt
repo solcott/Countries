@@ -13,11 +13,11 @@ import kotlinx.parcelize.Parcelize
 data object CountryListScreen : Screen {
 
   data class State(
-      val nameStartsWithText: TextFieldState,
-      val countriesState: ContentState<List<Country>>,
-      val continentsState: ContentState<List<Continent>>,
-      val selectedContinents: List<Continent>,
-      @Redacted val eventSink: (Event) -> Unit,
+    val nameStartsWithText: TextFieldState,
+    val countriesState: ContentState<List<Country>>,
+    val continentsState: ContentState<List<Continent>>,
+    val selectedContinents: List<Continent>,
+    @Redacted val eventSink: (Event) -> Unit,
   ) : CircuitUiState
 
   sealed interface Event : CircuitUiEvent {

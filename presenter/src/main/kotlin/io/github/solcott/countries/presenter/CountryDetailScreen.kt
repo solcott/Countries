@@ -11,8 +11,8 @@ import kotlinx.parcelize.Parcelize
 data class CountryDetailScreen(val code: String) : Screen {
 
   data class State(
-      val content: ContentState<CountryDetail?> = ContentState(data = null),
-      @Redacted val eventSink: (Event) -> Unit,
+    val content: ContentState<CountryDetail?> = ContentState(data = null),
+    @Redacted val eventSink: (Event) -> Unit,
   ) : CircuitUiState
 
   sealed interface Event : CircuitUiEvent {

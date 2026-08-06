@@ -13,20 +13,21 @@ import io.github.solcott.countries.model.Outcome
  * "updating" indicator.
  *
  * The model is agnostic to whether the source completes. A one-shot query, a cache watcher that
- * re-emits after local writes, and a subscription/SSE stream are all handled the same way: fold each
- * emission with [applyEmission], which settles [status] on every value rather than waiting for the
- * flow to end. That is what lets a never-completing stream still reach a settled, non-loading state.
+ * re-emits after local writes, and a subscription/SSE stream are all handled the same way: fold
+ * each emission with [applyEmission], which settles [status] on every value rather than waiting for
+ * the flow to end. That is what lets a never-completing stream still reach a settled, non-loading
+ * state.
  */
 data class ContentState<T>(
-    val data: T,
-    val origin: Origin? = null,
-    val status: LoadStatus = LoadStatus.Loading,
+  val data: T,
+  val origin: Origin? = null,
+  val status: LoadStatus = LoadStatus.Loading,
 )
 
 /**
  * Request activity for a [ContentState].
- * - [Loading] — a request or refresh is in flight; makes no assumption about where it will be served
- *   from (a fetch-policy detail the consumer must not depend on).
+ * - [Loading] — a request or refresh is in flight; makes no assumption about where it will be
+ *   served from (a fetch-policy detail the consumer must not depend on).
  * - [Idle] — settled; the held value is current. A live source may still replace it later with
  *   another emission, silently, without returning to [Loading].
  * - [Failed] — the most recent request failed; any previously loaded [ContentState.data] is kept,
@@ -52,17 +53,16 @@ val ContentState<*>.errorOrNull: DataError?
  * Folds a single [Outcome] into the running state.
  *
  * A [Outcome.Data] settles the state: it replaces the held value, records its origin, and moves
- * [status] to [LoadStatus.Idle] (also clearing a prior failure). Settling here — rather than on flow
- * completion — is what makes a continuously emitting source (cache watcher, subscription, SSE) work:
- * each pushed value is authoritative on arrival. An [Outcome.Error] records the failure while the
- * previously loaded data is kept on screen.
+ * [status] to [LoadStatus.Idle] (also clearing a prior failure). Settling here — rather than on
+ * flow completion — is what makes a continuously emitting source (cache watcher, subscription, SSE)
+ * work: each pushed value is authoritative on arrival. An [Outcome.Error] records the failure while
+ * the previously loaded data is kept on screen.
  */
 fun <T> ContentState<T>.applyEmission(outcome: Outcome<T>): ContentState<T> =
-    when (outcome) {
-      is Outcome.Data ->
-          copy(data = outcome.data, origin = outcome.origin, status = LoadStatus.Idle)
-      is Outcome.Error -> copy(status = LoadStatus.Failed(outcome.cause))
-    }
+  when (outcome) {
+    is Outcome.Data -> copy(data = outcome.data, origin = outcome.origin, status = LoadStatus.Idle)
+    is Outcome.Error -> copy(status = LoadStatus.Failed(outcome.cause))
+  }
 
 /**
  * Marks a fresh request as in flight while keeping any data already on screen. Call this when
@@ -77,4 +77,4 @@ fun <T> ContentState<T>.reloading(): ContentState<T> = copy(status = LoadStatus.
  * [applyEmission] instead, and a never-completing source never needs this.
  */
 fun <T> ContentState<T>.settled(): ContentState<T> =
-    if (status is LoadStatus.Loading) copy(status = LoadStatus.Idle) else this
+  if (status is LoadStatus.Loading) copy(status = LoadStatus.Idle) else this

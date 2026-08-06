@@ -30,26 +30,26 @@ import kotlinx.coroutines.flow.mapNotNull
 private const val TAG = "CountriesRepository"
 
 internal fun CountriesQuery.Country.toModel() =
-    Country(
-        code = code,
-        name = name,
-        emoji = emoji,
-        capital = capital,
-        continentName = continent.name,
-    )
+  Country(
+    code = code,
+    name = name,
+    emoji = emoji,
+    capital = capital,
+    continentName = continent.name,
+  )
 
 internal fun CountryDetailQuery.Country.toModel() =
-    CountryDetail(
-        code = code,
-        name = name,
-        nativeName = native,
-        emoji = emoji,
-        capital = capital,
-        currency = currency,
-        phone = phone,
-        continentName = continent.name,
-        languages = languages.map { Language(code = it.code, name = it.name) },
-    )
+  CountryDetail(
+    code = code,
+    name = name,
+    nativeName = native,
+    emoji = emoji,
+    capital = capital,
+    currency = currency,
+    phone = phone,
+    continentName = continent.name,
+    languages = languages.map { Language(code = it.code, name = it.name) },
+  )
 
 /**
  * Maps each Apollo response to a transport-agnostic [Outcome], tagged with the [Origin] it was
@@ -58,13 +58,13 @@ internal fun CountryDetailQuery.Country.toModel() =
  * result is handled upstream.
  */
 internal fun <T : Operation.Data, R> Flow<ApolloResponse<T>>.mapToOutcome(
-    mapSuccess: T.() -> R
+  mapSuccess: T.() -> R
 ): Flow<Outcome<R>> = mapNotNull { response ->
   val origin = if (response.isFromCache) Origin.Cache else Origin.Network
   val exception = response.exception
   when {
     response.hasErrors() ->
-        Outcome.Error(DataError.Api(response.errors.orEmpty().map { it.message }), origin)
+      Outcome.Error(DataError.Api(response.errors.orEmpty().map { it.message }), origin)
     exception is CacheMissException || exception is HttpCacheMissException -> null
     exception != null -> {
       Log.e(TAG, "Data request failed", exception)
@@ -76,11 +76,11 @@ internal fun <T : Operation.Data, R> Flow<ApolloResponse<T>>.mapToOutcome(
 
 /** Categorizes an [ApolloException] into the transport-agnostic [DataError] vocabulary. */
 private fun ApolloException.toDataError(): DataError =
-    when (this) {
-      is ApolloOfflineException,
-      is ApolloNetworkException -> DataError.Network
-      is ApolloHttpException -> DataError.Http(statusCode)
-      is JsonDataException,
-      is JsonEncodingException -> DataError.Serialization
-      else -> DataError.Unknown(cause = this, message = message)
-    }
+  when (this) {
+    is ApolloOfflineException,
+    is ApolloNetworkException -> DataError.Network
+    is ApolloHttpException -> DataError.Http(statusCode)
+    is JsonDataException,
+    is JsonEncodingException -> DataError.Serialization
+    else -> DataError.Unknown(cause = this, message = message)
+  }

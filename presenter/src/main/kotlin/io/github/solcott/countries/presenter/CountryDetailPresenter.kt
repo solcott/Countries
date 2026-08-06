@@ -21,24 +21,24 @@ import kotlinx.coroutines.flow.onEach
 @Inject
 @Composable
 fun CountryDetailPresenter(
-    screen: CountryDetailScreen,
-    navigator: Navigator,
-    repository: CountryRepository,
+  screen: CountryDetailScreen,
+  navigator: Navigator,
+  repository: CountryRepository,
 ): CountryDetailScreen.State {
   var reloadKey by retain { mutableIntStateOf(0) }
   val content by
-      produceRetainedState(
-          initialValue = ContentState<CountryDetail?>(data = null),
-          key1 = screen.code,
-          reloadKey,
-      ) {
-        repository
-            .countryAsFlow(screen.code)
-            .distinctUntilChanged()
-            .onEach { value = value.applyEmission(it) }
-            .onCompletion { cause -> if (cause == null) value = value.settled() }
-            .collect()
-      }
+    produceRetainedState(
+      initialValue = ContentState<CountryDetail?>(data = null),
+      key1 = screen.code,
+      reloadKey,
+    ) {
+      repository
+        .countryAsFlow(screen.code)
+        .distinctUntilChanged()
+        .onEach { value = value.applyEmission(it) }
+        .onCompletion { cause -> if (cause == null) value = value.settled() }
+        .collect()
+    }
 
   fun handle(event: CountryDetailScreen.Event) {
     when (event) {

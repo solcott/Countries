@@ -1,4 +1,5 @@
 package io.github.solcott.countries.ui.theme
+
 import androidx.compose.ui.graphics.Color
 
 val primaryLight = Color(0xFF6C538C)
@@ -216,10 +217,3 @@ val surfaceContainerLowDarkHighContrast = Color(0xFF211E24)
 val surfaceContainerDarkHighContrast = Color(0xFF332F35)
 val surfaceContainerHighDarkHighContrast = Color(0xFF3E3A40)
 val surfaceContainerHighestDarkHighContrast = Color(0xFF49454C)
-
-
-
-
-
-
-

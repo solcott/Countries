@@ -6,8 +6,9 @@ package io.github.solcott.countries.model
  *
  * An `Outcome` describes *one* value in what may be an unbounded stream. A source can keep emitting
  * over time — cache then network, a cache watcher re-emitting after a local write, or a
- * subscription/SSE stream pushing server-driven changes — and each change is just another `Outcome`.
- * Consumers fold successive emissions into their own state rather than treating any one as terminal.
+ * subscription/SSE stream pushing server-driven changes — and each change is just another
+ * `Outcome`. Consumers fold successive emissions into their own state rather than treating any one
+ * as terminal.
  *
  * Loading is deliberately *not* modeled here: it is a property of an in-flight request tracked by
  * the consumer, not of a settled value.

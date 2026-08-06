@@ -10,14 +10,14 @@ import io.github.solcott.countries.network.graphql.ContinentsQuery
 import kotlinx.coroutines.flow.Flow
 
 interface ContinentsApi {
-    fun continentsAsFlow(): Flow<ApolloResponse<ContinentsQuery.Data>>
+  fun continentsAsFlow(): Flow<ApolloResponse<ContinentsQuery.Data>>
 }
 
 @Inject
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 internal class ApolloContinentsApi(private val apolloClient: ApolloClient) : ContinentsApi {
-    override fun continentsAsFlow(): Flow<ApolloResponse<ContinentsQuery.Data>> {
-        return apolloClient.query(ContinentsQuery()).toFlow()
-    }
+  override fun continentsAsFlow(): Flow<ApolloResponse<ContinentsQuery.Data>> {
+    return apolloClient.query(ContinentsQuery()).toFlow()
+  }
 }

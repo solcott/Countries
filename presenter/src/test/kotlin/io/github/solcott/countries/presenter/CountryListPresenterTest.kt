@@ -24,45 +24,45 @@ import org.junit.Test
 class CountryListPresenterTest {
 
   private val canada =
-      Country(
-          code = "CA",
-          name = "Canada",
-          emoji = "🇨🇦",
-          capital = "Ottawa",
-          continentName = "North America",
-      )
+    Country(
+      code = "CA",
+      name = "Canada",
+      emoji = "🇨🇦",
+      capital = "Ottawa",
+      continentName = "North America",
+    )
   val egypt =
-      Country(
-          code = "EG",
-          emoji = "🇪🇬",
-          capital = "Cairo",
-          continentName = "Africa",
-          name = "Egypt",
-      )
+    Country(
+      code = "EG",
+      emoji = "🇪🇬",
+      capital = "Cairo",
+      continentName = "Africa",
+      name = "Egypt",
+    )
 
   val angola =
-      Country(
-          code = "AO",
-          emoji = "🇦🇴",
-          capital = "Luanda",
-          continentName = "Africa",
-          name = "Angola",
-      )
+    Country(
+      code = "AO",
+      emoji = "🇦🇴",
+      capital = "Luanda",
+      continentName = "Africa",
+      name = "Angola",
+    )
 
   val fiji =
-      Country(
-          code = "FJ",
-          emoji = "🇫🇯",
-          capital = "Suva",
-          continentName = "Oceania",
-          name = "Fiji",
-      )
+    Country(
+      code = "FJ",
+      emoji = "🇫🇯",
+      capital = "Suva",
+      continentName = "Oceania",
+      name = "Fiji",
+    )
 
   val africa =
-      Continent(
-          code = "AF",
-          name = "Africa",
-      )
+    Continent(
+      code = "AF",
+      name = "Africa",
+    )
 
   val oceania = Continent(code = "OC", name = "Oceania")
 
@@ -75,7 +75,7 @@ class CountryListPresenterTest {
   fun `loads countries and emits loaded state`() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository =
-        FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
+      FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
 
     val continentRepository = FakeContinentRepository()
 
@@ -93,22 +93,22 @@ class CountryListPresenterTest {
   fun `filter countries by name and continent`() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository =
-        FakeCountryRepository(
-            countriesAsFlow = { name, cs ->
-              if (name.startsWith("c") && cs.isEmpty()) {
-                flowOf(data(listOf(canada)))
-              } else if (name.startsWith("c") && cs.contains(europe.code)) {
-                flowOf(data(emptyList()))
-              } else if (name.startsWith("e") && cs.contains(africa.code)) {
-                flowOf(data(listOf(egypt)))
-              } else {
-                flowOf(data(countries))
-              }
-            }
-        )
+      FakeCountryRepository(
+        countriesAsFlow = { name, cs ->
+          if (name.startsWith("c") && cs.isEmpty()) {
+            flowOf(data(listOf(canada)))
+          } else if (name.startsWith("c") && cs.contains(europe.code)) {
+            flowOf(data(emptyList()))
+          } else if (name.startsWith("e") && cs.contains(africa.code)) {
+            flowOf(data(listOf(egypt)))
+          } else {
+            flowOf(data(countries))
+          }
+        }
+      )
 
     val continentRepository =
-        FakeContinentRepository(continentsAsFlow = { flowOf(data(continents)) })
+      FakeContinentRepository(continentsAsFlow = { flowOf(data(continents)) })
 
     presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
       val initial = awaitFullySettled()
@@ -134,7 +134,7 @@ class CountryListPresenterTest {
   fun `clicking a country navigates to detail`() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository =
-        FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
+      FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
 
     val continentRepository = FakeContinentRepository()
     presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
@@ -151,9 +151,9 @@ class CountryListPresenterTest {
   fun `surfaces country failures as error state`() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository =
-        FakeCountryRepository(
-            countriesAsFlow = { _, _ -> flowOf(Outcome.Error(DataError.Network, Origin.Network)) }
-        )
+      FakeCountryRepository(
+        countriesAsFlow = { _, _ -> flowOf(Outcome.Error(DataError.Network, Origin.Network)) }
+      )
 
     val continentRepository = FakeContinentRepository()
 
@@ -173,7 +173,7 @@ class CountryListPresenterTest {
     val repository = FakeCountryRepository()
 
     val continentRepository =
-        FakeContinentRepository(continentsAsFlow = { flowOf(data(listOf(europe))) })
+      FakeContinentRepository(continentsAsFlow = { flowOf(data(listOf(europe))) })
 
     presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
       assertTrue(awaitItem().continentsState.isLoading)
@@ -202,12 +202,14 @@ class CountryListPresenterTest {
   }
 
   private fun <T> data(value: T, origin: Origin = Origin.Network): Outcome<T> =
-      Outcome.Data(value, origin)
+    Outcome.Data(value, origin)
 }
 
-/** Drains emissions until the country content has settled (loaded or failed), returning that state. */
+/**
+ * Drains emissions until the country content has settled (loaded or failed), returning that state.
+ */
 private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitCountriesSettledState():
-    CountryListScreen.State {
+  CountryListScreen.State {
   while (true) {
     val state = awaitItem()
     if (state.countriesState.status !is LoadStatus.Loading) return state
@@ -215,10 +217,10 @@ private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitCountriesSettle
 }
 
 private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitCountriesSettled():
-    ContentState<List<Country>> = awaitCountriesSettledState().countriesState
+  ContentState<List<Country>> = awaitCountriesSettledState().countriesState
 
 private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitContinentsSettled():
-    ContentState<List<Continent>> {
+  ContentState<List<Continent>> {
   while (true) {
     val state = awaitItem()
     if (state.continentsState.status !is LoadStatus.Loading) return state.continentsState
@@ -227,12 +229,12 @@ private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitContinentsSettl
 
 /** Drains until both the country and continent content have settled. */
 private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitFullySettled():
-    CountryListScreen.State {
+  CountryListScreen.State {
   while (true) {
     val state = awaitItem()
     if (
-        state.countriesState.status !is LoadStatus.Loading &&
-            state.continentsState.status !is LoadStatus.Loading
+      state.countriesState.status !is LoadStatus.Loading &&
+        state.continentsState.status !is LoadStatus.Loading
     ) {
       return state
     }
@@ -240,24 +242,24 @@ private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitFullySettled():
 }
 
 class FakeCountryRepository(
-    private val countriesAsFlow:
-        (nameStartsWith: String, continentCodes: List<String>) -> Flow<Outcome<List<Country>>> =
-        { _, _ ->
-          emptyFlow()
-        },
-    private val countryAsFlow: (code: String) -> Flow<Outcome<CountryDetail?>> = { emptyFlow() },
+  private val countriesAsFlow:
+    (nameStartsWith: String, continentCodes: List<String>) -> Flow<Outcome<List<Country>>> =
+    { _, _ ->
+      emptyFlow()
+    },
+  private val countryAsFlow: (code: String) -> Flow<Outcome<CountryDetail?>> = { emptyFlow() },
 ) : CountryRepository {
   override fun countriesAsFlow(
-      nameStartsWith: String,
-      continentCodes: List<String>,
+    nameStartsWith: String,
+    continentCodes: List<String>,
   ): Flow<Outcome<List<Country>>> = countriesAsFlow.invoke(nameStartsWith, continentCodes)
 
   override fun countryAsFlow(code: String): Flow<Outcome<CountryDetail?>> =
-      countryAsFlow.invoke(code)
+    countryAsFlow.invoke(code)
 }
 
 class FakeContinentRepository(
-    private val continentsAsFlow: () -> Flow<Outcome<List<Continent>>> = { emptyFlow() }
+  private val continentsAsFlow: () -> Flow<Outcome<List<Continent>>> = { emptyFlow() }
 ) : ContinentRepository {
   override fun continentsAsFlow(): Flow<Outcome<List<Continent>>> = continentsAsFlow.invoke()
 }

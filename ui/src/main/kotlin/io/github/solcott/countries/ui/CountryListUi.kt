@@ -50,24 +50,22 @@ import io.github.solcott.countries.presenter.isLoading
 @Composable
 fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier) {
   Scaffold(
-      modifier = modifier,
-      topBar = {
-        CountriesTopAppBar()
-      },
+    modifier = modifier,
+    topBar = { CountriesTopAppBar() },
   ) { padding ->
     Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
-        contentAlignment = Alignment.Center,
+      modifier = Modifier.fillMaxSize().padding(padding),
+      contentAlignment = Alignment.Center,
     ) {
       val countriesState = state.countriesState
       val error = countriesState.errorOrNull
       when {
         countriesState.data.isEmpty() && countriesState.isLoading -> CircularProgressIndicator()
         countriesState.data.isEmpty() && error != null ->
-            ErrorContent(
-                message = error.toUserMessage(),
-                onRetry = { state.eventSink(CountryListScreen.Event.Retry) },
-            )
+          ErrorContent(
+            message = error.toUserMessage(),
+            onRetry = { state.eventSink(CountryListScreen.Event.Retry) },
+          )
         else -> CountriesList(state, countriesState, Modifier.fillMaxSize())
       }
     }
@@ -76,20 +74,20 @@ fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier)
 
 @Composable
 private fun CountriesList(
-    state: CountryListScreen.State,
-    countriesState: ContentState<List<Country>>,
-    modifier: Modifier = Modifier,
+  state: CountryListScreen.State,
+  countriesState: ContentState<List<Country>>,
+  modifier: Modifier = Modifier,
 ) {
   LazyColumn(modifier = modifier.fillMaxSize().imePadding()) {
     stickyHeader {
       SearchAndFilterHeader(
-          state.continentsState,
-          state.nameStartsWithText,
-          state.selectedContinents,
-          onToggleContinentSelection = { continent ->
-            state.eventSink(CountryListScreen.Event.ToggleContinentSelection(continent))
-          },
-          modifier = Modifier.animateItem()
+        state.continentsState,
+        state.nameStartsWithText,
+        state.selectedContinents,
+        onToggleContinentSelection = { continent ->
+          state.eventSink(CountryListScreen.Event.ToggleContinentSelection(continent))
+        },
+        modifier = Modifier.animateItem(),
       )
     }
     // Data is already on screen while a refresh runs (e.g. cache shown, network in flight) — keep
@@ -103,20 +101,16 @@ private fun CountriesList(
     if (countries.isNotEmpty()) {
       items(countries, key = Country::code, contentType = { "country" }) { country ->
         CountryRow(
-            country = country,
-            onClick = {
-              state.eventSink(CountryListScreen.Event.CountryClicked(country.code))
-            },
-            modifier = Modifier.animateItem()
+          country = country,
+          onClick = { state.eventSink(CountryListScreen.Event.CountryClicked(country.code)) },
+          modifier = Modifier.animateItem(),
         )
-        HorizontalDivider(modifier = Modifier.animateItem(), )
+        HorizontalDivider(modifier = Modifier.animateItem())
       }
     } else {
       item(key = "empty", "empty") {
         Box(Modifier.fillParentMaxSize().animateItem(), contentAlignment = Alignment.Center) {
-          Text(
-              stringResource(R.string.no_countries_found),
-          )
+          Text(stringResource(R.string.no_countries_found))
         }
       }
     }
@@ -126,13 +120,13 @@ private fun CountriesList(
 @Composable
 private fun RefreshingIndicator(modifier: Modifier = Modifier) {
   Row(
-      modifier =
-          modifier
-              .fillMaxWidth()
-              .background(MaterialTheme.colorScheme.surface)
-              .padding(horizontal = 16.dp, vertical = 8.dp),
-      horizontalArrangement = Arrangement.spacedBy(12.dp),
-      verticalAlignment = Alignment.CenterVertically,
+    modifier =
+      modifier
+        .fillMaxWidth()
+        .background(MaterialTheme.colorScheme.surface)
+        .padding(horizontal = 16.dp, vertical = 8.dp),
+    horizontalArrangement = Arrangement.spacedBy(12.dp),
+    verticalAlignment = Alignment.CenterVertically,
   ) {
     Text(stringResource(R.string.updating))
     LinearProgressIndicator(modifier = Modifier.weight(1f))
@@ -142,59 +136,58 @@ private fun RefreshingIndicator(modifier: Modifier = Modifier) {
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun SearchAndFilterHeader(
-    continentsState: ContentState<List<Continent>>,
-    nameStartsWithText: TextFieldState,
-    selectedContinents: List<Continent>,
-    onToggleContinentSelection: (Continent) -> Unit,
-    modifier: Modifier = Modifier
+  continentsState: ContentState<List<Continent>>,
+  nameStartsWithText: TextFieldState,
+  selectedContinents: List<Continent>,
+  onToggleContinentSelection: (Continent) -> Unit,
+  modifier: Modifier = Modifier,
 ) {
   var continentDropdownExpanded by remember { mutableStateOf(false) }
   Row(
-      modifier.fillMaxWidth()
-          .background(MaterialTheme.colorScheme.surface)
-          .padding(vertical = 8.dp, horizontal = 16.dp),
-      horizontalArrangement = Arrangement.spacedBy(16.dp),
+    modifier
+      .fillMaxWidth()
+      .background(MaterialTheme.colorScheme.surface)
+      .padding(vertical = 8.dp, horizontal = 16.dp),
+    horizontalArrangement = Arrangement.spacedBy(16.dp),
   ) {
     TextField(
-        nameStartsWithText,
-        placeholder = { Text(stringResource(R.string.search_by_name)) },
-        shape = MaterialTheme.shapes.extraSmall,
-        modifier = Modifier.weight(1f),
+      nameStartsWithText,
+      placeholder = { Text(stringResource(R.string.search_by_name)) },
+      shape = MaterialTheme.shapes.extraSmall,
+      modifier = Modifier.weight(1f),
     )
     val continents = continentsState.data
 
     if (continents.isNotEmpty()) {
 
       ExposedDropdownMenuBox(
-          continentDropdownExpanded,
-          onExpandedChange = { continentDropdownExpanded = it },
-          modifier = Modifier.align(Alignment.CenterVertically),
+        continentDropdownExpanded,
+        onExpandedChange = { continentDropdownExpanded = it },
+        modifier = Modifier.align(Alignment.CenterVertically),
       ) {
-        IconButton(
-            onClick = { continentDropdownExpanded = !continentDropdownExpanded },
-        ) {
+        IconButton(onClick = { continentDropdownExpanded = !continentDropdownExpanded }) {
           Icon(
-              painterResource(R.drawable.filter_list_24px),
-              contentDescription = stringResource(R.string.filter),
+            painterResource(R.drawable.filter_list_24px),
+            contentDescription = stringResource(R.string.filter),
           )
         }
         ExposedDropdownMenu(
-            expanded = continentDropdownExpanded,
-            onDismissRequest = { continentDropdownExpanded = false },
-            modifier = Modifier.width(200.dp),
+          expanded = continentDropdownExpanded,
+          onDismissRequest = { continentDropdownExpanded = false },
+          modifier = Modifier.width(200.dp),
         ) {
           continents.forEach { continent ->
             DropdownMenuItem(
-                text = { Text(continent.name) },
-                onClick = {
-                  continentDropdownExpanded = false
-                  onToggleContinentSelection(continent)
-                },
-                trailingIcon = {
-                  if (selectedContinents.contains(continent)) {
-                    Icon(painterResource(R.drawable.check_small_24px), "Checked")
-                  }
-                },
+              text = { Text(continent.name) },
+              onClick = {
+                continentDropdownExpanded = false
+                onToggleContinentSelection(continent)
+              },
+              trailingIcon = {
+                if (selectedContinents.contains(continent)) {
+                  Icon(painterResource(R.drawable.check_small_24px), "Checked")
+                }
+              },
             )
           }
         }
@@ -206,9 +199,9 @@ private fun SearchAndFilterHeader(
 @Composable
 private fun CountryRow(country: Country, onClick: () -> Unit, modifier: Modifier = Modifier) {
   Row(
-      modifier = modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp),
-      horizontalArrangement = Arrangement.spacedBy(16.dp),
-      verticalAlignment = Alignment.CenterVertically,
+    modifier = modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp),
+    horizontalArrangement = Arrangement.spacedBy(16.dp),
+    verticalAlignment = Alignment.CenterVertically,
   ) {
     Text(country.emoji)
     Column(modifier = Modifier.weight(1f)) {

@@ -1,7 +1,6 @@
 package io.github.solcott.countries
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,14 +19,14 @@ class MainActivity : AppCompatActivity() {
     val circuit = (application as CountriesApplication).graph.circuit
 
     setContent {
-          AppTheme {
+      AppTheme {
         val backStack = rememberSaveableBackStack(root = CountryListScreen)
         val navigator = rememberCircuitNavigator(backStack)
         CircuitCompositionLocals(circuit) {
           NavigableCircuitContent(
-              navigator = navigator,
-              backStack = backStack,
-              Modifier.fillMaxSize(),
+            navigator = navigator,
+            backStack = backStack,
+            Modifier.fillMaxSize(),
           )
         }
       }

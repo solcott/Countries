@@ -29,26 +29,26 @@ import io.github.solcott.countries.ui.databinding.ViewCountryDetailBinding
  */
 @CircuitInject(CountryDetailScreen::class, AppScope::class)
 @Composable
-fun CountryDetailUi(state: CountryDetailScreen.State, screen: CountryDetailScreen, modifier: Modifier = Modifier) {
+fun CountryDetailUi(
+  state: CountryDetailScreen.State,
+  screen: CountryDetailScreen,
+  modifier: Modifier = Modifier,
+) {
   Scaffold(
-      modifier = Modifier.fillMaxSize(),
-      topBar = {
-        CountriesTopAppBar(
-            navigationIcon = {
-              IconButton(
-                  { state.eventSink(CountryDetailScreen.Event.BackClicked) },
-              ) {
-                Icon(painterResource(R.drawable.arrow_back_24px), contentDescription = "Back")
-              }
-            },
-        )
-      },
+    modifier = Modifier.fillMaxSize(),
+    topBar = {
+      CountriesTopAppBar(
+        navigationIcon = {
+          IconButton({ state.eventSink(CountryDetailScreen.Event.BackClicked) }) {
+            Icon(painterResource(R.drawable.arrow_back_24px), contentDescription = "Back")
+          }
+        }
+      )
+    },
   ) { innerPadding ->
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(innerPadding),
-        contentAlignment = Alignment.Center,
+      modifier = modifier.fillMaxSize().padding(innerPadding),
+      contentAlignment = Alignment.Center,
     ) {
       val content = state.content
       val country = content.data
@@ -56,37 +56,37 @@ fun CountryDetailUi(state: CountryDetailScreen.State, screen: CountryDetailScree
       when {
         country == null && content.isLoading -> CircularProgressIndicator()
         country == null && error != null ->
-            ErrorContent(
-                message = error.toUserMessage(),
-                onRetry = { state.eventSink(CountryDetailScreen.Event.Retry) },
-            )
+          ErrorContent(
+            message = error.toUserMessage(),
+            onRetry = { state.eventSink(CountryDetailScreen.Event.Retry) },
+          )
         content.isNotFound -> {
           Text(stringResource(R.string.country_with_code_not_found, screen.code))
         }
         else -> {
           AndroidView(
-              modifier = Modifier.fillMaxSize(),
-              factory = { context ->
-                ViewCountryDetailBinding.inflate(LayoutInflater.from(context)).root
-              },
-              update = { root ->
-                val context = root.context
-                val country = checkNotNull(country)
-                with(ViewCountryDetailBinding.bind(root)) {
-                  flag.text = country.emoji
-                  name.text = country.name
-                  nativeName.text = country.nativeName
-                  capital.text = context.getString(R.string.capital, country.capital ?: "—")
-                  continent.text = context.getString(R.string.continent, country.continentName)
-                  currency.text = context.getString(R.string.currency, country.currency ?: "—")
-                  phone.text = context.getString(R.string.calling_code, country.phone)
-                  languages.text =
-                      context.getString(
-                          R.string.languages,
-                          country.languages.joinToString { language -> language.name },
-                      )
-                }
-              },
+            modifier = Modifier.fillMaxSize(),
+            factory = { context ->
+              ViewCountryDetailBinding.inflate(LayoutInflater.from(context)).root
+            },
+            update = { root ->
+              val context = root.context
+              val country = checkNotNull(country)
+              with(ViewCountryDetailBinding.bind(root)) {
+                flag.text = country.emoji
+                name.text = country.name
+                nativeName.text = country.nativeName
+                capital.text = context.getString(R.string.capital, country.capital ?: "—")
+                continent.text = context.getString(R.string.continent, country.continentName)
+                currency.text = context.getString(R.string.currency, country.currency ?: "—")
+                phone.text = context.getString(R.string.calling_code, country.phone)
+                languages.text =
+                  context.getString(
+                    R.string.languages,
+                    country.languages.joinToString { language -> language.name },
+                  )
+              }
+            },
           )
         }
       }
