@@ -12,6 +12,7 @@ query Countries($filter: CountryFilterInput) {
     emoji
     capital
     continent {
+      code
       name
     }
   }

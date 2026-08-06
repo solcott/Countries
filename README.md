@@ -46,6 +46,16 @@ Then launch the **Countries** app from the launcher, or:
 adb shell am start -n io.github.solcott.countries/.MainActivity
 ```
 
+### Cleaner `git blame`
+
+Bulk formatting commits are listed in [`.git-blame-ignore-revs`](.git-blame-ignore-revs) so
+they don't obscure real authorship. GitHub honors this file automatically; for local
+`git blame` (and IDE blame), opt in once per clone:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 ## Architecture at a glance
 
 Six Gradle modules, dependencies flowing strictly downward:
@@ -84,11 +94,6 @@ design, the testing strategy, and an AI-usage note.
   first thing I would invest more time in.
 - **Caching is per-query-arguments.** Each distinct filter is its own normalized-cache
   entry, so offline/repeat benefits apply only to *identical* filters, not arbitrary ones.
-- **ktfmt does not currently format the Android modules' Kotlin sources.** ktfmt-gradle
-  0.26 doesn't detect AGP 9's built-in Kotlin, so per-source-set format/check tasks are
-  only created for the pure-Kotlin `model` module. Fix is pending upstream
-  ([ktfmt-gradle#…](https://github.com/cortinico/ktfmt-gradle)); formatting is effectively
-  unenforced on the Android modules until then.
 - **Test coverage is deliberately narrow** (see the testing notes) — presenter/state logic
   only; mapping and the filter query builder are not yet covered.
 

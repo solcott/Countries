@@ -16,12 +16,9 @@ interface NetworkProviders {
   @Provides
   @SingleIn(AppScope::class)
   fun provideApolloClient(): ApolloClient {
-      val sqlNormalizedCacheFactory = SqlNormalizedCacheFactory("countries.db")
-      val cacheFactory = MemoryCacheFactory(maxSizeBytes = 10 * 1024 * 1024).chain(sqlNormalizedCacheFactory)
-      return ApolloClient.Builder()
-          .serverUrl(COUNTRIES_ENDPOINT)
-          .cache(cacheFactory)
-          .build()
+    val sqlNormalizedCacheFactory = SqlNormalizedCacheFactory("countries.db")
+    val cacheFactory =
+      MemoryCacheFactory(maxSizeBytes = 10 * 1024 * 1024).chain(sqlNormalizedCacheFactory)
+    return ApolloClient.Builder().serverUrl(COUNTRIES_ENDPOINT).cache(cacheFactory).build()
   }
-
 }

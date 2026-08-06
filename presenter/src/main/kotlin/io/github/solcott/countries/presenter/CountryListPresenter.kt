@@ -16,86 +16,83 @@ import com.slack.circuit.runtime.Navigator
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import io.github.solcott.countries.model.Continent
-import io.github.solcott.countries.model.Response
 import io.github.solcott.countries.repository.ContinentRepository
 import io.github.solcott.countries.repository.CountryRepository
 import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
 
-@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+@OptIn(FlowPreview::class)
 @CircuitInject(CountryListScreen::class, AppScope::class)
 @Inject
 @Composable
 fun CountryListPresenter(
-    navigator: Navigator,
-    repository: CountryRepository,
-    continentRepository: ContinentRepository,
+  navigator: Navigator,
+  repository: CountryRepository,
+  continentRepository: ContinentRepository,
 ): CountryListScreen.State {
   var reloadKey by retain { mutableIntStateOf(0) }
   val nameStartsWithText = rememberTextFieldState()
   val selectedContinents: SnapshotStateList<Continent> = rememberSaveable { mutableStateListOf() }
-  val countriesLoadState by
-      produceRetainedState(initialValue = CountriesState(loading = true), key1 = reloadKey) {
-        combine(
-                snapshotFlow { nameStartsWithText.text }.debounce(300.milliseconds),
-                snapshotFlow { selectedContinents.toList() },
-            ) { nameStartsWithText, continents ->
-              Pair(nameStartsWithText, continents)
-            }
-            .transformLatest { latest ->
-                emitAll(
-                  repository
-                      .countriesAsFlow(latest.first.toString(), latest.second.map { it.code })
-                      .distinctUntilChanged()
-              )
-            }
-            .collect { countriesResponse ->
-              value =
-                  CountriesState(
-                      loading = countriesResponse.isLoading,
-                      data = (countriesResponse as? Response.Data)?.data.orEmpty(),
-                      error = countriesResponse.isError,
-                      errorMessage = (countriesResponse as? Response.Error)?.message,
-                  )
-            }
-      }
-  val continentsState by
-      produceRetainedState(initialValue = ContinentsState(loading = true), key1 = reloadKey) {
-        continentRepository.continentsAsFlow().distinctUntilChanged().collect {
-          value =
-              ContinentsState(
-                  loading = it.isLoading,
-                  data = (it as? Response.Data)?.data.orEmpty(),
-                  error = it.isError,
-                  errorMessage = (it as? Response.Error)?.message,
-              )
+  val countriesState by
+    produceRetainedState(
+      initialValue = ContentState(data = emptyList()),
+      key1 = reloadKey,
+    ) {
+      combine(
+          snapshotFlow { nameStartsWithText.text }.debounce(300.milliseconds),
+          snapshotFlow { selectedContinents.toList() },
+        ) { name, continents ->
+          name to continents
         }
-      }
+        .collectLatest { (name, continents) ->
+          // A new filter starts a fresh request: keep the current list visible but flag loading.
+          value = value.reloading()
+          repository
+            .countriesAsFlow(name.toString(), continents.map { it.code })
+            .distinctUntilChanged()
+            .onEach { value = value.applyEmission(it) }
+            .onCompletion { cause -> if (cause == null) value = value.settled() }
+            .collect()
+        }
+    }
+  val continentsState by
+    produceRetainedState(
+      initialValue = ContentState(data = emptyList()),
+      key1 = reloadKey,
+    ) {
+      continentRepository
+        .continentsAsFlow()
+        .distinctUntilChanged()
+        .onEach { value = value.applyEmission(it) }
+        .onCompletion { cause -> if (cause == null) value = value.settled() }
+        .collect()
+    }
 
   fun handle(event: CountryListScreen.Event) {
     when (event) {
       is CountryListScreen.Event.CountryClicked -> navigator.goTo(CountryDetailScreen(event.code))
       CountryListScreen.Event.Retry -> reloadKey++
-      is CountryListScreen.Event.ToggleContinentSelection ->{
-          if(selectedContinents.contains(event.continent)){
-              selectedContinents.remove(event.continent)
-          } else {
-              selectedContinents.add(event.continent)
-          }
+      is CountryListScreen.Event.ToggleContinentSelection -> {
+        if (selectedContinents.contains(event.continent)) {
+          selectedContinents.remove(event.continent)
+        } else {
+          selectedContinents.add(event.continent)
+        }
       }
     }
   }
   return CountryListScreen.State(
-      nameStartsWithText = nameStartsWithText,
-      countriesState = countriesLoadState,
-      continentsState = continentsState,
-      selectedContinents = selectedContinents,
-      eventSink = ::handle,
+    nameStartsWithText = nameStartsWithText,
+    countriesState = countriesState,
+    continentsState = continentsState,
+    selectedContinents = selectedContinents,
+    eventSink = ::handle,
   )
 }

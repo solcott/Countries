@@ -14,30 +14,30 @@ import androidx.compose.ui.res.stringResource
 
 @Composable
 fun CountriesTopAppBar(
-    modifier: Modifier = Modifier,
-    navigationIcon: @Composable () -> Unit = {
-      IconButton(
-          {},
-          enabled = false,
-          colors =
-              IconButtonDefaults.iconButtonColors(
-                  disabledContentColor = MaterialTheme.colorScheme.onPrimary
-              ),
-      ) {
-        Icon(painterResource(R.drawable.home_24px), contentDescription = "Home")
-      }
-    },
+  modifier: Modifier = Modifier,
+  navigationIcon: @Composable () -> Unit = {
+    IconButton(
+      {},
+      enabled = false,
+      colors =
+        IconButtonDefaults.iconButtonColors(
+          disabledContentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+    ) {
+      Icon(painterResource(R.drawable.home_24px), contentDescription = "Home")
+    }
+  },
 ) {
   TopAppBar(
-      title = { Text(stringResource(R.string.countries)) },
-      colors =
-          TopAppBarDefaults.topAppBarColors(
-              containerColor = MaterialTheme.colorScheme.primary,
-              titleContentColor = MaterialTheme.colorScheme.onPrimary,
-              navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-              actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-          ),
-      navigationIcon = navigationIcon,
-      modifier = modifier
+    title = { Text(stringResource(R.string.countries)) },
+    colors =
+      TopAppBarDefaults.topAppBarColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        titleContentColor = MaterialTheme.colorScheme.onPrimary,
+        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+        actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+      ),
+    navigationIcon = navigationIcon,
+    modifier = modifier,
   )
 }

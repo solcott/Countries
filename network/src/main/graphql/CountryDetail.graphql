@@ -8,6 +8,7 @@ query CountryDetail($code: ID!) {
     currency
     phone
     continent {
+      code
       name
     }
     languages {

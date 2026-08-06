@@ -4,5 +4,5 @@ import android.app.Application
 import dev.zacsweers.metro.createGraph
 
 class CountriesApplication : Application() {
-    val graph: AppGraph by lazy { createGraph<AppGraph>() }
+  val graph: AppGraph by lazy { createGraph<AppGraph>() }
 }

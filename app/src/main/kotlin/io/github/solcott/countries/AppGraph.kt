@@ -12,17 +12,16 @@ import dev.zacsweers.metro.SingleIn
 @DependencyGraph(AppScope::class)
 interface AppGraph {
 
-    val circuit: Circuit
+  val circuit: Circuit
 
-    /**
-     * Presenter and UI factories are contributed as multibindings by Metro's @CircuitInject codegen
-     * in :presenter and :ui — this just assembles them.
-     */
-    @Provides
-      fun provideCircuit(
-        presenterFactories: Set<Presenter.Factory>, uiFactories: Set<Ui.Factory>,
-    ): Circuit =
-        Circuit.Builder().addPresenterFactories(presenterFactories)
-            .addUiFactories(uiFactories)
-            .build()
+  /**
+   * Presenter and UI factories are contributed as multibindings by Metro's @CircuitInject codegen
+   * in :presenter and :ui — this just assembles them.
+   */
+  @Provides
+  fun provideCircuit(
+    presenterFactories: Set<Presenter.Factory>,
+    uiFactories: Set<Ui.Factory>,
+  ): Circuit =
+    Circuit.Builder().addPresenterFactories(presenterFactories).addUiFactories(uiFactories).build()
 }
