@@ -14,6 +14,7 @@ https://countries.trevorblades.com/ and displays them.
 | Dependency injection | [Metro](https://zacsweers.github.io/metro/) |
 | Multiplatform | Kotlin Multiplatform (migration in progress — see below) |
 | Parcelable | [kmp-parcelize](https://github.com/solcott/kmp-parcelize) for `@Parcelize` in common code |
+| Logging | [Kermit](https://kermit.touchlab.co/) (`co.touchlab:kermit`) |
 | Formatting | ktfmt via the `com.ncorti.ktfmt.gradle` plugin |
 | Testing | JUnit + Turbine |
 | Build | Gradle with a version catalog (`gradle/libs.versions.toml`) |
@@ -26,7 +27,7 @@ The project is **migrating to Kotlin Multiplatform**, one module at a time, bott
 `model` → `network` → `repository` → `presenter` → `ui`. `app` stays an Android
 application module.
 
-Migrated so far: **`model`**, **`network`**.
+Migrated so far: **`model`**, **`network`**, **`repository`**.
 
 Supported targets, declared once in the `kmp-library` convention plugin:
 
@@ -58,6 +59,8 @@ Rules for migrated modules:
   are available without any per-module wiring: **`appleMain`** (ios + macos),
   **`webMain`** (js + wasmJs), `nativeMain`. There is deliberately no android+jvm group —
   write those two actuals separately.
+- **Log through Kermit, never `android.util.Log`** — it does not exist in `commonMain`. Take
+  Kermit as an `implementation` dependency; a `Logger` should not appear in a module's public API.
 
 `library.gradle.kts` is the legacy Android-only convention; it is retired once the last
 module migrates.
@@ -186,3 +189,50 @@ Regenerate it with `./gradlew kotlinUpgradeYarnLock` rather than editing it.
 
 `ktfmtCheck` at the root does not cover `build-logic` — that is a separate included build.
 Run it from inside `build-logic/` to check the convention plugins.
+
+### Logging
+
+**Never reach for `Logger` as a global, and never hold one in a file-level `private val`.** The
+root `Logger` is provided by the Metro graph in `AppGraph.provideLogger` and **injected** —
+classes take it as a constructor parameter, free functions take it as a parameter:
+
+```kotlin
+internal class CountryRepositoryImpl(private val api: CountriesApi, logger: Logger) {
+  private val logger = logger.withTag("CountryRepository")
+}
+
+internal fun <T, R> Flow<ApolloResponse<T>>.mapToOutcome(logger: Logger, …)
+```
+
+Two reasons this matters:
+
+- **Testability.** Injected loggers can be asserted on with `co.touchlab:kermit-test`'s
+  `TestLogWriter` — see `MappersTest`, which pins that failures are logged with their throwable
+  and that cache misses and GraphQL errors are *not*. A file-level logger makes that untestable.
+- **Global configuration.** Kermit extensions (`kermit-crashlytics`, `kermit-ktor`, …) are
+  configured once, on the root logger. Every module that injects it picks those writers up
+  automatically; a module that grabs `Logger` statically would not.
+
+Re-tag with `withTag` per class so log output stays filterable. `TestLogWriter` and `TestConfig`
+are `@ExperimentalKermitApi`, so test classes using them need
+`@OptIn(ExperimentalKermitApi::class)`.
+
+### Testing KMP modules
+
+Tests go in `src/commonTest/kotlin` and run on **every** target — `:repository:allTests`
+currently drives eight runners: `jvmTest`, `testAndroidHostTest`, `jsNodeTest`,
+`jsBrowserTest`, `wasmJsNodeTest`, `wasmJsBrowserTest`, `macosArm64Test` and
+`iosSimulatorArm64Test`. `kotlin("test")` is wired into `commonTest` by the convention plugin;
+add `libs.kotlinx.coroutines.test` per module if you need `runTest`.
+
+Consequences worth knowing before you add the first test to a module:
+
+- The browser runners need **Chrome** installed; the Apple runners need **Xcode**, and
+  `iosSimulatorArm64Test` boots a simulator.
+- Use camelCase test names, not backticked names with spaces — that is the portable choice
+  across the JS and native runners.
+- Adding tests can change `kotlin-js-store/yarn.lock`, because the JS test link pulls in
+  packages the main compilation did not. If a build fails with "Lock file was changed", run
+  `./gradlew kotlinUpgradeYarnLock` and commit the result.
+- JUnit is JVM-only. Do not add `testImplementation(libs.junit)` to a migrated module; use
+  `kotlin.test` assertions instead.

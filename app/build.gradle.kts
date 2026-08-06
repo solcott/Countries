@@ -29,6 +29,8 @@ dependencies {
 
   implementation(libs.circuit.foundation)
   implementation(libs.apollo.runtime)
+  // The app owns the root Kermit config that every module injects. See AppGraph.provideLogger.
+  implementation(libs.kermit)
 
   implementation(libs.androidx.appcompat)
   implementation(libs.androidx.core.ktx)

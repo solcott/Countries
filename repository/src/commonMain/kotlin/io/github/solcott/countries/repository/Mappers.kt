@@ -1,6 +1,6 @@
 package io.github.solcott.countries.repository
 
-import android.util.Log
+import co.touchlab.kermit.Logger
 import com.apollographql.apollo.api.ApolloResponse
 import com.apollographql.apollo.api.Operation
 import com.apollographql.apollo.exception.ApolloException
@@ -27,8 +27,6 @@ import kotlinx.coroutines.flow.mapNotNull
  * Mapping from Apollo generated types to `model` types. This file is the only place generated
  * GraphQL classes are allowed to appear alongside domain types.
  */
-private const val TAG = "CountriesRepository"
-
 internal fun CountriesQuery.Country.toModel() =
   Country(
     code = code,
@@ -56,9 +54,13 @@ internal fun CountryDetailQuery.Country.toModel() =
  * served from. Cache-miss responses are dropped rather than surfaced as errors: under a
  * cache-then-network policy a network response follows, and under a cache-only lookup the empty
  * result is handled upstream.
+ *
+ * [logger] is a parameter rather than a file-level singleton so callers inject their own tagged
+ * instance and tests can assert on what was logged with a `TestLogWriter`.
  */
 internal fun <T : Operation.Data, R> Flow<ApolloResponse<T>>.mapToOutcome(
-  mapSuccess: T.() -> R
+  logger: Logger,
+  mapSuccess: T.() -> R,
 ): Flow<Outcome<R>> = mapNotNull { response ->
   val origin = if (response.isFromCache) Origin.Cache else Origin.Network
   val exception = response.exception
@@ -67,7 +69,7 @@ internal fun <T : Operation.Data, R> Flow<ApolloResponse<T>>.mapToOutcome(
       Outcome.Error(DataError.Api(response.errors.orEmpty().map { it.message }), origin)
     exception is CacheMissException || exception is HttpCacheMissException -> null
     exception != null -> {
-      Log.e(TAG, "Data request failed", exception)
+      logger.e(exception) { "Data request failed" }
       Outcome.Error(exception.toDataError(), origin)
     }
     else -> Outcome.Data(response.dataOrThrow().mapSuccess(), origin)

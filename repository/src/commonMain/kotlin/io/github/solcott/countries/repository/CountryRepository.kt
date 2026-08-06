@@ -1,5 +1,6 @@
 package io.github.solcott.countries.repository
 
+import co.touchlab.kermit.Logger
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -26,16 +27,18 @@ interface CountryRepository {
 @Inject
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
-internal class CountryRepositoryImpl(private val api: CountriesApi) : CountryRepository {
+internal class CountryRepositoryImpl(private val api: CountriesApi, logger: Logger) :
+  CountryRepository {
+  private val logger = logger.withTag("CountryRepository")
 
   override fun countriesAsFlow(
     nameStartsWith: String,
     continentCodes: List<String>,
   ): Flow<Outcome<List<Country>>> =
-    api.countriesAsFlow(nameStartsWith, continentCodes).mapToOutcome {
+    api.countriesAsFlow(nameStartsWith, continentCodes).mapToOutcome(logger) {
       countries.map { country -> country.toModel() }
     }
 
   override fun countryAsFlow(code: String): Flow<Outcome<CountryDetail?>> =
-    api.countryAsFlow(code).mapToOutcome { country?.toModel() }
+    api.countryAsFlow(code).mapToOutcome(logger) { country?.toModel() }
 }

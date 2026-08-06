@@ -27,6 +27,9 @@ lifecycle = "2.11.0"
 
 coroutines = "1.11.0"
 
+# Multiplatform logging. Logcat on Android, NSLog on Apple, console on js/wasm — no init needed.
+kermit = "2.1.0"
+
 # Test
 junit = "4.13.2"
 turbine = "1.2.1"
@@ -61,6 +64,10 @@ apollo-api = { module = "com.apollographql.apollo:apollo-api", version.ref = "ap
 apollo-normalized-cache = { module = "com.apollographql.cache:normalized-cache", version.ref = "apollo-normalized-cache" }
 apollo-normalized-cache-sqlite = { module = "com.apollographql.cache:normalized-cache-sqlite", version.ref = "apollo-normalized-cache" }
 apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
+
+# Logging
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+kermit-test = { module = "co.touchlab:kermit-test", version.ref = "kermit" }
 
 # Coroutines
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }

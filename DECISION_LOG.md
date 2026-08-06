@@ -144,12 +144,47 @@ is two npm packages on `jsMain`/`wasmJsMain`, pinned to SQLDelight 2.1.0 because
 need a webpack step to copy the `.wasm`; a library module does not, so that is deferred rather than
 guessed at.
 
+**`repository`: one import, and the first real test suite.** The entire module was one line away
+from `commonMain` — `android.util.Log` in `Mappers.kt`. Everything else it touches (Apollo's
+response and exception types, `isFromCache`, coroutines, Metro) was already multiplatform, so
+unlike `network` this module ended up with **no `expect`/`actual` at all** and no platform source
+sets.
+
+Logging moved to [Kermit](https://kermit.touchlab.co/). An `expect`/`actual` logger would have
+avoided the dependency, but it is five files hand-rolling a logging library for a single call
+site, and the next module needing logging would either duplicate it or take a dependency on
+`repository`. Dropping the log line was tempting — the exception already reaches the presenter
+inside `DataError.Unknown(cause, message)` — but silently deleting diagnostics during a migration
+is exactly the kind of change nobody notices going wrong.
+
+**The logger is injected, not global.** `mapToOutcome` takes a `Logger` parameter, the repository
+implementations take one through their Metro constructors and re-tag it per class, and the root
+`Logger` is provided once by the graph. The obvious shortcut — a file-level
+`private val logger = Logger.withTag(…)` — is what this replaced, and it fails on both counts that
+matter. It makes logging untestable, whereas an injected logger can be driven by a `TestLogWriter`:
+`MappersTest` now pins that a failure is logged *with its throwable* and, more usefully, that cache
+misses and GraphQL errors are deliberately **not** logged — behaviour that is easy to break
+silently. And it bypasses global configuration: Kermit's extensions (`kermit-crashlytics`,
+`kermit-ktor`) attach writers to a configured root logger, so anything reaching for a static
+`Logger` would quietly miss crash reporting.
+
+The migration was also the moment to close the "mapping is untested" gap listed below.
+`mapToOutcome` and `toDataError` are pure functions over Apollo types, and everything needed to
+test them turns out to be public API: `ApolloResponse.Builder` is constructible directly, and
+`isFromCache` reads a `CacheInfo` execution-context element that a test can attach itself — so
+`Origin` tagging is testable without a real normalized cache. The resulting 18 tests live in
+`commonTest` and run on all eight platform test runners, which is the first time this project has
+exercised its KMP test infrastructure at all: the previous two modules had `commonTest` wired but
+empty, so every runner had been reporting `NO-SOURCE`.
+
 ## What tradeoffs did I make due to time constraints?
 
 - Minimal error handling/presentation (generic messages, swallowed cache misses).
 - Normalized caching (memory → SQLite) was added but not deeply tuned; first launch still
   hits the network, and cache hits are per-exact-filter.
-- Tests focus on the presenter; mapping and the query builder are untested.
+- ~~Tests focus on the presenter; mapping and the query builder are untested.~~ Mapping is now
+  covered (`repository/src/commonTest`, running on all eight platform runners). The query builder
+  in `network` — `asStartsWithOperator` and friends — is still untested.
 
 ---
 

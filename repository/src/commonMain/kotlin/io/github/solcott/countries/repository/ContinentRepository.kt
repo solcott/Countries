@@ -1,5 +1,6 @@
 package io.github.solcott.countries.repository
 
+import co.touchlab.kermit.Logger
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -17,8 +18,13 @@ interface ContinentRepository {
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 @Inject
-internal class ContinentRepositoryImpl(private val api: ContinentsApi) : ContinentRepository {
+internal class ContinentRepositoryImpl(private val api: ContinentsApi, logger: Logger) :
+  ContinentRepository {
+  private val logger = logger.withTag("ContinentRepository")
+
   override fun continentsAsFlow(): Flow<Outcome<List<Continent>>> {
-    return api.continentsAsFlow().mapToOutcome { continents.map { Continent(it.code, it.name) } }
+    return api.continentsAsFlow().mapToOutcome(logger) {
+      continents.map { Continent(it.code, it.name) }
+    }
   }
 }
