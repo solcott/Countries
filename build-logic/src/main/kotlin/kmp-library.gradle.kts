@@ -17,6 +17,10 @@ val moduleNamespace = "io.github.solcott.countries.${project.name.replace('-', '
 val jvmBytecodeTarget = JvmTarget.fromTarget(Versions.TARGET_COMPATIBILITY.toString())
 
 kotlin {
+  // Applied implicitly by KGP, but stated here because modules depend on the intermediate source
+  // sets it creates: `appleMain` (ios + macos), `webMain` (js + wasmJs), `nativeMain`.
+  applyDefaultHierarchyTemplate()
+
   jvmToolchain(Versions.JVM_TOOLCHAIN)
 
   android {

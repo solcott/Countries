@@ -117,6 +117,33 @@ failing, preserving the same "everything resolves from settings" guarantee. The 
 repositories are declared in `settings.gradle.kts` with `content { includeModule(...) }` filters
 so each can only ever serve the one artifact it exists for.
 
+**`network`: how much of Apollo actually survives the jump.** More than expected. All four Apollo
+artifacts in use — `apollo-runtime`, `apollo-api`, `normalized-cache` and `normalized-cache-sqlite`
+— publish every one of the seven targets, `wasm-js` included. The Apollo Gradle plugin detects the
+KMP plugin itself, reads operations from `src/commonMain/graphql` and attaches generated code to
+`commonMain`, and adds `-lsqlite3` to native binaries once it sees the SQLite cache dependency. So
+`ContinentsApi.kt` and `CountriesApi.kt` moved without a single edit, and the build file needed no
+Apollo source wiring. The migration was a directory move plus a dependency-block reshape.
+
+**Why `platformConfiguration()` rather than a nullable cache factory.** `SqlNormalizedCacheFactory`
+is itself an `expect` function inside Apollo, so `SqlNormalizedCacheFactory("countries.db")` in fact
+compiles on every target — the cache did not *have* to become a platform seam at all. It became one
+anyway, as an `expect fun ApolloClient.Builder.platformConfiguration()`, for two reasons. The web
+actual is genuinely different: it passes no name, because SQLDelight's worker owns storage and the
+name is discarded, and that is worth stating in code rather than hiding behind an argument that
+silently does nothing. And it gives per-platform HTTP engines, interceptors and cache sizing a
+declared home before they are needed. What does *not* vary — the endpoint, the in-memory tier, the
+Metro provider — stays in `commonMain`, with a shared `memoryCacheBackedBy` helper so the four
+actuals are one line each.
+
+**Why real SQL.js persistence on web rather than memory-only.** Memory-only would have been two
+lines and no npm dependencies, but it would have made web the one platform that silently forgets
+everything on reload — a difference that shows up as a bug report, not as a build failure. The cost
+is two npm packages on `jsMain`/`wasmJsMain`, pinned to SQLDelight 2.1.0 because that is what
+`normalized-cache-sqlite` 1.0.6 actually depends on. A browser application module will additionally
+need a webpack step to copy the `.wasm`; a library module does not, so that is deferred rather than
+guessed at.
+
 ## What tradeoffs did I make due to time constraints?
 
 - Minimal error handling/presentation (generic messages, swallowed cache misses).

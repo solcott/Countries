@@ -26,7 +26,7 @@ The project is **migrating to Kotlin Multiplatform**, one module at a time, bott
 `model` → `network` → `repository` → `presenter` → `ui`. `app` stays an Android
 application module.
 
-Migrated so far: **`model`**.
+Migrated so far: **`model`**, **`network`**.
 
 Supported targets, declared once in the `kmp-library` convention plugin:
 
@@ -54,9 +54,38 @@ Rules for migrated modules:
   by the convention plugin, same as `library.gradle.kts` does.
 - Prefer keeping code in `commonMain`. Reach for `expect`/`actual` only when a platform
   genuinely differs, not to preserve an existing Android-shaped API.
+- `kmp-library` calls `applyDefaultHierarchyTemplate()`, so the intermediate source sets
+  are available without any per-module wiring: **`appleMain`** (ios + macos),
+  **`webMain`** (js + wasmJs), `nativeMain`. There is deliberately no android+jvm group —
+  write those two actuals separately.
 
 `library.gradle.kts` is the legacy Android-only convention; it is retired once the last
 module migrates.
+
+### Apollo and Kotlin Multiplatform
+
+The Apollo Gradle plugin detects the KMP plugin by itself. It reads operations from
+`src/commonMain/graphql/` and attaches the generated code to `commonMain` — no `srcDir`
+or output wiring is needed in `network/build.gradle.kts`. It also adds `-lsqlite3` to
+native binaries once it sees a `normalized-cache-sqlite` dependency.
+
+`SqlNormalizedCacheFactory(name)` is an `expect` function *in Apollo*, so it compiles on
+every target. What differs is where it stores data: Android uses `cacheDir` via an
+`androidx.startup` initializer shipped in the AAR, the JVM uses `~/.apollo`, Apple uses
+Application Support, and **js/wasmJs route to SQLDelight's SQL.js web-worker driver and
+ignore the name**. The web driver needs two npm dependencies, declared on `jsMain` and
+`wasmJsMain` in `network/build.gradle.kts` — pin them to the SQLDelight version that
+`normalized-cache-sqlite` actually depends on (currently 2.1.0), not to the latest.
+
+A future browser **application** module will additionally need a `webpack.config.d/` entry
+copying `sql.js`'s `.wasm` into the bundle. That is not required for a library module, so
+`:network` does not have one.
+
+Per-platform Apollo client configuration goes through
+`ApolloClient.Builder.platformConfiguration()`, an `expect` extension in
+`network/src/commonMain`. Everything that does not vary — the endpoint, the in-memory cache
+tier, the Metro provider itself — stays in `commonMain`. Add new per-platform concerns
+(HTTP engines, interceptors) to that seam rather than forking the provider.
 
 ## Module structure
 
