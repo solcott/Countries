@@ -46,6 +46,16 @@ Then launch the **Countries** app from the launcher, or:
 adb shell am start -n io.github.solcott.countries/.MainActivity
 ```
 
+### Cleaner `git blame`
+
+Bulk formatting commits are listed in [`.git-blame-ignore-revs`](.git-blame-ignore-revs) so
+they don't obscure real authorship. GitHub honors this file automatically; for local
+`git blame` (and IDE blame), opt in once per clone:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 ## Architecture at a glance
 
 Six Gradle modules, dependencies flowing strictly downward:
