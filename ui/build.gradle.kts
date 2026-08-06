@@ -16,6 +16,8 @@ dependencies {
   implementation(project(":model"))
   // Screens, state, and events live in :presenter. UI depends on presenter, never the reverse.
   implementation(project(":presenter"))
+  // `api`: Circuit appears in CircuitProviders.provideCircuit's signature.
+  api(libs.circuit.foundation)
   implementation(libs.circuit.runtime.ui)
   implementation(libs.circuit.codegen.annotations)
   implementation(libs.androidx.compose.ui)

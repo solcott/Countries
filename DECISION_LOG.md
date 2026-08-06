@@ -3,10 +3,10 @@
 ## Why this architecture?
 
 I used a **multi-module MVI architecture with Circuit and Metro**, split into
-`model → network → repository → presenter → ui → app`.
+`model → network → repository → presenter → ui → shared → shared-compose → app`.
 
 - **Modules** enforce the boundaries by making violations *not compile*: `presenter`/`ui`
-  physically cannot reach Apollo types, and only `app` can see everything. This is stronger
+  physically cannot reach Apollo types, and only the graph modules see broadly. This is stronger
   than package conventions and keeps build times parallelizable.
 - **Circuit** gives a small, explicit MVI contract: a `Presenter` produces immutable
   `State`; the `Ui` is a pure function of that state and emits `Event`s. That makes the
@@ -159,23 +159,67 @@ is exactly the kind of change nobody notices going wrong.
 
 **The logger is injected, not global.** `mapToOutcome` takes a `Logger` parameter, the repository
 implementations take one through their Metro constructors and re-tag it per class, and the root
-`Logger` is provided once by the graph. The obvious shortcut — a file-level
+`Logger` is provided once by `LoggingProviders` in `shared`. The obvious shortcut — a file-level
 `private val logger = Logger.withTag(…)` — is what this replaced, and it fails on both counts that
 matter. It makes logging untestable, whereas an injected logger can be driven by a `TestLogWriter`:
 `MappersTest` now pins that a failure is logged *with its throwable* and, more usefully, that cache
 misses and GraphQL errors are deliberately **not** logged — behaviour that is easy to break
 silently. And it bypasses global configuration: Kermit's extensions (`kermit-crashlytics`,
 `kermit-ktor`) attach writers to a configured root logger, so anything reaching for a static
-`Logger` would quietly miss crash reporting.
+`Logger` would quietly miss crash reporting. `LoggingProviders` in `shared` is the single place
+those writers get added.
 
 The migration was also the moment to close the "mapping is untested" gap listed below.
 `mapToOutcome` and `toDataError` are pure functions over Apollo types, and everything needed to
 test them turns out to be public API: `ApolloResponse.Builder` is constructible directly, and
 `isFromCache` reads a `CacheInfo` execution-context element that a test can attach itself — so
-`Origin` tagging is testable without a real normalized cache. The resulting 18 tests live in
+`Origin` tagging is testable without a real normalized cache. The resulting 14 tests live in
 `commonTest` and run on all eight platform test runners, which is the first time this project has
 exercised its KMP test infrastructure at all: the previous two modules had `commonTest` wired but
 empty, so every runner had been reporting `NO-SOURCE`.
+
+## Why are there two Metro graphs?
+
+The graph originally lived in `app`, which is fine for exactly one Android app and wrong for
+everything after that. The plan is three iOS-capable front ends: an Android app, a Compose
+Multiplatform app, and a **SwiftUI/UIKit** app that drives Circuit presenters natively (the shape
+of Circuit's own counter sample). A graph stuck in an Android application module cannot serve any
+of the others.
+
+The instinct is a single `shared` module, and that turns out not to work — for two reasons that
+only surface when you try it.
+
+**The SwiftUI app must not link Compose.** It never needs a `Circuit` instance or a `Ui.Factory`:
+it instantiates a `Presenter`, wraps `present()` in Molecule, and observes a `StateFlow` from
+Swift. Giving it a graph that exposes `Circuit` would drag Compose Multiplatform into a binary
+that never renders a Composable.
+
+**Metro aggregates contributions at the graph's compile classpath**, not at the app's. Hints are
+generated into `metro.hints` and resolved during graph supertype generation, so a graph compiled
+without `ui` visible cannot pick up its `Ui.Factory` multibindings later — an app module adding
+`ui` downstream is too late. That rules out "one graph in `shared`, apps add their own UI module".
+
+Hence two graphs, split exactly along the line that actually differs:
+
+- `shared` → `CoreGraph`: repositories, Apollo, the root logger. No Compose. This is what the
+  SwiftUI app and its iOS framework consume. It is KMP across all seven targets — and Metro does
+  generate graphs for native and wasm, which was the main risk in the design.
+- `shared-compose` → `ComposeGraph`: adds `presenter` and `ui`, exposes `Circuit`. Every Compose
+  consumer shares this one declaration rather than repeating it — Android now, CMP iOS, desktop
+  and web later.
+
+`provideCircuit` moved out of the graph module and into `ui` as a contributed `CircuitProviders`,
+which is where it belongs: assembling a `Circuit` from UI factories only means anything where
+Compose UI exists. `app` is now purely an Android entry point — an Activity, a theme and a
+manifest — with no `@Provides` of its own.
+
+One sharp edge worth recording: contributing modules have to be `api` on a graph module, never
+`implementation`. Contributed interfaces become *supertypes* of the generated graph, so
+consumers need to see them too; `implementation` compiles the graph fine and then fails at the
+consumer with `Cannot access 'NetworkProviders' which is a supertype of 'ComposeGraph'`.
+
+`shared-compose` is still an Android library rather than KMP, purely because `presenter` and `ui`
+are. It flips to `kmp-library` when they migrate, and the other Compose apps become possible then.
 
 ## What tradeoffs did I make due to time constraints?
 

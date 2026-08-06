@@ -92,25 +92,44 @@ tier, the Metro provider itself — stays in `commonMain`. Add new per-platform 
 
 ## Module structure
 
-Six modules, with dependencies flowing strictly downward:
+Eight modules, with dependencies flowing strictly downward:
 
 ```
-app          → wires the Metro dependency graph, hosts the Activity
-ui           → Compose UI (Circuit Ui implementations)
-presenter    → Circuit Screens, presenters, state, and events
-repository   → domain-facing data access
-network      → Apollo client, .graphql operations, generated code
-model        → Kotlin domain types
+app             → Android entry point: Activity, theme, manifest. Nothing else.
+shared-compose  → ComposeGraph — the Metro graph every Compose app shares
+shared          → CoreGraph for non-Compose consumers, plus the root Logger
+ui              → Compose UI (Circuit Ui implementations), CircuitProviders
+presenter       → Circuit Screens, presenters, state, and events
+repository      → domain-facing data access
+network         → Apollo client, .graphql operations, generated code
+model           → Kotlin domain types
 ```
+
+There are **two graphs** because of how the platform apps differ:
+
+- `shared-compose` declares `ComposeGraph`, which exposes `Circuit`. Every Compose consumer
+  shares it — the Android app today, and the Compose Multiplatform iOS, desktop and web apps
+  once `presenter` and `ui` are multiplatform. None of them declares a graph of its own.
+- `shared` declares `CoreGraph`, which exposes repositories and no Compose types at all. That
+  is what a SwiftUI/UIKit iOS app uses: it drives Circuit `Presenter`s directly (see Circuit's
+  counter sample) and needs neither a `Circuit` instance nor any `Ui.Factory`, so it must not
+  link Compose.
 
 All packages live under `io.github.solcott.countries`, with each module using its
 own name as the suffix — `…countries.model`, `…countries.network`,
-`…countries.repository`, `…countries.presenter`, `…countries.ui`. The `app`
+`…countries.repository`, `…countries.presenter`, `…countries.ui`,
+`…countries.shared`, `…countries.shared.compose`. The `app`
 module uses the root `io.github.solcott.countries`, which is also the
 `applicationId`. Each module's Gradle `namespace` matches its package.
 
 Rules:
 
+- **`app` holds no dependency wiring.** It depends on `shared-compose` and nothing else from
+  this project. Adding a `@Provides` to an app module is almost always wrong — it would not be
+  available to the other platform apps.
+- A module contributes its own providers with `@ContributesTo(AppScope::class)`, next to the
+  code they construct: `NetworkProviders` in `network`, `CircuitProviders` in `ui`,
+  `LoggingProviders` in `shared`.
 - `model` contains model data classes. `network`,
   `repository`, `presenter`, and `ui` all depend on it.
 - **Apollo generated types never cross the `network` boundary.** `network` owns
@@ -121,7 +140,23 @@ Rules:
 - `Screen` definitions live in `presenter`, alongside their state and events.
 - `ui` depends on `presenter` (for Screens and state types). `presenter` must
   never depend on `ui`.
-- Only `app` may depend on every other module.
+- Only the graph modules (`shared`, `shared-compose`) may depend broadly across the project.
+
+### Metro graph aggregation — two rules that are easy to get wrong
+
+Both of these produce confusing errors rather than obvious ones, so they are worth knowing up
+front when adding a module or a new graph:
+
+1. **Contributions are resolved on the compile classpath of the module that declares
+   `@DependencyGraph`** — Metro generates hints into `metro.hints` and locates them during graph
+   supertype generation. A module added downstream, in an app module, is too late: its providers
+   simply will not appear. This is the whole reason `ComposeGraph` lives in `shared-compose`
+   rather than in `shared` with app modules adding `ui` themselves.
+   *Symptom:* `[Metro/MissingBinding] No binding found for …`.
+2. **Contributing modules must be `api`, not `implementation`, on the graph module.** Contributed
+   interfaces become *supertypes* of the generated graph, so anything consuming the graph has to
+   see them too.
+   *Symptom:* `Cannot access '…NetworkProviders' which is a supertype of 'ComposeGraph'`.
 
 ## Conventions
 
@@ -193,7 +228,7 @@ Run it from inside `build-logic/` to check the convention plugins.
 ### Logging
 
 **Never reach for `Logger` as a global, and never hold one in a file-level `private val`.** The
-root `Logger` is provided by the Metro graph in `AppGraph.provideLogger` and **injected** —
+root `Logger` is provided by `LoggingProviders.provideLogger` in `:shared` and **injected** —
 classes take it as a constructor parameter, free functions take it as a parameter:
 
 ```kotlin
@@ -210,8 +245,8 @@ Two reasons this matters:
   `TestLogWriter` — see `MappersTest`, which pins that failures are logged with their throwable
   and that cache misses and GraphQL errors are *not*. A file-level logger makes that untestable.
 - **Global configuration.** Kermit extensions (`kermit-crashlytics`, `kermit-ktor`, …) are
-  configured once, on the root logger. Every module that injects it picks those writers up
-  automatically; a module that grabs `Logger` statically would not.
+  configured once, on the root logger, in `:shared`. Every module that injects it picks those
+  writers up automatically; a module that grabs `Logger` statically would not.
 
 Re-tag with `withTag` per class so log output stays filterable. `TestLogWriter` and `TestConfig`
 are `@ExperimentalKermitApi`, so test classes using them need

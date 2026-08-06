@@ -20,17 +20,11 @@ android {
 }
 
 dependencies {
-  // Only :app may depend on every other module. See AGENTS.md.
-  implementation(project(":model"))
-  implementation(project(":network"))
-  implementation(project(":repository"))
-  implementation(project(":presenter"))
-  implementation(project(":ui"))
+  // The Metro graph and every module behind it come from :shared-compose. This module is just the
+  // Android entry point — an Activity, a theme, and a manifest.
+  implementation(project(":shared-compose"))
 
   implementation(libs.circuit.foundation)
-  implementation(libs.apollo.runtime)
-  // The app owns the root Kermit config that every module injects. See AppGraph.provideLogger.
-  implementation(libs.kermit)
 
   implementation(libs.androidx.appcompat)
   implementation(libs.androidx.core.ktx)
