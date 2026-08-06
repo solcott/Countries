@@ -9,7 +9,7 @@ apollo-normalized-cache = "1.0.6"
 ktfmt = "0.26.0"
 
 # Circuit (MVI). Metro provides the @CircuitInject codegen.
-circuit = "0.35.1"
+circuit = "0.36.0"
 
 # Compose. Explicit versions rather than the BOM, so the alpha Material3 line can be
 # pinned independently of the stable UI/foundation line.
@@ -42,7 +42,7 @@ androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", versi
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "composeUi" }
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "composeUi" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
-detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.3" }
+detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.4" }
 # Circuit
 circuit-foundation = { module = "com.slack.circuit:circuit-foundation", version.ref = "circuit" }
 circuit-retained = { module = "com.slack.circuit:circuit-retained", version.ref = "circuit" }
@@ -78,7 +78,7 @@ kotlin-compose-compiler-plugin = { module = "org.jetbrains.kotlin:compose-compil
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 dependency-sorter = { id = "com.squareup.sort-dependencies", version = "0.20.0" }
-detekt = { id = "dev.detekt", version = "2.0.0-alpha.5" }
+detekt = { id = "dev.detekt", version = "2.0.0-alpha.6" }
 metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
