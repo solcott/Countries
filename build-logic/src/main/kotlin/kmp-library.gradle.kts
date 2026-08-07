@@ -29,7 +29,9 @@ kotlin {
     minSdk = Versions.minSdk
     compilerOptions { jvmTarget.set(jvmBytecodeTarget) }
     // The KMP Android plugin disables tests by default; opt back in so `androidHostTest` exists.
-    withHostTestBuilder {}.configure {}
+    // isReturnDefaultValues because Compose and Circuit touch android.util.Log, which is an
+    // unmocked stub in host-side unit tests.
+    withHostTestBuilder {}.configure { isReturnDefaultValues = true }
   }
 
   jvm { compilerOptions { jvmTarget.set(jvmBytecodeTarget) } }

@@ -7,7 +7,7 @@ import com.slack.circuit.runtime.screen.Screen
 import dev.zacsweers.redacted.annotations.Redacted
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
-import kotlinx.parcelize.Parcelize
+import io.github.solcott.kmp.parcelize.Parcelize
 
 @Parcelize
 data object CountryListScreen : Screen {

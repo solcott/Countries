@@ -1,29 +1,38 @@
 plugins {
-  id("library")
+  id("kmp-library")
   id("org.jetbrains.kotlin.plugin.compose")
-  id("org.jetbrains.kotlin.plugin.parcelize")
+  // Not for the `compose.*` dependency accessors — dependencies are declared by coordinate below.
+  // This plugin configures skiko's npm/webpack packaging, which compose.foundation pulls in on
+  // js and wasmJs.
+  alias(libs.plugins.compose.multiplatform)
+  alias(libs.plugins.kmp.parcelize)
   alias(libs.plugins.metro)
   alias(libs.plugins.redacted)
 }
 
-android {
-  buildFeatures { compose = true }
-  // Compose/Circuit touch android.util.Log, which is a stub in JVM unit tests.
-  testOptions { unitTests.isReturnDefaultValues = true }
-}
+kotlin {
+  sourceSets {
+    commonMain.dependencies {
+      api(project(":model"))
+      api(libs.circuit.runtime)
+      api(libs.circuit.runtime.presenter)
+      implementation(project(":repository"))
+      implementation(libs.circuit.codegen.annotations)
+      implementation(libs.circuit.retained)
 
-dependencies {
-  api(project(":model"))
-  api(libs.circuit.runtime)
-  api(libs.circuit.runtime.presenter)
-  implementation(libs.circuit.codegen.annotations)
-  implementation(libs.circuit.retained)
-  implementation(project(":repository"))
-  implementation(libs.androidx.compose.foundation)
-  implementation(libs.androidx.compose.ui)
+      // androidx.compose.runtime is already multiplatform, so `compose.runtime` here is a thin
+      // alias onto it. foundation is not, hence the Compose Multiplatform build — it is what
+      // provides TextFieldState.
+      implementation(libs.compose.runtime)
+      implementation(libs.compose.runtime.saveable)
+      implementation(libs.compose.foundation)
+      implementation(libs.androidx.compose.runtime.retain)
+    }
 
-  testImplementation(libs.junit)
-  testImplementation(libs.turbine)
-  testImplementation(libs.kotlinx.coroutines.test)
-  testImplementation(libs.circuit.test)
+    commonTest.dependencies {
+      implementation(libs.circuit.test)
+      implementation(libs.kotlinx.coroutines.test)
+      implementation(libs.turbine)
+    }
+  }
 }

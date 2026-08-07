@@ -13,13 +13,13 @@ import io.github.solcott.countries.model.Outcome
 import io.github.solcott.countries.repository.ContinentRepository
 import io.github.solcott.countries.repository.CountryRepository
 import kotlin.collections.emptyList
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 class CountryListPresenterTest {
 
@@ -72,7 +72,7 @@ class CountryListPresenterTest {
   val continents = listOf(africa, europe, oceania)
 
   @Test
-  fun `loads countries and emits loaded state`() = runTest {
+  fun loadsCountriesAndEmitsLoadedState() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
@@ -90,7 +90,7 @@ class CountryListPresenterTest {
   }
 
   @Test
-  fun `filter countries by name and continent`() = runTest {
+  fun filtersCountriesByNameAndContinent() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository =
       FakeCountryRepository(
@@ -131,7 +131,7 @@ class CountryListPresenterTest {
   }
 
   @Test
-  fun `clicking a country navigates to detail`() = runTest {
+  fun clickingACountryNavigatesToDetail() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
@@ -148,7 +148,7 @@ class CountryListPresenterTest {
   }
 
   @Test
-  fun `surfaces country failures as error state`() = runTest {
+  fun surfacesCountryFailuresAsErrorState() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository =
       FakeCountryRepository(
@@ -168,7 +168,7 @@ class CountryListPresenterTest {
   }
 
   @Test
-  fun `loads continents and emits loaded state`() = runTest {
+  fun loadsContinentsAndEmitsLoadedState() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository = FakeCountryRepository()
 
@@ -185,7 +185,7 @@ class CountryListPresenterTest {
   }
 
   @Test
-  fun `selecting continent updates selected continents`() = runTest {
+  fun selectingContinentUpdatesSelectedContinents() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository = FakeCountryRepository()
 
@@ -194,7 +194,10 @@ class CountryListPresenterTest {
     presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
       val state = awaitItem()
       state.eventSink(CountryListScreen.Event.ToggleContinentSelection(europe))
-      assertEquals(listOf(europe), state.selectedContinents)
+      // .toList(): selectedContinents is a SnapshotStateList, whose equals() is structural on
+      // JVM/Android but identity-based on native and Kotlin/JS. Comparing it to a plain list
+      // passed only by accident before this module was multiplatform.
+      assertEquals(listOf(europe), state.selectedContinents.toList())
       state.eventSink(CountryListScreen.Event.ToggleContinentSelection(europe))
       assertTrue(state.selectedContinents.isEmpty())
       cancelAndIgnoreRemainingEvents()

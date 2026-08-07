@@ -178,6 +178,41 @@ test them turns out to be public API: `ApolloResponse.Builder` is constructible 
 exercised its KMP test infrastructure at all: the previous two modules had `commonTest` wired but
 empty, so every runner had been reporting `NO-SOURCE`.
 
+**`presenter`: where Compose stops being one library.** The interesting discovery is that
+"Compose Multiplatform" and "AndroidX Compose" are no longer alternatives — they are pieces of one
+graph, and the module needs both. `androidx.compose.runtime` is *already* multiplatform, and
+`org.jetbrains.compose.runtime` turns out to be a thin alias onto it (its `runtime-desktop` jar is
+literally empty apart from a licence file). But `androidx.compose.foundation` is **not**
+multiplatform — it ships `android` plus `jvmstubs`/`linuxx64stubs` — so `TextFieldState`, which
+`CountryListScreen.State` holds, has to come from Compose Multiplatform's foundation. Meanwhile
+`retain` lives in `androidx.compose.runtime:runtime-retain`, which is multiplatform and has no CMP
+equivalent. Three artifacts, three different reasons.
+
+Dependencies are declared as plain catalog coordinates rather than through the `compose.*`
+accessors, but the `org.jetbrains.compose` **plugin is still required** — because
+`compose.foundation` pulls `compose.ui`, which on js and wasmJs depends on `skiko`, and that
+plugin configures skiko's web packaging. It also gates `macosArm64` behind
+`org.jetbrains.compose.experimental.macos.enabled=true`, without which configuration fails outright.
+
+The Screens kept `@Parcelize` through **kmp-parcelize**, and this case is subtler than `Continent`
+in `model`. Circuit's `Screen` is itself an `expect interface` — `: CircuitSaveable, Parcelable` on
+Android, plain `: CircuitSaveable` everywhere else — so the Screens *inherit* their Parcelable-ness
+from another library's `actual` rather than declaring it. That works: the Android artifacts contain
+a real `Parcelable$Creator` and `writeToParcel`, verified by decompiling rather than inferred from
+a clean compile.
+
+Two things only showed up once the tests ran cross-platform. `SnapshotStateList.equals` is
+structural on JVM/Android and identity-based on native and Kotlin/JS, so
+`assertEquals(listOf(europe), state.selectedContinents)` had been passing by accident; it needed a
+`.toList()`. And Molecule's js/wasm frame clock lives in its `browserMain` source set, so
+`presenterTestOf` cannot advance recomposition under Node at all.
+
+That second one settled an open question rather than needing a workaround: the web targets are for
+a browser app, so `kmp-library` now declares `js { browser() }` and `wasmJs { browser() }` with no
+`nodejs()`. Testing under Node was never going to work for a Compose project, and dropping it takes
+the runner count from eight to six without reducing platform coverage — js and wasmJs are still
+built and still tested, in a browser.
+
 ## Why are there two Metro graphs?
 
 The graph originally lived in `app`, which is fine for exactly one Android app and wrong for

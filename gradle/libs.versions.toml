@@ -20,6 +20,11 @@ circuit = "0.36.0"
 composeUi = "1.11.4"
 material3 = "1.5.0-alpha25"
 
+# Compose Multiplatform. androidx.compose.foundation is Android-only, so `foundation` (and the
+# TextFieldState in CountryListScreen.State) has to come from here. Its Android variants alias to
+# androidx 1.11.2, the same minor line as composeUi above.
+composeMultiplatform = "1.11.1"
+
 # AndroidX
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
@@ -50,6 +55,14 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "composeUi" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.4" }
+
+# Compose Multiplatform. `runtime` is a thin alias onto androidx.compose.runtime, which is already
+# multiplatform; `foundation` is the real multiplatform build, since androidx's is Android-only.
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-runtime-saveable = { module = "org.jetbrains.compose.runtime:runtime-saveable", version.ref = "composeMultiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+# `retain` has no Compose Multiplatform equivalent; androidx publishes this one multiplatform.
+androidx-compose-runtime-retain = { module = "androidx.compose.runtime:runtime-retain", version.ref = "composeUi" }
 # Circuit
 circuit-foundation = { module = "com.slack.circuit:circuit-foundation", version.ref = "circuit" }
 circuit-retained = { module = "com.slack.circuit:circuit-retained", version.ref = "circuit" }
@@ -94,4 +107,7 @@ metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 kmp-parcelize = { id = "io.github.solcott.kmp.parcelize", version.ref = "kmp-parcelize" }
+# Needed even though dependencies are declared by coordinate: this plugin configures skiko's
+# npm/webpack packaging, which compose.foundation pulls in on js and wasmJs.
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 redacted = { id = "dev.zacsweers.redacted", version = "1.18.0" }

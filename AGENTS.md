@@ -13,6 +13,7 @@ https://countries.trevorblades.com/ and displays them.
 | Architecture | MVI via [Circuit](https://slackhq.github.io/circuit/) |
 | Dependency injection | [Metro](https://zacsweers.github.io/metro/) |
 | Multiplatform | Kotlin Multiplatform (migration in progress — see below) |
+| Compose (KMP) | Compose Multiplatform `foundation` + AndroidX `runtime` — see below |
 | Parcelable | [kmp-parcelize](https://github.com/solcott/kmp-parcelize) for `@Parcelize` in common code |
 | Logging | [Kermit](https://kermit.touchlab.co/) (`co.touchlab:kermit`) |
 | Formatting | ktfmt via the `com.ncorti.ktfmt.gradle` plugin |
@@ -27,7 +28,7 @@ The project is **migrating to Kotlin Multiplatform**, one module at a time, bott
 `model` → `network` → `repository` → `presenter` → `ui`. `app` stays an Android
 application module.
 
-Migrated so far: **`model`**, **`network`**, **`repository`**.
+Migrated so far: **`model`**, **`network`**, **`repository`**, **`presenter`**.
 
 Supported targets, declared once in the `kmp-library` convention plugin:
 
@@ -64,6 +65,28 @@ Rules for migrated modules:
 
 `library.gradle.kts` is the legacy Android-only convention; it is retired once the last
 module migrates.
+
+### Compose and Kotlin Multiplatform
+
+Compose in a migrated module comes from **two** places, and the split is not arbitrary:
+
+| Need | Artifact | Why |
+| --- | --- | --- |
+| `runtime`, `runtime-saveable` | `org.jetbrains.compose.*` | Thin aliases; `androidx.compose.runtime` is already multiplatform |
+| `foundation` (incl. `TextFieldState`) | `org.jetbrains.compose.foundation` | **`androidx.compose.foundation` is Android-only** — it publishes `android` plus `jvmstubs`/`linuxx64stubs`, which are not real implementations |
+| `retain` | `androidx.compose.runtime:runtime-retain` | Multiplatform already, and has **no** Compose Multiplatform equivalent |
+
+Two build requirements that are easy to miss:
+
+- **A Compose module must apply `alias(libs.plugins.compose.multiplatform)`**, even though every
+  dependency is declared by catalog coordinate rather than through `compose.*` accessors.
+  `compose.foundation` pulls `compose.ui`, which on js and wasmJs depends on
+  `org.jetbrains.skiko:skiko`; that plugin is what configures skiko's web packaging. Keep
+  `org.jetbrains.kotlin.plugin.compose` applied alongside it — on Kotlin 2.x the CMP plugin
+  expects the Compose compiler plugin to be applied separately.
+- **`org.jetbrains.compose.experimental.macos.enabled=true` in `gradle.properties`.** `macosArm64`
+  is in the target list and the CMP plugin refuses to configure it without this opt-in, failing at
+  configuration time with "Compose targets '[macos]' are experimental".
 
 ### Apollo and Kotlin Multiplatform
 
@@ -276,3 +299,7 @@ Consequences worth knowing before you add the first test to a module:
   `./gradlew kotlinUpgradeYarnLock` and commit the result.
 - JUnit is JVM-only. Do not add `testImplementation(libs.junit)` to a migrated module; use
   `kotlin.test` assertions instead.
+- **`SnapshotStateList.equals` is structural on JVM/Android but identity-based on native and
+  Kotlin/JS.** Asserting `assertEquals(listOf(x), someSnapshotStateList)` passes on JVM and fails
+  everywhere else. Call `.toList()` first. Expect other JVM-only accidents like this to surface
+  the first time a module's tests run cross-platform.

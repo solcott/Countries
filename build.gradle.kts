@@ -20,6 +20,7 @@ plugins {
     alias(libs.plugins.apollo) apply false
     alias(libs.plugins.ktfmt) apply false
     alias(libs.plugins.kmp.parcelize) apply false
+    alias(libs.plugins.compose.multiplatform) apply false
 }
 
 // Pins the Gradle daemon's JVM. `./gradlew updateDaemonJvm` writes the criteria to
