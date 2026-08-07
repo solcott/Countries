@@ -12,7 +12,7 @@ https://countries.trevorblades.com/ and displays them.
 | UI | Jetpack Compose |
 | Architecture | MVI via [Circuit](https://slackhq.github.io/circuit/) |
 | Dependency injection | [Metro](https://zacsweers.github.io/metro/) |
-| Multiplatform | Kotlin Multiplatform (migration in progress — see below) |
+| Multiplatform | Kotlin Multiplatform — every library module; `app` is the Android entry point |
 | Compose (KMP) | Compose Multiplatform `foundation` + AndroidX `runtime` — see below |
 | Parcelable | [kmp-parcelize](https://github.com/solcott/kmp-parcelize) for `@Parcelize` in common code |
 | Logging | [Kermit](https://kermit.touchlab.co/) (`co.touchlab:kermit`) |
@@ -24,13 +24,12 @@ SDK levels: `minSdk 28`, `targetSdk 37`, `compileSdk 37`.
 
 ## Kotlin Multiplatform
 
-The project is **migrating to Kotlin Multiplatform**, one module at a time, bottom-up:
-`model` → `network` → `repository` → `presenter` → `ui`. `app` stays an Android
-application module.
+The project **is Kotlin Multiplatform**. The migration ran one module at a time, bottom-up:
+`model` → `network` → `repository` → `presenter` → `ui` → `shared` → `shared-compose`.
 
-Migrated so far: **all five library modules** — `model`, `network`, `repository`, `presenter`,
-`ui`. Remaining: `shared-compose` (an Android library only because it aggregates a graph; can
-flip once wanted) and `app`, which stays an Android application module.
+**Every library module is migrated.** The only Android-specific module left is `app`, which stays
+an Android application module — it is the Android entry point, and the CMP iOS, desktop and web
+apps get their own equivalents.
 
 Supported targets, declared once in the `kmp-library` convention plugin:
 
@@ -42,9 +41,9 @@ Supported targets, declared once in the `kmp-library` convention plugin:
 | macOS | `macosArm64` |
 | Web | `js`, `wasmJs` (both `browser()` only — see Testing below) |
 
-Rules for migrated modules:
+Rules for library modules:
 
-- Apply `id("kmp-library")`, never `id("library")`. Sources live in
+- Apply `id("kmp-library")`. Sources live in
   `src/commonMain/kotlin`, with `src/androidMain`, `src/jvmMain`, `src/iosMain` etc.
   only for genuinely platform-specific code. Tests go in `src/commonTest/kotlin`;
   `kotlin("test")` is already wired up by the convention plugin.
@@ -55,7 +54,8 @@ Rules for migrated modules:
   `android.os.Parcelable` on Android, no-ops everywhere else.
 - The Android target is configured in an `android { }` block *inside* `kotlin { }`,
   not a top-level `android` extension. The namespace is derived from the project name
-  by the convention plugin, same as `library.gradle.kts` does.
+  by the convention plugin — `shared-compose` becomes
+  `io.github.solcott.countries.shared.compose`.
 - Prefer keeping code in `commonMain`. Reach for `expect`/`actual` only when a platform
   genuinely differs, not to preserve an existing Android-shaped API.
 - `kmp-library` calls `applyDefaultHierarchyTemplate()`, so the intermediate source sets
@@ -65,8 +65,8 @@ Rules for migrated modules:
 - **Log through Kermit, never `android.util.Log`** — it does not exist in `commonMain`. Take
   Kermit as an `implementation` dependency; a `Logger` should not appear in a module's public API.
 
-`library.gradle.kts` is the legacy Android-only convention; it is retired once the last
-module migrates.
+The old Android-only `library.gradle.kts` convention is gone — `kmp-library` and `app` are the
+only two module conventions left.
 
 ### Compose and Kotlin Multiplatform
 
@@ -169,7 +169,7 @@ There are **two graphs** because of how the platform apps differ:
 
 - `shared-compose` declares `ComposeGraph`, which exposes `Circuit`. Every Compose consumer
   shares it — the Android app today, and the Compose Multiplatform iOS, desktop and web apps
-  once `presenter` and `ui` are multiplatform. None of them declares a graph of its own.
+  alongside it. None of them declares a graph of its own.
 - `shared` declares `CoreGraph`, which exposes repositories and no Compose types at all. That
   is what a SwiftUI/UIKit iOS app uses: it drives Circuit `Presenter`s directly (see Circuit's
   counter sample) and needs neither a `Circuit` instance nor any `Ui.Factory`, so it must not

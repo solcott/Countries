@@ -7,9 +7,8 @@ import dev.zacsweers.metro.SingleIn
 
 /**
  * The graph shared by every Compose consumer — the Android app today, and the Compose Multiplatform
- * iOS, desktop and web apps once `:presenter` and `:ui` are multiplatform. Each of those hosts a
- * platform entry point and calls `createGraph<ComposeGraph>()`; none of them declares a graph of
- * its own.
+ * iOS, desktop and web apps alongside it. Each of those hosts a platform entry point and calls
+ * `createGraph<ComposeGraph>()`; none of them declares a graph of its own.
  *
  * It is declared here rather than in `:shared` because Metro aggregates `@ContributesTo`
  * contributions from the compile classpath of the module declaring `@DependencyGraph`. `:ui` has to
