@@ -174,7 +174,7 @@ The migration was also the moment to close the "mapping is untested" gap listed 
 test them turns out to be public API: `ApolloResponse.Builder` is constructible directly, and
 `isFromCache` reads a `CacheInfo` execution-context element that a test can attach itself — so
 `Origin` tagging is testable without a real normalized cache. The resulting 14 tests live in
-`commonTest` and run on all eight platform test runners, which is the first time this project has
+`commonTest` and run on every platform test runner, which is the first time this project has
 exercised its KMP test infrastructure at all: the previous two modules had `commonTest` wired but
 empty, so every runner had been reporting `NO-SOURCE`.
 
@@ -227,7 +227,7 @@ are. It flips to `kmp-library` when they migrate, and the other Compose apps bec
 - Normalized caching (memory → SQLite) was added but not deeply tuned; first launch still
   hits the network, and cache hits are per-exact-filter.
 - ~~Tests focus on the presenter; mapping and the query builder are untested.~~ Mapping is now
-  covered (`repository/src/commonTest`, running on all eight platform runners). The query builder
+  covered (`repository/src/commonTest`, running on every platform runner). The query builder
   in `network` — `asStartsWithOperator` and friends — is still untested.
 
 ---

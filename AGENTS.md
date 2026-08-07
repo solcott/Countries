@@ -37,7 +37,7 @@ Supported targets, declared once in the `kmp-library` convention plugin:
 | Desktop | `jvm` |
 | iOS | `iosArm64`, `iosSimulatorArm64` |
 | macOS | `macosArm64` |
-| Web | `js`, `wasmJs` (both with `browser()` and `nodejs()`) |
+| Web | `js`, `wasmJs` (both `browser()` only — see Testing below) |
 
 Rules for migrated modules:
 
@@ -254,11 +254,16 @@ are `@ExperimentalKermitApi`, so test classes using them need
 
 ### Testing KMP modules
 
-Tests go in `src/commonTest/kotlin` and run on **every** target — `:repository:allTests`
-currently drives eight runners: `jvmTest`, `testAndroidHostTest`, `jsNodeTest`,
-`jsBrowserTest`, `wasmJsNodeTest`, `wasmJsBrowserTest`, `macosArm64Test` and
+Tests go in `src/commonTest/kotlin` and run on **every** target — `allTests` drives six runners:
+`jvmTest`, `testAndroidHostTest`, `jsBrowserTest`, `wasmJsBrowserTest`, `macosArm64Test` and
 `iosSimulatorArm64Test`. `kotlin("test")` is wired into `commonTest` by the convention plugin;
 add `libs.kotlinx.coroutines.test` per module if you need `runTest`.
+
+**The web targets are `browser()` only — there is deliberately no `nodejs()`.** The web targets
+exist for a browser app, and Node could not run the whole suite anyway: Compose/Molecule's frame
+clock lives in Molecule's `browserMain` source set, so under Node recomposition never advances and
+a presenter test awaiting a second emission fails. Adding `nodejs()` back to `kmp-library` would
+reintroduce two runners that cannot pass.
 
 Consequences worth knowing before you add the first test to a module:
 

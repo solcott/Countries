@@ -38,16 +38,12 @@ kotlin {
   iosSimulatorArm64()
   macosArm64()
 
-  js {
-    browser()
-    nodejs()
-  }
+  // Browser only, deliberately. The web targets exist for a browser app, and Node cannot run
+  // everything this project needs anyway — Compose/Molecule's frame clock is browser-only, so
+  // presenter tests could never advance recomposition under Node.
+  js { browser() }
 
-  @OptIn(ExperimentalWasmDsl::class)
-  wasmJs {
-    browser()
-    nodejs()
-  }
+  @OptIn(ExperimentalWasmDsl::class) wasmJs { browser() }
 
   sourceSets { commonTest.dependencies { implementation(kotlin("test")) } }
 }
