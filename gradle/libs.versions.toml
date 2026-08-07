@@ -25,6 +25,13 @@ material3 = "1.5.0-alpha25"
 # androidx 1.11.2, the same minor line as composeUi above.
 composeMultiplatform = "1.11.1"
 
+# Compose Multiplatform's material3 is versioned separately from the rest of CMP — this does NOT
+# track composeMultiplatform. 1.11.0-alpha07 is the newest one still on the 1.11 core line (it
+# wants core 1.11.0-beta03, which resolves up to 1.11.1; 1.12.0-alpha* wants 1.12.0-beta01), and
+# it aliases androidx material3 1.5.0-alpha13 — the same 1.5.0-alpha line as `material3` above.
+# The CMP plugin's own default of 1.9.0 would pull androidx material3 1.4.0, a line backwards.
+composeMaterial3 = "1.11.0-alpha07"
+
 # AndroidX
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
@@ -61,6 +68,11 @@ detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
 compose-runtime-saveable = { module = "org.jetbrains.compose.runtime:runtime-saveable", version.ref = "composeMultiplatform" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
+# Separate version line — see the note on composeMaterial3.
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
+# The multiplatform replacement for Android res/: strings and drawables in commonMain.
+compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 # `retain` has no Compose Multiplatform equivalent; androidx publishes this one multiplatform.
 androidx-compose-runtime-retain = { module = "androidx.compose.runtime:runtime-retain", version.ref = "composeUi" }
 # Circuit

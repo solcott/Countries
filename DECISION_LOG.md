@@ -213,6 +213,38 @@ a browser app, so `kmp-library` now declares `js { browser() }` and `wasmJs { br
 the runner count from eight to six without reducing platform coverage — js and wasmJs are still
 built and still tested, in a browser.
 
+**`ui`: the last module, and the one where "it compiles" means least.** By this point the module
+had no `android.*` imports left — converting the detail screen off `AndroidView` saw to that — so
+the migration was entirely about resources. `androidx.compose.foundation`, `ui` and `material3` are
+all Android-only, so those come from Compose Multiplatform; `res/` becomes
+`commonMain/composeResources/` behind a generated `Res` class.
+
+Two things bit, and both are the same shape: **they compile perfectly and fail at runtime.**
+
+The four vector drawables tinted with `?attr/colorControlNormal` and filled with
+`@android:color/white` — a theme attribute and a framework resource, neither of which CMP's parser
+can resolve. Dropping the tint and inlining `#FFFFFFFF` is visually neutral, because every one of
+these icons is drawn through `Icon`, which supplies `LocalContentColor` as a `ColorFilter` and
+overrides whatever the vector carried.
+
+The subtler one: the app built cleanly, installed, and died on launch with
+`MissingResourceException`. The KMP Android plugin disables resource processing by default, which
+leaves `variant.sources.assets` unavailable — and that is precisely where Compose Multiplatform
+packages resources on Android. CMP takes the right code path (it explicitly supports
+`com.android.kotlin.multiplatform.library`), registers nothing, and warns about none of it; the
+APK simply ships without `assets/composeResources/`. One line —
+`android { androidResources { enable = true } }` — fixes it.
+
+Both are the argument for the verification habit this migration has used throughout: run it, don't
+just build it. A green `assemble` said nothing useful here.
+
+**material3 needed its own version.** Compose Multiplatform versions material3 separately from the
+rest of the framework, and the two obvious choices are both wrong. The CMP plugin's own
+`compose.material3` accessor pins 1.9.0, which aliases AndroidX material3 **1.4.0** — a minor line
+backwards from the 1.5.0-alpha this project is on. Aligning material3 to `composeMultiplatform`
+does not work either, since there is no 1.11.1. `1.11.0-alpha07` is the answer: the last one still
+built against the 1.11 core line, and it tracks AndroidX material3 1.5.0-alpha13.
+
 ## Why is the detail screen no longer XML?
 
 It was an XML layout hosted in `AndroidView` because the technical assessment asked for one, not

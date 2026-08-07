@@ -15,8 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +25,16 @@ import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.errorOrNull
 import io.github.solcott.countries.presenter.isLoading
 import io.github.solcott.countries.presenter.isNotFound
+import io.github.solcott.countries.ui.resources.Res
+import io.github.solcott.countries.ui.resources.arrow_back_24px
+import io.github.solcott.countries.ui.resources.calling_code
+import io.github.solcott.countries.ui.resources.capital
+import io.github.solcott.countries.ui.resources.continent
+import io.github.solcott.countries.ui.resources.country_with_code_not_found
+import io.github.solcott.countries.ui.resources.currency
+import io.github.solcott.countries.ui.resources.languages
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
 /** Shown where the API has no value for a field. */
 private const val ABSENT = "—"
@@ -44,7 +52,7 @@ fun CountryDetailUi(
       CountriesTopAppBar(
         navigationIcon = {
           IconButton({ state.eventSink(CountryDetailScreen.Event.BackClicked) }) {
-            Icon(painterResource(R.drawable.arrow_back_24px), contentDescription = "Back")
+            Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = "Back")
           }
         }
       )
@@ -65,7 +73,7 @@ fun CountryDetailUi(
             onRetry = { state.eventSink(CountryDetailScreen.Event.Retry) },
           )
         content.isNotFound -> {
-          Text(stringResource(R.string.country_with_code_not_found, screen.code))
+          Text(stringResource(Res.string.country_with_code_not_found, screen.code))
         }
         country != null -> CountryDetailContent(country, Modifier.fillMaxSize())
       }
@@ -86,11 +94,11 @@ private fun CountryDetailContent(country: CountryDetail, modifier: Modifier = Mo
     Text(country.nativeName, style = MaterialTheme.typography.bodyLarge)
 
     Column(modifier = Modifier.padding(top = 24.dp)) {
-      DetailRow(stringResource(R.string.capital, country.capital ?: ABSENT))
-      DetailRow(stringResource(R.string.continent, country.continentName))
-      DetailRow(stringResource(R.string.currency, country.currency ?: ABSENT))
-      DetailRow(stringResource(R.string.calling_code, country.phone))
-      DetailRow(stringResource(R.string.languages, country.languages.joinToString { it.name }))
+      DetailRow(stringResource(Res.string.capital, country.capital ?: ABSENT))
+      DetailRow(stringResource(Res.string.continent, country.continentName))
+      DetailRow(stringResource(Res.string.currency, country.currency ?: ABSENT))
+      DetailRow(stringResource(Res.string.calling_code, country.phone))
+      DetailRow(stringResource(Res.string.languages, country.languages.joinToString { it.name }))
     }
   }
 }

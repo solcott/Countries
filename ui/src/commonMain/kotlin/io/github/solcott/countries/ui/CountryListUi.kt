@@ -33,8 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.slack.circuit.codegen.annotations.CircuitInject
 import dev.zacsweers.metro.AppScope
@@ -44,6 +42,15 @@ import io.github.solcott.countries.presenter.ContentState
 import io.github.solcott.countries.presenter.CountryListScreen
 import io.github.solcott.countries.presenter.errorOrNull
 import io.github.solcott.countries.presenter.isLoading
+import io.github.solcott.countries.ui.resources.Res
+import io.github.solcott.countries.ui.resources.check_small_24px
+import io.github.solcott.countries.ui.resources.filter
+import io.github.solcott.countries.ui.resources.filter_list_24px
+import io.github.solcott.countries.ui.resources.no_countries_found
+import io.github.solcott.countries.ui.resources.search_by_name
+import io.github.solcott.countries.ui.resources.updating
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @CircuitInject(CountryListScreen::class, AppScope::class)
@@ -110,7 +117,7 @@ private fun CountriesList(
     } else {
       item(key = "empty", "empty") {
         Box(Modifier.fillParentMaxSize().animateItem(), contentAlignment = Alignment.Center) {
-          Text(stringResource(R.string.no_countries_found))
+          Text(stringResource(Res.string.no_countries_found))
         }
       }
     }
@@ -128,7 +135,7 @@ private fun RefreshingIndicator(modifier: Modifier = Modifier) {
     horizontalArrangement = Arrangement.spacedBy(12.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Text(stringResource(R.string.updating))
+    Text(stringResource(Res.string.updating))
     LinearProgressIndicator(modifier = Modifier.weight(1f))
   }
 }
@@ -152,7 +159,7 @@ private fun SearchAndFilterHeader(
   ) {
     TextField(
       nameStartsWithText,
-      placeholder = { Text(stringResource(R.string.search_by_name)) },
+      placeholder = { Text(stringResource(Res.string.search_by_name)) },
       shape = MaterialTheme.shapes.extraSmall,
       modifier = Modifier.weight(1f),
     )
@@ -167,8 +174,8 @@ private fun SearchAndFilterHeader(
       ) {
         IconButton(onClick = { continentDropdownExpanded = !continentDropdownExpanded }) {
           Icon(
-            painterResource(R.drawable.filter_list_24px),
-            contentDescription = stringResource(R.string.filter),
+            painterResource(Res.drawable.filter_list_24px),
+            contentDescription = stringResource(Res.string.filter),
           )
         }
         ExposedDropdownMenu(
@@ -185,7 +192,7 @@ private fun SearchAndFilterHeader(
               },
               trailingIcon = {
                 if (selectedContinents.contains(continent)) {
-                  Icon(painterResource(R.drawable.check_small_24px), "Checked")
+                  Icon(painterResource(Res.drawable.check_small_24px), "Checked")
                 }
               },
             )

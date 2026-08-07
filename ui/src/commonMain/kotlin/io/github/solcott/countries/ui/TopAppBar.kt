@@ -9,8 +9,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import io.github.solcott.countries.ui.resources.Res
+import io.github.solcott.countries.ui.resources.countries
+import io.github.solcott.countries.ui.resources.home_24px
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun CountriesTopAppBar(
@@ -24,12 +27,12 @@ fun CountriesTopAppBar(
           disabledContentColor = MaterialTheme.colorScheme.onPrimary
         ),
     ) {
-      Icon(painterResource(R.drawable.home_24px), contentDescription = "Home")
+      Icon(painterResource(Res.drawable.home_24px), contentDescription = "Home")
     }
   },
 ) {
   TopAppBar(
-    title = { Text(stringResource(R.string.countries)) },
+    title = { Text(stringResource(Res.string.countries)) },
     colors =
       TopAppBarDefaults.topAppBarColors(
         containerColor = MaterialTheme.colorScheme.primary,

@@ -28,7 +28,9 @@ The project is **migrating to Kotlin Multiplatform**, one module at a time, bott
 `model` → `network` → `repository` → `presenter` → `ui`. `app` stays an Android
 application module.
 
-Migrated so far: **`model`**, **`network`**, **`repository`**, **`presenter`**.
+Migrated so far: **all five library modules** — `model`, `network`, `repository`, `presenter`,
+`ui`. Remaining: `shared-compose` (an Android library only because it aggregates a graph; can
+flip once wanted) and `app`, which stays an Android application module.
 
 Supported targets, declared once in the `kmp-library` convention plugin:
 
@@ -73,10 +75,20 @@ Compose in a migrated module comes from **two** places, and the split is not arb
 | Need | Artifact | Why |
 | --- | --- | --- |
 | `runtime`, `runtime-saveable` | `org.jetbrains.compose.*` | Thin aliases; `androidx.compose.runtime` is already multiplatform |
-| `foundation` (incl. `TextFieldState`) | `org.jetbrains.compose.foundation` | **`androidx.compose.foundation` is Android-only** — it publishes `android` plus `jvmstubs`/`linuxx64stubs`, which are not real implementations |
+| `foundation` (incl. `TextFieldState`), `ui`, `material3` | `org.jetbrains.compose.*` | **The AndroidX equivalents are Android-only** — they publish `android` plus `jvmstubs`/`linuxx64stubs`, which are not real implementations |
 | `retain` | `androidx.compose.runtime:runtime-retain` | Multiplatform already, and has **no** Compose Multiplatform equivalent |
+| strings, drawables | `org.jetbrains.compose.components:components-resources` | The multiplatform replacement for Android `res/` |
 
-Two build requirements that are easy to miss:
+**material3 is on its own version line — `composeMaterial3`, not `composeMultiplatform`.** Two
+plausible-looking choices are both wrong:
+
+| CMP material3 | needs CMP core | aliases AndroidX material3 |
+| --- | --- | --- |
+| 1.9.0 — what the CMP plugin's own `compose.material3` accessor pins | — | **1.4.0**, a minor line *backwards* from this project |
+| **1.11.0-alpha07** (chosen) | 1.11.0-beta03, resolves up to our 1.11.1 | 1.5.0-alpha13 — same line as our `material3` |
+| 1.12.0-alpha03 | 1.12.0-beta01 — drags core off the 1.11 line | 1.5.0-alpha22 |
+
+Three build requirements that are easy to miss:
 
 - **A Compose module must apply `alias(libs.plugins.compose.multiplatform)`**, even though every
   dependency is declared by catalog coordinate rather than through `compose.*` accessors.
@@ -87,6 +99,31 @@ Two build requirements that are easy to miss:
 - **`org.jetbrains.compose.experimental.macos.enabled=true` in `gradle.properties`.** `macosArm64`
   is in the target list and the CMP plugin refuses to configure it without this opt-in, failing at
   configuration time with "Compose targets '[macos]' are experimental".
+- **A module with `composeResources` needs `android { androidResources { enable = true } }`**
+  inside its `kotlin { }` block — see `ui/build.gradle.kts`. The KMP Android plugin disables
+  resource processing by default, which leaves `variant.sources.assets` unavailable, and that is
+  exactly where Compose Multiplatform packages resources on Android. Without it everything
+  compiles, the APK simply has no `assets/composeResources/`, and the app dies on first use with
+  `MissingResourceException`. Nothing warns at build time.
+
+### Compose Multiplatform resources
+
+Strings and drawables live in `src/commonMain/composeResources/` (`values/strings.xml`,
+`drawable/*.xml`) and are reached through the generated `Res` class, not AGP's `R`:
+
+```kotlin
+import org.jetbrains.compose.resources.stringResource
+import io.github.solcott.countries.ui.resources.Res
+import io.github.solcott.countries.ui.resources.capital
+
+stringResource(Res.string.capital, country.capital)
+painterResource(Res.drawable.home_24px)
+```
+
+`strings.xml` keeps the ordinary Android format, `%1$s` placeholders included. **Vector drawables
+must contain no `?attr/…` theme attributes and no `@android:…` references** — CMP's parser cannot
+resolve either, and both fail at runtime rather than at build time. Use literal colours
+(`#FFFFFFFF`) and let `Icon` supply the real colour from `LocalContentColor`.
 
 ### Apollo and Kotlin Multiplatform
 

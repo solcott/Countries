@@ -8,9 +8,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.github.solcott.countries.ui.resources.Res
+import io.github.solcott.countries.ui.resources.retry
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ErrorContent(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
@@ -20,6 +22,6 @@ fun ErrorContent(message: String, onRetry: () -> Unit, modifier: Modifier = Modi
     verticalArrangement = Arrangement.spacedBy(16.dp),
   ) {
     Text(text = message, textAlign = TextAlign.Center)
-    Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+    Button(onClick = onRetry) { Text(stringResource(Res.string.retry)) }
   }
 }
