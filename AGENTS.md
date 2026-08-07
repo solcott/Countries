@@ -187,12 +187,19 @@ front when adding a module or a new graph:
   before committing; CI runs `./gradlew ktfmtCheck`.
 - Apollo generated code is build output. Never hand-edit it, never commit it.
   Change the `.graphql` operation files in `network` instead.
-- Two screens: a country **list** (pure Compose) and a country **detail**. The
-  detail screen is deliberately built with an XML layout rendered through
-  `AndroidView` rather than native Compose, to demonstrate interop. Keep it that
-  way — it is not an oversight to be "fixed".
+- Two screens, both pure Compose: a country **list** and a country **detail**. The detail
+  screen was originally an XML layout hosted in `AndroidView`, a technical-assessment
+  requirement rather than a design choice; it was converted ahead of the `ui` KMP migration,
+  since `AndroidView` has no multiplatform equivalent. `ui` now has **no `android.*` imports
+  at all** — keep it that way.
 - Presenters own state. Compose UI is a pure function of the Circuit state and
   emits events — no business logic, no data access.
+- **Every composable that emits UI takes `modifier: Modifier = Modifier`**, as the first
+  optional parameter, and applies it to its **root** element — not to something nested inside.
+  Composables that emit nothing are the exception: `AppTheme` (a wrapper) and
+  `DataError.toUserMessage()` (returns a `String`) correctly have none.
+  `detekt/detekt.yml` already enables `ModifierMissing` and `ModifierNotUsedAtRoot`, but detekt
+  is currently only wired up for `build-logic`, so nothing enforces this in the modules yet.
 
 ## Build setup
 

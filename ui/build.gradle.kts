@@ -4,13 +4,7 @@ plugins {
   alias(libs.plugins.metro)
 }
 
-android {
-  // The detail screen is intentionally an XML layout hosted in AndroidView. See AGENTS.md.
-  buildFeatures {
-    compose = true
-    viewBinding = true
-  }
-}
+android { buildFeatures { compose = true } }
 
 dependencies {
   implementation(project(":model"))
@@ -24,6 +18,9 @@ dependencies {
   implementation(libs.androidx.compose.foundation)
   implementation(libs.androidx.compose.material3)
   implementation(libs.androidx.compose.ui.tooling.preview)
+  // Not used from Kotlin, but the vector drawables tint with `?attr/colorControlNormal`, which is
+  // an appcompat attribute. Resource linking fails without it. Both go when this module moves to
+  // Compose Multiplatform resources.
   implementation(libs.androidx.appcompat)
   debugImplementation(libs.androidx.compose.ui.tooling)
 }

@@ -213,6 +213,29 @@ a browser app, so `kmp-library` now declares `js { browser() }` and `wasmJs { br
 the runner count from eight to six without reducing platform coverage — js and wasmJs are still
 built and still tested, in a browser.
 
+## Why is the detail screen no longer XML?
+
+It was an XML layout hosted in `AndroidView` because the technical assessment asked for one, not
+because view interop was a design goal — and the "refactor first" note above already flagged it as
+something to migrate.
+
+The KMP migration forced the question. `AndroidView` is Android-only and has no multiplatform
+equivalent, so the detail screen was the single thing that would have kept `ui` from ever
+compiling for iOS, desktop or web. Converting it before migrating the module — rather than
+migrating around it with an `expect`/`actual` UI — keeps `ui` a single common implementation
+instead of permanently forking one of its two screens.
+
+The conversion is faithful rather than a redesign: the same 24dp padding, the same 56sp flag and
+bold 28sp name, the same field order, `ScrollView` → `verticalScroll`, `LinearLayout` → `Column`,
+each `TextView` → a `Text`. Hard-coded sizes map onto `MaterialTheme.typography` where they line
+up exactly (`headlineMedium` is 28sp, `bodyLarge` is 16sp).
+
+The payoff is bigger than one file: **`ui` now has no `android.*` imports at all**, and
+`viewBinding` is off. What is left tying it to Android is resources — `stringResource`,
+`painterResource`, and vector drawables that tint with `?attr/colorControlNormal` (an appcompat
+attribute, which is why `androidx.appcompat` is still a dependency even though no Kotlin code
+touches it). Those become Compose Multiplatform resources when the module migrates.
+
 ## Why are there two Metro graphs?
 
 The graph originally lived in `app`, which is fine for exactly one Android app and wrong for
@@ -279,6 +302,8 @@ unit-testable without Android.
 Circuit Presenters can get large quickly.  I would refactor the loading/filtering of countries and
 loading of continents into Composite Presenters and/or StateProducers.  I would also migrate the XML
 layouts to compose as there is almost no reason to develop new features using XML anymore.
+
+*(The XML → Compose migration is now done — see "Why is the detail screen no longer XML?" below.)*
 
 **Most fragile or incomplete part?**
 Error handling and its interaction with the cache. Cache-miss exceptions are swallowed to
@@ -349,8 +374,8 @@ Here is a somewhat list of items I worked on by myself after the intial project 
 - Consolidate build logic into build-logic convention plugins
 
 I verified correctness by building and running on an emulator — the list loads live data,
-the XML detail screen renders through `AndroidView`, navigation and the back stack work —
-and by running the unit test suite.
+the detail screen renders (an XML layout through `AndroidView` at the time; Compose since),
+navigation and the back stack work — and by running the unit test suite.
 
 
 
