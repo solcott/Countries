@@ -73,6 +73,13 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMul
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
 # The multiplatform replacement for Android res/: strings and drawables in commonMain.
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
+# @Preview and friends — annotations only, no runtime code, and published for every target we have.
+# The package is `androidx.compose.ui.tooling.preview`, not `org.jetbrains.…`, which is what lets
+# Android Studio render commonMain previews and what makes @PreviewScreenSizes available there.
+compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
+# The renderer Android Studio needs to *draw* those previews. Android and desktop variants only,
+# so it can never go in commonMain — see the androidRuntimeClasspath note in ui/build.gradle.kts.
+compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
 # `retain` has no Compose Multiplatform equivalent; androidx publishes this one multiplatform.
 androidx-compose-runtime-retain = { module = "androidx.compose.runtime:runtime-retain", version.ref = "composeUi" }
 # Circuit

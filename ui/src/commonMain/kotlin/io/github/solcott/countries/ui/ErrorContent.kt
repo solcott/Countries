@@ -9,7 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import io.github.solcott.countries.model.DataError
 import io.github.solcott.countries.ui.resources.Res
 import io.github.solcott.countries.ui.resources.retry
 import org.jetbrains.compose.resources.stringResource
@@ -24,4 +26,17 @@ fun ErrorContent(message: String, onRetry: () -> Unit, modifier: Modifier = Modi
     Text(text = message, textAlign = TextAlign.Center)
     Button(onClick = onRetry) { Text(stringResource(Res.string.retry)) }
   }
+}
+
+@PreviewLightDark
+@Composable
+private fun ErrorContentPreview() {
+  PreviewSurface { ErrorContent(message = DataError.Network.toUserMessage(), onRetry = {}) }
+}
+
+/** The longest message in the set — the one that decides whether the column wraps sensibly. */
+@ComponentWidthPreviews
+@Composable
+private fun ErrorContentWidthsPreview() {
+  PreviewSurface { ErrorContent(message = DataError.Serialization.toUserMessage(), onRetry = {}) }
 }

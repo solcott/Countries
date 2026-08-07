@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.slack.circuit.codegen.annotations.CircuitInject
 import dev.zacsweers.metro.AppScope
@@ -216,4 +217,135 @@ private fun CountryRow(country: Country, onClick: () -> Unit, modifier: Modifier
       Text(listOfNotNull(country.capital, country.continentName).joinToString(" · "))
     }
   }
+}
+
+@Composable
+private fun ListPreview(
+  countriesState: ContentState<List<Country>>,
+  continentsState: ContentState<List<Continent>> = loadedState(previewContinents),
+  nameStartsWith: String = "",
+  selectedContinents: List<Continent> = emptyList(),
+) {
+  PreviewSurface {
+    CountryListUi(
+      CountryListScreen.State(
+        nameStartsWithText = TextFieldState(nameStartsWith),
+        countriesState = countriesState,
+        continentsState = continentsState,
+        selectedContinents = selectedContinents,
+        eventSink = {},
+      )
+    )
+  }
+}
+
+/**
+ * The loaded list at every size we ship to. Rows spanning a 1920dp desktop window is the case the
+ * adaptive follow-up is meant to fix — this preview is what shows it.
+ */
+@AppScreenPreviews
+@Composable
+private fun CountryListUiPreview() {
+  ListPreview(loadedState(previewCountries))
+}
+
+/** First load: nothing cached, so the whole screen is a spinner. */
+@PreviewLightDark
+@Composable
+private fun CountryListUiLoadingPreview() {
+  ListPreview(loadingState(emptyList()))
+}
+
+/**
+ * Stale-while-revalidate: cached rows stay on screen and the refresh is surfaced as a strip rather
+ * than blanking the list.
+ */
+@PreviewLightDark
+@Composable
+private fun CountryListUiRefreshingPreview() {
+  ListPreview(refreshingState(previewCountries))
+}
+
+/** Failed with nothing cached — the only case that replaces the list with an error. */
+@PreviewLightDark
+@Composable
+private fun CountryListUiErrorPreview() {
+  ListPreview(failedState(emptyList()))
+}
+
+/** A filter that matches nothing. The header stays; only the list body is empty. */
+@PreviewLightDark
+@Composable
+private fun CountryListUiEmptyPreview() {
+  ListPreview(loadedState(emptyList()), nameStartsWith = "Zzz")
+}
+
+/** Search text and two continents selected, so the filter icon has check marks behind it. */
+@PreviewLightDark
+@Composable
+private fun CountryListUiFilteredPreview() {
+  ListPreview(
+    loadedState(previewCountries.take(2)),
+    nameStartsWith = "Fra",
+    selectedContinents = previewContinents.filter { it.code in setOf("EU", "AS") },
+  )
+}
+
+/** Continents still loading, which is what removes the filter control entirely. */
+@PreviewLightDark
+@Composable
+private fun CountryListUiWithoutContinentsPreview() {
+  ListPreview(loadedState(previewCountries), continentsState = loadingState(emptyList()))
+}
+
+@ComponentWidthPreviews
+@Composable
+private fun CountriesListPreview() {
+  PreviewSurface {
+    CountriesList(
+      state =
+        CountryListScreen.State(
+          nameStartsWithText = TextFieldState(),
+          countriesState = loadedState(previewCountries),
+          continentsState = loadedState(previewContinents),
+          selectedContinents = emptyList(),
+          eventSink = {},
+        ),
+      countriesState = loadedState(previewCountries),
+    )
+  }
+}
+
+@ComponentWidthPreviews
+@Composable
+private fun SearchAndFilterHeaderPreview() {
+  PreviewSurface {
+    SearchAndFilterHeader(
+      continentsState = loadedState(previewContinents),
+      nameStartsWithText = TextFieldState("Fra"),
+      selectedContinents = previewContinents.take(1),
+      onToggleContinentSelection = {},
+    )
+  }
+}
+
+@ComponentWidthPreviews
+@Composable
+private fun RefreshingIndicatorPreview() {
+  PreviewSurface { RefreshingIndicator() }
+}
+
+@ComponentWidthPreviews
+@Composable
+private fun CountryRowPreview() {
+  PreviewSurface { CountryRow(country = previewCountries.first(), onClick = {}) }
+}
+
+/**
+ * The row that breaks first: a name long enough to wrap and no capital to pair the continent with.
+ */
+@PreviewLightDark
+@Composable
+private fun CountryRowLongNamePreview() {
+  PreviewSurface { CountryRow(country = previewCountries.last(), onClick = {}) }
 }

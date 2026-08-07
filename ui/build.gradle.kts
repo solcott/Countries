@@ -34,6 +34,14 @@ kotlin {
       // Generates the Res class from src/commonMain/composeResources — the multiplatform
       // replacement for the Android res/ directory this module used to have.
       implementation(libs.compose.components.resources)
+      implementation(libs.compose.ui.tooling.preview)
     }
   }
 }
+
+// Android Studio's preview renderer looks up androidx.compose.ui.tooling.ComposeViewAdapter on the
+// *module's own* runtime classpath, so the annotations alone are not enough to draw anything.
+// androidRuntimeClasspath is resolvable-only and is not one of the published variants, which makes
+// it the right place for a dependency that must exist locally and never reach :app. The AGP KMP
+// library plugin has no build types, so there is no debugImplementation to scope this with.
+dependencies { androidRuntimeClasspath(libs.compose.ui.tooling) }

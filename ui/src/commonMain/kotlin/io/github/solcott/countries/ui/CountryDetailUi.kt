@@ -16,11 +16,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.slack.circuit.codegen.annotations.CircuitInject
 import dev.zacsweers.metro.AppScope
 import io.github.solcott.countries.model.CountryDetail
+import io.github.solcott.countries.presenter.ContentState
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.errorOrNull
 import io.github.solcott.countries.presenter.isLoading
@@ -106,4 +108,58 @@ private fun CountryDetailContent(country: CountryDetail, modifier: Modifier = Mo
 @Composable
 private fun DetailRow(text: String, modifier: Modifier = Modifier) {
   Text(text, style = MaterialTheme.typography.bodyLarge, modifier = modifier)
+}
+
+private val previewScreen = CountryDetailScreen(previewCountryDetail.code)
+
+@Composable
+private fun DetailPreview(content: ContentState<CountryDetail?>) {
+  PreviewSurface {
+    CountryDetailUi(
+      state = CountryDetailScreen.State(content = content, eventSink = {}),
+      screen = previewScreen,
+    )
+  }
+}
+
+/**
+ * The loaded screen at every size we ship to. A single column of text against a 1920dp desktop
+ * window is exactly the case the adaptive follow-up is meant to fix — this preview is what shows
+ * it.
+ */
+@AppScreenPreviews
+@Composable
+private fun CountryDetailUiPreview() {
+  DetailPreview(loadedState(previewCountryDetail))
+}
+
+@PreviewLightDark
+@Composable
+private fun CountryDetailUiLoadingPreview() {
+  DetailPreview(loadingState(null))
+}
+
+@PreviewLightDark
+@Composable
+private fun CountryDetailUiErrorPreview() {
+  DetailPreview(failedState(null))
+}
+
+/** Settled with no country — a code the API does not know. */
+@PreviewLightDark
+@Composable
+private fun CountryDetailUiNotFoundPreview() {
+  DetailPreview(loadedState(null))
+}
+
+@ComponentWidthPreviews
+@Composable
+private fun CountryDetailContentPreview() {
+  PreviewSurface { CountryDetailContent(previewCountryDetail) }
+}
+
+@ComponentWidthPreviews
+@Composable
+private fun DetailRowPreview() {
+  PreviewSurface { DetailRow("Capital: Bern") }
 }

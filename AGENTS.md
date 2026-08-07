@@ -125,6 +125,44 @@ must contain no `?attr/…` theme attributes and no `@android:…` references** 
 resolve either, and both fail at runtime rather than at build time. Use literal colours
 (`#FFFFFFFF`) and let `Icon` supply the real colour from `LocalContentColor`.
 
+### Previews
+
+Previews come from `org.jetbrains.compose.ui:ui-tooling-preview`, and the import is
+**`androidx.compose.ui.tooling.preview.Preview`** — the AndroidX *names*, in `commonMain`. That
+artifact is the Compose Multiplatform build of the AndroidX preview API: it publishes a variant for
+every target this project has, and its common package is the `androidx` one, which is exactly why
+Android Studio renders `commonMain` previews and why the AndroidX multipreviews
+(`@PreviewScreenSizes`, `@PreviewLightDark`, `@PreviewFontScale`) and the full parameter list
+(`widthDp`, `device`, `uiMode`, …) are available in common code. There is an older
+`org.jetbrains.compose.ui.tooling.preview.Preview` from `components-ui-tooling-preview` — a bare
+annotation with no parameters. Do not use it.
+
+Two project multipreviews in `ui/…/PreviewSupport.kt`, so no preview repeats a device spec:
+
+| Annotation | Use it on | Renders |
+| --- | --- | --- |
+| `@AppScreenPreviews` | whole screens | `@PreviewScreenSizes` (phone portrait/landscape, unfolded foldable, tablet portrait/landscape, desktop) plus a compact browser window |
+| `@ComponentWidthPreviews` | a strip inside a screen | 360dp, 700dp, 1280dp |
+
+The same file holds `PreviewSurface` (wraps in `AppTheme` + `Surface`), sample `Country` /
+`Continent` / `CountryDetail` fixtures, and `loadedState` / `loadingState` / `refreshingState` /
+`failedState` for building a `ContentState`. Use them rather than inventing new fixtures — the
+sample list deliberately includes a country with a wrapping name and a null capital, which is what
+breaks a row first.
+
+Budget renders: the happy path gets the full size sweep, other states get `@PreviewLightDark` at
+phone size. `AppTheme` reads `isSystemInDarkTheme()`, which the renderer drives from `uiMode`, so
+`@PreviewLightDark` needs nothing passed to it.
+
+`PreviewSurface` is the one composable that emits UI without a `@Preview` of its own — it *is* the
+preview harness, so previewing it would be circular.
+
+**`ui/build.gradle.kts` declares the renderer as `androidRuntimeClasspath`, not
+`implementation`.** Android Studio resolves `ComposeViewAdapter` from the module's own runtime
+classpath, so the annotations alone draw nothing; `androidRuntimeClasspath` is resolvable-only and
+not a published variant, so the renderer is there for the IDE and never reaches `:app`. The AGP KMP
+library plugin has no build types, so there is no `debugImplementation` to scope it with.
+
 ### Apollo and Kotlin Multiplatform
 
 The Apollo Gradle plugin detects the KMP plugin by itself. It reads operations from
@@ -237,6 +275,9 @@ front when adding a module or a new graph:
   `DataError.toUserMessage()` (returns a `String`) correctly have none.
   `detekt/detekt.yml` already enables `ModifierMissing` and `ModifierNotUsedAtRoot`, but detekt
   is currently only wired up for `build-logic`, so nothing enforces this in the modules yet.
+- **Every composable that emits UI has a `@Preview`** — see [Previews](#previews) for the import,
+  the two project multipreview annotations, and the fixtures to reuse. Preview the states that are
+  easy to break, not just the happy path: loading, loaded, error, empty.
 
 ## Build setup
 
