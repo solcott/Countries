@@ -1,0 +1,51 @@
+import io.github.solcott.countries.build.Versions
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+// KMP counterpart to `library.gradle.kts`. AGP 9 dropped KMP support from `com.android.library`,
+// so the Android target comes from `com.android.kotlin.multiplatform.library` and is configured
+// through an `android { }` block nested inside `kotlin { }` rather than a top-level extension.
+plugins {
+  id("formatting")
+  id("org.jetbrains.kotlin.multiplatform")
+  id("com.android.kotlin.multiplatform.library")
+}
+
+// Captured here rather than inline: inside `kotlin { android { } }`, `name` resolves to the
+// Android target, not the project.
+val moduleNamespace = "io.github.solcott.countries.${project.name.replace('-', '.')}"
+val jvmBytecodeTarget = JvmTarget.fromTarget(Versions.TARGET_COMPATIBILITY.toString())
+
+kotlin {
+  // Applied implicitly by KGP, but stated here because modules depend on the intermediate source
+  // sets it creates: `appleMain` (ios + macos), `webMain` (js + wasmJs), `nativeMain`.
+  applyDefaultHierarchyTemplate()
+
+  jvmToolchain(Versions.JVM_TOOLCHAIN)
+
+  android {
+    namespace = moduleNamespace
+    compileSdk = Versions.compileSdk
+    minSdk = Versions.minSdk
+    compilerOptions { jvmTarget.set(jvmBytecodeTarget) }
+    // The KMP Android plugin disables tests by default; opt back in so `androidHostTest` exists.
+    // isReturnDefaultValues because Compose and Circuit touch android.util.Log, which is an
+    // unmocked stub in host-side unit tests.
+    withHostTestBuilder {}.configure { isReturnDefaultValues = true }
+  }
+
+  jvm { compilerOptions { jvmTarget.set(jvmBytecodeTarget) } }
+
+  iosArm64()
+  iosSimulatorArm64()
+  macosArm64()
+
+  // Browser only, deliberately. The web targets exist for a browser app, and Node cannot run
+  // everything this project needs anyway — Compose/Molecule's frame clock is browser-only, so
+  // presenter tests could never advance recomposition under Node.
+  js { browser() }
+
+  @OptIn(ExperimentalWasmDsl::class) wasmJs { browser() }
+
+  sourceSets { commonTest.dependencies { implementation(kotlin("test")) } }
+}

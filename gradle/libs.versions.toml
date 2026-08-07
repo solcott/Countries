@@ -3,10 +3,14 @@
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
 agp = "9.3.1"
 kotlin = "2.4.10"
-metro = "1.4.0"
+metro = "1.4.1"
 apollo = "5.0.1"
 apollo-normalized-cache = "1.0.6"
 ktfmt = "0.27.0"
+
+# @Parcelize/Parcelable usable from commonMain: real android.os.Parcelable on Android,
+# no-ops elsewhere. kotlin-parcelize itself does not support the KMP Android library plugin.
+kmp-parcelize = "1.0.4"
 
 # Circuit (MVI). Metro provides the @CircuitInject codegen.
 circuit = "0.36.0"
@@ -16,12 +20,27 @@ circuit = "0.36.0"
 composeUi = "1.11.4"
 material3 = "1.5.0-alpha25"
 
+# Compose Multiplatform. androidx.compose.foundation is Android-only, so `foundation` (and the
+# TextFieldState in CountryListScreen.State) has to come from here. Its Android variants alias to
+# androidx 1.11.2, the same minor line as composeUi above.
+composeMultiplatform = "1.11.1"
+
+# Compose Multiplatform's material3 is versioned separately from the rest of CMP — this does NOT
+# track composeMultiplatform. 1.11.0-alpha07 is the newest one still on the 1.11 core line (it
+# wants core 1.11.0-beta03, which resolves up to 1.11.1; 1.12.0-alpha* wants 1.12.0-beta01), and
+# it aliases androidx material3 1.5.0-alpha13 — the same 1.5.0-alpha line as `material3` above.
+# The CMP plugin's own default of 1.9.0 would pull androidx material3 1.4.0, a line backwards.
+composeMaterial3 = "1.11.0-alpha07"
+
 # AndroidX
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
 
 coroutines = "1.11.0"
+
+# Multiplatform logging. Logcat on Android, NSLog on Apple, console on js/wasm — no init needed.
+kermit = "2.1.0"
 
 # Test
 junit = "4.13.2"
@@ -43,6 +62,26 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "composeUi" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.4" }
+
+# Compose Multiplatform. `runtime` is a thin alias onto androidx.compose.runtime, which is already
+# multiplatform; `foundation` is the real multiplatform build, since androidx's is Android-only.
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-runtime-saveable = { module = "org.jetbrains.compose.runtime:runtime-saveable", version.ref = "composeMultiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
+# Separate version line — see the note on composeMaterial3.
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
+# The multiplatform replacement for Android res/: strings and drawables in commonMain.
+compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
+# @Preview and friends — annotations only, no runtime code, and published for every target we have.
+# The package is `androidx.compose.ui.tooling.preview`, not `org.jetbrains.…`, which is what lets
+# Android Studio render commonMain previews and what makes @PreviewScreenSizes available there.
+compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
+# The renderer Android Studio needs to *draw* those previews. Android and desktop variants only,
+# so it can never go in commonMain — see the androidRuntimeClasspath note in ui/build.gradle.kts.
+compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
+# `retain` has no Compose Multiplatform equivalent; androidx publishes this one multiplatform.
+androidx-compose-runtime-retain = { module = "androidx.compose.runtime:runtime-retain", version.ref = "composeUi" }
 # Circuit
 circuit-foundation = { module = "com.slack.circuit:circuit-foundation", version.ref = "circuit" }
 circuit-retained = { module = "com.slack.circuit:circuit-retained", version.ref = "circuit" }
@@ -57,6 +96,10 @@ apollo-api = { module = "com.apollographql.apollo:apollo-api", version.ref = "ap
 apollo-normalized-cache = { module = "com.apollographql.cache:normalized-cache", version.ref = "apollo-normalized-cache" }
 apollo-normalized-cache-sqlite = { module = "com.apollographql.cache:normalized-cache-sqlite", version.ref = "apollo-normalized-cache" }
 apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
+
+# Logging
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+kermit-test = { module = "co.touchlab:kermit-test", version.ref = "kermit" }
 
 # Coroutines
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -82,4 +125,8 @@ detekt = { id = "dev.detekt", version = "2.0.0-alpha.6" }
 metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
+kmp-parcelize = { id = "io.github.solcott.kmp.parcelize", version.ref = "kmp-parcelize" }
+# Needed even though dependencies are declared by coordinate: this plugin configures skiko's
+# npm/webpack packaging, which compose.foundation pulls in on js and wasmJs.
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 redacted = { id = "dev.zacsweers.redacted", version = "1.18.0" }

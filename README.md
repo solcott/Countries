@@ -18,7 +18,7 @@ list filtering. It is also stable, unauthenticated, and small enough to reason a
 | Fetch a list from a GraphQL API | `network` (Apollo Kotlin) |
 | Display the list in Jetpack Compose | `ui/CountryListUi.kt` |
 | Filter / search the list | name search + continent multi-select (server-side) |
-| Detail screen built with **XML layouts** | `ui/CountryDetailUi.kt` + `res/layout/view_country_detail.xml` via `AndroidView` |
+| Detail screen built with **XML layouts** | Originally `res/layout/view_country_detail.xml` via `AndroidView`; since converted to Compose in `ui/CountryDetailUi.kt` ahead of the Kotlin Multiplatform migration |
 | Loading / error / success states | `model/Response.kt`, surfaced through the presenters |
 | Mapping layer (no raw network models in the UI) | `repository/Mappers.kt` (generated → `model`) |
 | Kotlin throughout | ✅ |
@@ -62,14 +62,14 @@ Six Gradle modules, dependencies flowing strictly downward:
 
 ```
 app          → wires the Metro dependency graph, hosts the Activity
-ui           → Compose UI + the XML detail screen (Circuit Ui)
+ui           → Compose UI (Circuit Ui)
 presenter    → Circuit Screens, presenters, state, events  (the state holders)
 repository   → domain-facing data access, generated → model mapping
 network      → Apollo client, .graphql operations, generated code
 model        → plain Kotlin domain types + Response<T>
 ```
 
-- **UI:** Jetpack Compose (list) + an XML layout via `AndroidView` (detail).
+- **UI:** Jetpack Compose throughout.
 - **Architecture:** MVI via [Circuit](https://slackhq.github.io/circuit/) — presenters own
   state, UI is a pure function of state and emits events.
 - **DI:** [Metro](https://zacsweers.github.io/metro/), including Circuit factory codegen.
@@ -104,4 +104,4 @@ design, the testing strategy, and an AI-usage note.
 2. Unit tests for the name-prefix regex builder, the continent-code mapping, and the
    generated → `model` mappers.
 3. Empty-state UI (e.g. a filter that matches nothing) and a clear "no results" message.
-4. Instrumented tests for the Compose list and the XML detail interop.
+4. Instrumented tests for the Compose list and detail screens.

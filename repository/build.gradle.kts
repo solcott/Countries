@@ -1,13 +1,23 @@
 plugins {
-  id("library")
+  id("kmp-library")
   alias(libs.plugins.metro)
 }
 
-dependencies {
-  api(project(":model"))
-  implementation(project(":network"))
-  // Read-only access to Apollo's per-response cache metadata (isFromCache) for Origin mapping.
-  implementation(libs.apollo.normalized.cache)
+kotlin {
+  sourceSets {
+    commonMain.dependencies {
+      api(project(":model"))
+      implementation(project(":network"))
+      // Read-only access to Apollo's per-response cache metadata (isFromCache) for Origin mapping.
+      implementation(libs.apollo.normalized.cache)
+      // `implementation`: Logger never appears in this module's public signatures.
+      implementation(libs.kermit)
+    }
 
-  testImplementation(libs.junit)
+    commonTest.dependencies {
+      implementation(libs.kotlinx.coroutines.test)
+      // TestLogWriter, so the mappers' logging is asserted rather than assumed.
+      implementation(libs.kermit.test)
+    }
+  }
 }
