@@ -293,7 +293,9 @@ not obvious:
 
 - **It does not apply `kmp-library`.** That convention is for libraries: it adds android, jvm,
   ios and macos targets, and it never calls `binaries.executable()` — which is what turns a klib
-  into a webpack bundle. `web/build.gradle.kts` declares its two targets itself. It still applies
+  into a webpack bundle. `web/build.gradle.kts` declares its two targets itself — and, because
+  the convention is not there to do it, wires `kotlin("test")` into `commonTest` by hand. It
+  still applies
   `formatting`, and it applies `metro` so `createGraph<ComposeGraph>()` resolves, exactly as
   `:app` does.
 - **`commonMain` *is* the web source set.** With only js and wasmJs on the module, the metadata
@@ -314,6 +316,14 @@ not obvious:
   drives the backstack. `Routes.kt` owns the URL scheme — hash routes (`#/`,
   `#/country/{code}`), because a static bundle has no server to rewrite paths back to
   `index.html`.
+
+  **The decision itself lives in `historyAction()` (`HistoryAction.kt`), which is pure and
+  tested — change the navigation rules there, not in the effect.** `BrowserHistory` only
+  executes the `HistoryAction` it returns. That split exists because the rule set is a six-way
+  precedence table that produced two bugs while it was welded to `window.history` and therefore
+  untestable. Note especially that the first reconciliation *seeds* history from the backstack
+  (`prevDepth == UNRECONCILED`): the document has one entry however deep the URL seeded the
+  backstack, so a deep link needs the list synthesised underneath it.
 
 Both web targets need **Chrome** installed to run, and `devNpm("copy-webpack-plugin")` is
 declared per target because `npm()`/`devNpm()` are only available to JS-family source sets.

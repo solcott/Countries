@@ -21,6 +21,9 @@ import org.w3c.dom.events.Event
  * is driven by a `NavigationEventDispatcher` that browser `popstate` does not feed — so this is the
  * seam, and it is hand-written.
  *
+ * The *decision* lives in [historyAction], which is pure and tested; this composable only executes
+ * it. Changes to the navigation rules belong there, not here.
+ *
  * It mutates the backstack directly rather than going through the `Navigator`. For this app the two
  * are the same thing: `Navigator.goTo` is `backStack.push` and `Navigator.pop` is `backStack.pop`,
  * and the extra behaviour a `Navigator` adds (`resetRoot`, saved-state restore) belongs to
@@ -35,27 +38,36 @@ internal fun BrowserHistory(backStack: SaveableBackStack) {
   // Reading these in composition is what makes this composable re-run on every navigation.
   val depth = backStack.size
   val route = backStack.topRecord?.screen?.toRoute()
+  // BackStack iterates top-first; historyAction wants root-first.
+  val stackRoutes = backStack.toList().asReversed().mapNotNull { it.screen.toRoute() }
 
   // Backstack -> URL.
   LaunchedEffect(route, depth) {
-    if (route == null) return@LaunchedEffect
-    when {
-      // The change came from a popstate we are still processing; the URL is already correct.
-      binding.fromPopState -> binding.fromPopState = false
+    val action =
+      historyAction(
+        prevDepth = binding.depth,
+        depth = depth,
+        route = route,
+        currentHash = window.location.hash,
+        fromPopState = binding.fromPopState,
+        stackRoutes = stackRoutes,
+      )
+    // Consuming the flag is idempotent, so clearing it unconditionally saves a branch.
+    binding.fromPopState = false
 
-      // Pushed a screen: a new history entry, so forward returns to it.
-      depth > binding.depth -> window.history.pushState(null, "", route)
-
-      // Popped from inside the app (the detail screen's back arrow). Walking the browser back
-      // rather than rewriting the URL is what keeps the forward button meaningful. The popstate
-      // this triggers is a no-op — the backstack has already moved.
-      depth < binding.depth -> {
+    when (action) {
+      is HistoryAction.None -> Unit
+      is HistoryAction.Push -> window.history.pushState(null, "", action.route)
+      is HistoryAction.Replace -> window.history.replaceState(null, "", action.route)
+      is HistoryAction.Seed -> {
+        window.history.replaceState(null, "", action.routes.first())
+        for (route in action.routes.drop(1)) window.history.pushState(null, "", route)
+      }
+      // The popstate this triggers is a no-op — the backstack has already moved.
+      is HistoryAction.Back -> {
         binding.ignoreNextPopState = true
         window.history.back()
       }
-
-      // First composition, or a same-depth screen swap.
-      window.location.hash != route -> window.history.replaceState(null, "", route)
     }
     binding.depth = depth
   }
@@ -83,12 +95,12 @@ internal fun BrowserHistory(backStack: SaveableBackStack) {
 }
 
 /**
- * The two "who moved first" flags and the last depth we reconciled at. Plain vars in a remembered
+ * The two "who moved first" flags and the depth we last reconciled at. Plain vars in a remembered
  * holder rather than `MutableState`: they are written from a DOM callback and read from an effect,
  * never from composition, so making them snapshot state would only invite spurious recompositions.
  */
 private class HistoryBinding {
-  var depth: Int = 0
+  var depth: Int = UNRECONCILED
   var fromPopState: Boolean = false
   var ignoreNextPopState: Boolean = false
 }

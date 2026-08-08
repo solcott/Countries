@@ -47,6 +47,10 @@ kotlin {
       implementation(libs.kotlinx.browser)
     }
 
+    // Wired up by hand rather than by `kmp-library`, which this module deliberately does not
+    // apply. Tests run on jsBrowserTest and wasmJsBrowserTest, so they need Chrome.
+    commonTest.dependencies { implementation(kotlin("test")) }
+
     // Build-time only, and needed by webpack.config.d/sqljs.js. devNpm() is available only to
     // JS-family source sets, so it is declared per target the same way :network declares the
     // SQL.js packages themselves.
