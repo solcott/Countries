@@ -6,6 +6,8 @@ kotlin = "2.4.10"
 metro = "1.4.1"
 apollo = "5.0.1"
 apollo-normalized-cache = "1.0.6"
+# What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
+sqldelight = "2.1.0"
 ktfmt = "0.27.0"
 
 # @Parcelize/Parcelable usable from commonMain: real android.os.Parcelable on Android,
@@ -16,21 +18,24 @@ kmp-parcelize = "1.0.4"
 circuit = "0.36.0"
 
 # Compose. Explicit versions rather than the BOM, so the alpha Material3 line can be
-# pinned independently of the stable UI/foundation line.
-composeUi = "1.11.4"
+# pinned independently of the UI/foundation line.
+composeUi = "1.12.0-rc01"
 material3 = "1.5.0-alpha25"
 
 # Compose Multiplatform. androidx.compose.foundation is Android-only, so `foundation` (and the
-# TextFieldState in CountryListScreen.State) has to come from here. Its Android variants alias to
-# androidx 1.11.2, the same minor line as composeUi above.
-composeMultiplatform = "1.11.1"
+# TextFieldState in CountryListScreen.State) has to come from here.
+#
+# On the 1.12 line specifically because that is where web gained automatic fallback-font loading:
+# Skia has no system font manager in a browser, so before 1.12 every emoji and every non-Latin
+# script rendered as tofu. See the fonts note in AGENTS.md — do not bundle fallback fonts.
+composeMultiplatform = "1.12.0-beta03"
 
 # Compose Multiplatform's material3 is versioned separately from the rest of CMP — this does NOT
-# track composeMultiplatform. 1.11.0-alpha07 is the newest one still on the 1.11 core line (it
-# wants core 1.11.0-beta03, which resolves up to 1.11.1; 1.12.0-alpha* wants 1.12.0-beta01), and
-# it aliases androidx material3 1.5.0-alpha13 — the same 1.5.0-alpha line as `material3` above.
-# The CMP plugin's own default of 1.9.0 would pull androidx material3 1.4.0, a line backwards.
-composeMaterial3 = "1.11.0-alpha07"
+# track composeMultiplatform. 1.12.0-alpha03 is the newest, it wants core 1.12.0-beta01 (which
+# resolves up to our beta03), and it aliases androidx material3 1.5.0-alpha22 — older than the
+# `material3` above, so ours wins. The CMP plugin's own default accessor is far behind and would
+# pull an androidx material3 several minor lines backwards; always set this explicitly.
+composeMaterial3 = "1.12.0-alpha03"
 
 # AndroidX
 coreKtx = "1.19.0"
@@ -38,6 +43,11 @@ activityCompose = "1.13.0"
 lifecycle = "2.11.0"
 
 coroutines = "1.11.0"
+
+# window/history/DOM types for js and wasmJs from one shared source set. The JS stdlib still ships
+# kotlinx.browser; wasmJs never did, and this is where both come from. Pinned to what Compose
+# Multiplatform and skiko already put on the web classpath rather than resolving forward.
+kotlinxBrowser = "0.5.0"
 
 # Multiplatform logging. Logcat on Android, NSLog on Apple, console on js/wasm — no init needed.
 kermit = "2.1.0"
@@ -100,6 +110,13 @@ apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.r
 # Logging
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 kermit-test = { module = "co.touchlab:kermit-test", version.ref = "kermit" }
+
+# Browser
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinxBrowser" }
+# The SqlDriver behind SqlNormalizedCacheFactory on web. Already present transitively via
+# normalized-cache-sqlite; declared because :network constructs the driver itself to point it at a
+# worker that persists. Pinned to the SQLDelight release normalized-cache-sqlite depends on.
+sqldelight-web-worker-driver = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqldelight" }
 
 # Coroutines
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }

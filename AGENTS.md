@@ -79,14 +79,28 @@ Compose in a migrated module comes from **two** places, and the split is not arb
 | `retain` | `androidx.compose.runtime:runtime-retain` | Multiplatform already, and has **no** Compose Multiplatform equivalent |
 | strings, drawables | `org.jetbrains.compose.components:components-resources` | The multiplatform replacement for Android `res/` |
 
-**material3 is on its own version line — `composeMaterial3`, not `composeMultiplatform`.** Two
-plausible-looking choices are both wrong:
+**The project is on the Compose 1.12 line, and that is a deliberate choice made for the web
+target** — 1.12 is where Compose Multiplatform gained automatic fallback-font loading in the
+browser. See [Fonts on web](#fonts-on-web) below before considering a downgrade; on 1.11 every
+emoji and every non-Latin script renders as tofu.
 
-| CMP material3 | needs CMP core | aliases AndroidX material3 |
+| Version ref | Value | Notes |
 | --- | --- | --- |
-| 1.9.0 — what the CMP plugin's own `compose.material3` accessor pins | — | **1.4.0**, a minor line *backwards* from this project |
-| **1.11.0-alpha07** (chosen) | 1.11.0-beta03, resolves up to our 1.11.1 | 1.5.0-alpha13 — same line as our `material3` |
-| 1.12.0-alpha03 | 1.12.0-beta01 — drags core off the 1.11 line | 1.5.0-alpha22 |
+| `composeMultiplatform` | `1.12.0-beta03` | Prerelease. The web font downloader landed in 1.12.0-alpha02 |
+| `composeUi` (AndroidX) | `1.12.0-rc01` | CMP 1.12.0-beta03 asks for AndroidX 1.12.0-beta02; this resolves up |
+| `composeMaterial3` (CMP) | `1.12.0-alpha03` | Wants CMP core 1.12.0-beta01, satisfied by beta03 |
+| `material3` (AndroidX) | `1.5.0-alpha25` | CMP material3 asks for 1.5.0-alpha22, so ours wins |
+
+**material3 is on its own version line — `composeMaterial3`, not `composeMultiplatform`.** It does
+not track the core version and never has; the CMP plugin's own `compose.material3` accessor pins
+something far behind, which would drag AndroidX material3 *backwards* several minor lines. Always
+set `composeMaterial3` explicitly, and when changing it check two things: which CMP core version it
+requires, and which AndroidX material3 it aliases.
+
+Known version skew on Android, accepted: `ui` and `runtime` resolve to 1.12.0-rc01 because the
+catalog pins them, while `foundation` and `animation` sit at 1.12.0-beta02 because only CMP
+requests those and CMP 1.12.0-beta03 was built against beta02. Same release line, weeks apart. The
+web target has no skew — every `org.jetbrains.compose.*` artifact is 1.12.0-beta03.
 
 Three build requirements that are easy to miss:
 
@@ -178,9 +192,34 @@ ignore the name**. The web driver needs two npm dependencies, declared on `jsMai
 `wasmJsMain` in `network/build.gradle.kts` — pin them to the SQLDelight version that
 `normalized-cache-sqlite` actually depends on (currently 2.1.0), not to the latest.
 
-A future browser **application** module will additionally need a `webpack.config.d/` entry
-copying `sql.js`'s `.wasm` into the bundle. That is not required for a library module, so
-`:network` does not have one.
+A browser **application** module additionally needs a `webpack.config.d/` entry copying
+`sql.js`'s `.wasm` into the bundle — see `web/webpack.config.d/sqljs.js`. Nothing in the
+Kotlin sources references that file, so without the copy step the build is clean and the
+worker 404s at runtime. That is not required for a library module, so `:network` does not
+have one.
+
+**Web uses its own SQL.js worker, and `createDefaultWebWorkerDriver()` must not come back.**
+SQL.js has no storage of its own — the database is a block of memory you are responsible for
+saving — and the reference worker, `@cashapp/sqldelight-sqljs-worker`, does `new SQL.Database()`
+and never writes it anywhere. On that worker the SQLite tier is a second in-memory cache behind
+the first one, at the cost of a 600 KB wasm blob.
+
+`network/npm/countries-sqljs-idb-worker/` is that worker with a persistence layer: it loads the
+database from IndexedDB at startup and writes `db.export()` back, debounced, after each
+transaction. `NetworkProviders.web.kt` builds the `WebWorkerDriver` around it by hand.
+
+Three things about it are easy to break:
+
+- **It is a local npm package, not a loose `.js` file.** `new Worker(new URL(…))` has to resolve
+  at bundle time, and a bare specifier out of `node_modules` is the only shape that works from a
+  library module. Both `jsMain` and `wasmJsMain` declare it.
+- **The `exec` response must stay `res[0] ?? { values: [] }`.** `db.exec` also returns `[]` for a
+  `SELECT` that matched nothing, so returning anything richer — a rows-modified count, say —
+  makes a cache miss look like a row to SQLDelight's cursor.
+- **The database name travels as the worker's own name** (`new Worker(url, { name })`), because
+  SQLDelight's message protocol has no field for it. It keys the IndexedDB snapshot.
+
+**Persisting the cache is not what makes the app work offline** — see the service worker below.
 
 Per-platform Apollo client configuration goes through
 `ApolloClient.Builder.platformConfiguration()`, an `expect` extension in
@@ -190,10 +229,11 @@ tier, the Metro provider itself — stays in `commonMain`. Add new per-platform 
 
 ## Module structure
 
-Eight modules, with dependencies flowing strictly downward:
+Nine modules, with dependencies flowing strictly downward:
 
 ```
 app             → Android entry point: Activity, theme, manifest. Nothing else.
+web             → Browser entry point (js + wasmJs): main(), index.html, URL routing.
 shared-compose  → ComposeGraph — the Metro graph every Compose app shares
 shared          → CoreGraph for non-Compose consumers, plus the root Logger
 ui              → Compose UI (Circuit Ui implementations), CircuitProviders
@@ -206,8 +246,8 @@ model           → Kotlin domain types
 There are **two graphs** because of how the platform apps differ:
 
 - `shared-compose` declares `ComposeGraph`, which exposes `Circuit`. Every Compose consumer
-  shares it — the Android app today, and the Compose Multiplatform iOS, desktop and web apps
-  alongside it. None of them declares a graph of its own.
+  shares it — the Android and browser apps today, and the Compose Multiplatform iOS and desktop
+  apps alongside them. None of them declares a graph of its own.
 - `shared` declares `CoreGraph`, which exposes repositories and no Compose types at all. That
   is what a SwiftUI/UIKit iOS app uses: it drives Circuit `Presenter`s directly (see Circuit's
   counter sample) and needs neither a `Circuit` instance nor any `Ui.Factory`, so it must not
@@ -216,15 +256,21 @@ There are **two graphs** because of how the platform apps differ:
 All packages live under `io.github.solcott.countries`, with each module using its
 own name as the suffix — `…countries.model`, `…countries.network`,
 `…countries.repository`, `…countries.presenter`, `…countries.ui`,
-`…countries.shared`, `…countries.shared.compose`. The `app`
+`…countries.shared`, `…countries.shared.compose`, `…countries.web`. The `app`
 module uses the root `io.github.solcott.countries`, which is also the
 `applicationId`. Each module's Gradle `namespace` matches its package.
 
 Rules:
 
-- **`app` holds no dependency wiring.** It depends on `shared-compose` and nothing else from
-  this project. Adding a `@Provides` to an app module is almost always wrong — it would not be
-  available to the other platform apps.
+- **An app module holds no dependency wiring.** `app` and `web` depend on `shared-compose`
+  and nothing else from this project for the graph. Adding a `@Provides` to an app module is
+  almost always wrong — it would not be available to the other platform apps.
+- **The app itself is `CountriesApp` in `:ui`, not the entry point.** The theme, the backstack,
+  `CircuitCompositionLocals` and `NavigableCircuitContent` live there; `MainActivity` and the
+  browser `main()` each do two things only — read `circuit` off the graph, and call it. New
+  screen-agnostic wiring belongs in `CountriesApp`, not in an entry point.
+  `rememberCircuitNavigator`'s `onRootPop` is the exception: it is genuinely per-platform
+  (Android finishes the Activity, the browser no-ops) and is passed in.
 - A module contributes its own providers with `@ContributesTo(AppScope::class)`, next to the
   code they construct: `NetworkProviders` in `network`, `CircuitProviders` in `ui`,
   `LoggingProviders` in `shared`.
@@ -255,6 +301,108 @@ front when adding a module or a new graph:
    interfaces become *supertypes* of the generated graph, so anything consuming the graph has to
    see them too.
    *Symptom:* `Cannot access '…NetworkProviders' which is a supertype of 'ComposeGraph'`.
+
+### The `web` module
+
+The browser app, targeting **both** `js` and `wasmJs` from one module. Four things about it are
+not obvious:
+
+- **It does not apply `kmp-library`.** That convention is for libraries: it adds android, jvm,
+  ios and macos targets, and it never calls `binaries.executable()` — which is what turns a klib
+  into a webpack bundle. `web/build.gradle.kts` declares its two targets itself — and, because
+  the convention is not there to do it, wires `kotlin("test")` into `commonTest` by hand. It
+  still applies
+  `formatting`, and it applies `metro` so `createGraph<ComposeGraph>()` resolves, exactly as
+  `:app` does.
+- **`commonMain` *is* the web source set.** With only js and wasmJs on the module, the metadata
+  compilation resolves against `kotlinx-browser` and `org.w3c.dom`, so `window`, `history` and
+  the DOM event types are usable from common code with no `expect`/`actual` — the same thing
+  Compose Multiplatform does in its own `webMain`. There is no `src/webMain` here, and adding one
+  would buy nothing. `index.html` and `styles.css` live in `src/commonMain/resources/` and both
+  target distributions pick them up.
+- **`main()` mounts through `ComposeViewport(viewportContainerId = "composeApp")`** from
+  `androidx.compose.ui.window`, which is `@ExperimentalComposeUiApi`. It waits for the DOM and,
+  on wasm, for the runtime, so no `onWasmReady` wrapper is needed. The container must be sized by
+  CSS — Compose measures its viewport from the element, and a zero-height container renders
+  nothing with no error.
+- **Browser history is hand-written**, in `BrowserHistory.kt`. Circuit ships no web history
+  integration, and Compose Multiplatform's web `BackHandler` is driven by a
+  `NavigationEventDispatcher` that browser `popstate` does not feed. The binding is
+  bidirectional: pushes become `pushState`, in-app pops become `history.back()`, and `popstate`
+  drives the backstack. `Routes.kt` owns the URL scheme — hash routes (`#/`,
+  `#/country/{code}`), because a static bundle has no server to rewrite paths back to
+  `index.html`.
+
+  **The decision itself lives in `historyAction()` (`HistoryAction.kt`), which is pure and
+  tested — change the navigation rules there, not in the effect.** `BrowserHistory` only
+  executes the `HistoryAction` it returns. That split exists because the rule set is a six-way
+  precedence table that produced two bugs while it was welded to `window.history` and therefore
+  untestable. Note especially that the first reconciliation *seeds* history from the backstack
+  (`prevDepth == UNRECONCILED`): the document has one entry however deep the URL seeded the
+  backstack, so a deep link needs the list synthesised underneath it.
+
+Both web targets need **Chrome** installed to run, and `devNpm("copy-webpack-plugin")` is
+declared per target because `npm()`/`devNpm()` are only available to JS-family source sets.
+The js and wasm npm stores have **separate lockfiles and separate upgrade tasks** —
+`kotlinUpgradeYarnLock` and `kotlinWasmUpgradeYarnLock`. Adding an npm dependency needs both.
+
+Also add `binaries.executable()` to the `js` and `wasmJs` targets of any **Compose library**
+module — see `presenter/build.gradle.kts`. CMP 1.12 added
+`checkComposeUiTestConfigurationFor{Js,WasmJs}`, which hard-fails any module whose browser test
+bundle reaches skiko without an executable binary to bundle it into. It fires off the target's
+test task existing, not off there being test sources, and there is no opt-out property.
+
+### Offline, and the service worker
+
+`web/src/commonMain/resources/sw.js`, registered from `ServiceWorker.kt`. **This is the thing that
+makes the app load with no network at all.** The persistent Apollo cache only helps once the page
+is running; without a service worker an offline reload never gets that far, because the bundle
+itself cannot be fetched.
+
+| Request | Strategy | Why |
+| --- | --- | --- |
+| Same-origin `GET` | stale-while-revalidate | The app shell, the hashed `.wasm` chunks, `composeResources` |
+| `fonts.gstatic.com` | cache-first | Immutable, and what keeps flags and non-Latin text from reverting to tofu offline |
+| GraphQL `POST` | network-first, cache fallback | The Cache API ignores POSTs, so responses are keyed by a hash of the request body |
+
+**Nothing is precached.** The bundle filenames are content-hashed, so a hard-coded manifest would
+rot on every build; the shell is cached as it is first requested instead. The cost is that the app
+needs one online visit before it works offline.
+
+Two practical notes:
+
+- **Bump `CACHE_VERSION` to evict everything.** `activate` deletes every cache that is not current.
+- **Under `webpack-dev-server`, stale-while-revalidate can serve one-load-stale content.** That is
+  the strategy working, not a build bug — `skipWaiting()` means the next reload picks up the new
+  bundle. Verify offline behaviour against a *distribution* served by a static file server, not
+  against the dev server.
+
+### Fonts on web
+
+**Skia has no system font manager in a browser.** The browser's own fonts are unreachable from it —
+Compose rasterises text into a canvas — so a codepoint with no glyph in a font Skia has been *given*
+renders as tofu. Android, desktop and iOS are fine because those platforms expose a system font
+fallback. This app hits it hard: flags on all 250 rows, and 53 countries whose `native` name needs
+one of 14 non-Latin scripts.
+
+Compose Multiplatform **1.12** solves it. `ComposeWindow` calls `installFallbackFontDownloader()`
+unconditionally on web; Skia reports unresolved codepoints during layout, the downloader batches
+them, fetches the matching Noto woff2 subsets from `https://fonts.gstatic.com/s/`, preloads them,
+and calls `onNewFontInstalled()` to force a re-layout. Noto Color Emoji is in that table — chunk 0
+is exactly the flag block `U+1f1e6-1f1ff` — and the CJK variant is picked from
+`navigator.language`.
+
+So:
+
+- **Do not bundle fallback fonts, and do not hand-roll `FontFamily.Resolver.preload`.** That is the
+  documented approach for 1.11 and earlier, and it is obsolete here. It would mean committing
+  megabytes of woff2 and rebuilding the resolver on every late font arrival (`FontCache` is
+  per-resolver, so a fresh one has to be re-preloaded with the whole accumulated set).
+- **The downloader is unconditional — there is no property to turn it off.** The web app therefore
+  makes runtime requests to a Google CDN, and non-Latin text and flags will not render offline
+  until the browser has cached those files.
+- **Do not drop `composeMultiplatform` below 1.12.** It reintroduces the bug silently: everything
+  builds, and only a human looking at the running page notices.
 
 ## Conventions
 
@@ -315,8 +463,11 @@ toolchain downloads, which `FAIL_ON_PROJECT_REPOS` rejects at registration time.
 downloads (Node, Yarn, Binaryen) are declared as content-filtered `ivy` repositories in the
 settings `repositories` block instead, so every dependency still resolves from there.
 
-`kotlin-js-store/yarn.lock` is a committed lockfile for the js/wasmJs npm dependencies.
-Regenerate it with `./gradlew kotlinUpgradeYarnLock` rather than editing it.
+`kotlin-js-store/` holds **two** committed lockfiles, because js and wasmJs have separate npm
+stores: `yarn.lock` for js and `wasm/yarn.lock` for wasmJs. Regenerate them with
+`./gradlew kotlinUpgradeYarnLock` and `./gradlew kotlinWasmUpgradeYarnLock` rather than editing
+them. A build that touches only one store fails with "Lock file was changed" naming the task it
+needs, so it is easy to fix one and forget the other.
 
 ## Commands
 
@@ -328,6 +479,12 @@ Regenerate it with `./gradlew kotlinUpgradeYarnLock` rather than editing it.
 
 ./gradlew :model:assemble   # build a KMP module for every target
 ./gradlew :model:allTests   # run a KMP module's tests on every target
+
+# Browser app — serves on http://localhost:8080
+./gradlew :web:wasmJsBrowserDevelopmentRun
+./gradlew :web:jsBrowserDevelopmentRun
+./gradlew :web:wasmJsBrowserDistribution   # → web/build/dist/wasmJs/productionExecutable
+./gradlew :web:jsBrowserDistribution       # → web/build/dist/js/productionExecutable
 ```
 
 `ktfmtCheck` at the root does not cover `build-logic` — that is a separate included build.

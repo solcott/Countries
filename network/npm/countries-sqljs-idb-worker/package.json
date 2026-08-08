@@ -1,0 +1,11 @@
+{
+  "name": "countries-sqljs-idb-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SQLDelight web worker backed by SQL.js, persisting the database to IndexedDB.",
+  "main": "worker.js",
+  "type": "module",
+  "dependencies": {
+    "sql.js": "1.8.0"
+  }
+}

@@ -1,10 +1,15 @@
 package io.github.solcott.countries.ui
 
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import com.slack.circuit.foundation.Circuit
+import com.slack.circuit.runtime.presenter.presenterOf
+import com.slack.circuit.runtime.screen.Screen
+import com.slack.circuit.runtime.ui.ui
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
@@ -12,6 +17,8 @@ import io.github.solcott.countries.model.DataError
 import io.github.solcott.countries.model.Language
 import io.github.solcott.countries.model.Origin
 import io.github.solcott.countries.presenter.ContentState
+import io.github.solcott.countries.presenter.CountryDetailScreen
+import io.github.solcott.countries.presenter.CountryListScreen
 import io.github.solcott.countries.presenter.LoadStatus
 import io.github.solcott.countries.ui.theme.AppTheme
 
@@ -131,3 +138,52 @@ internal fun <T> refreshingState(data: T) = ContentState(data, Origin.Cache, Loa
 
 internal fun <T> failedState(data: T, error: DataError = DataError.Network) =
   ContentState(data, null, LoadStatus.Failed(error))
+
+/**
+ * A [Circuit] wired to the real UIs but to presenters that just hand back the fixtures above, so
+ * `CountriesApp` — which takes a [Circuit] and nothing else — can be previewed without a Metro
+ * graph, a repository or the network.
+ *
+ * Navigation between these screens does work in a running app; it does not in a preview, which is
+ * why the detail preview seeds its backstack with [previewDetailRoute] instead of clicking through.
+ */
+internal fun previewCircuit(): Circuit =
+  Circuit.Builder()
+    .addPresenter<CountryListScreen, CountryListScreen.State>(
+      presenterOf {
+        CountryListScreen.State(
+          nameStartsWithText = rememberTextFieldState(),
+          countriesState = loadedState(previewCountries),
+          continentsState = loadedState(previewContinents),
+          selectedContinents = emptyList(),
+          eventSink = {},
+        )
+      }
+    )
+    .addUi<CountryListScreen, CountryListScreen.State> { state, modifier ->
+      CountryListUi(state, modifier)
+    }
+    .addPresenter<CountryDetailScreen, CountryDetailScreen.State>(
+      presenterOf {
+        CountryDetailScreen.State(
+          content = loadedState<CountryDetail?>(previewCountryDetail),
+          eventSink = {},
+        )
+      }
+    )
+    // addUi passes only (state, modifier); CountryDetailUi also takes its Screen, so this one goes
+    // through the factory directly.
+    .addUiFactory { screen, _ ->
+      if (screen is CountryDetailScreen) {
+        ui<CountryDetailScreen.State> { state, modifier ->
+          CountryDetailUi(state, screen, modifier)
+        }
+      } else {
+        null
+      }
+    }
+    .build()
+
+/** Root-first, the shape a `#/country/CH` deep link produces. */
+internal val previewDetailRoute: List<Screen> =
+  listOf(CountryListScreen, CountryDetailScreen(previewCountryDetail.code))
