@@ -25,6 +25,8 @@ kotlin {
       // `api`: Circuit appears in CircuitProviders.provideCircuit's signature.
       api(libs.circuit.foundation)
       implementation(libs.circuit.runtime.ui)
+      // presenterOf, for the fake presenters behind previewCircuit in PreviewSupport.kt.
+      implementation(libs.circuit.runtime.presenter)
       implementation(libs.circuit.codegen.annotations)
 
       implementation(libs.compose.runtime)
