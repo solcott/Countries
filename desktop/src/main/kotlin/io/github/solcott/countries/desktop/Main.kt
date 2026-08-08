@@ -1,5 +1,6 @@
 package io.github.solcott.countries.desktop
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -18,6 +19,7 @@ import dev.zacsweers.metro.createGraph
 import io.github.solcott.countries.presenter.CountryListScreen
 import io.github.solcott.countries.shared.compose.ComposeGraph
 import io.github.solcott.countries.ui.CountriesApp
+import io.github.solcott.countries.ui.LocalFlagFontFamily
 import java.awt.Dimension
 
 /**
@@ -65,6 +67,8 @@ fun main() = application {
 
     // onRootPop is left at its default no-op: on desktop the window's close button is how you
     // leave, and popping past the list should not quit the app out from under the user.
-    CountriesApp(circuit = circuit, backStack = backStack)
+    CompositionLocalProvider(LocalFlagFontFamily provides flagFontFamily) {
+      CountriesApp(circuit = circuit, backStack = backStack)
+    }
   }
 }
