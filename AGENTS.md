@@ -198,12 +198,28 @@ Kotlin sources references that file, so without the copy step the build is clean
 worker 404s at runtime. That is not required for a library module, so `:network` does not
 have one.
 
-**The default web driver is in-memory, so nothing survives a reload.** SQLDelight's
-`@cashapp/sqldelight-sqljs-worker` does `new SQL.Database()` and never writes it anywhere;
-`createDefaultWebWorkerDriver()` has no persistence story. The worker does start and does load
-`sql-wasm.wasm` — verified in a browser — but on web the SQLite tier is functionally a second
-memory cache behind the first one. Real persistence needs a custom worker that saves to
-IndexedDB.
+**Web uses its own SQL.js worker, and `createDefaultWebWorkerDriver()` must not come back.**
+SQL.js has no storage of its own — the database is a block of memory you are responsible for
+saving — and the reference worker, `@cashapp/sqldelight-sqljs-worker`, does `new SQL.Database()`
+and never writes it anywhere. On that worker the SQLite tier is a second in-memory cache behind
+the first one, at the cost of a 600 KB wasm blob.
+
+`network/npm/countries-sqljs-idb-worker/` is that worker with a persistence layer: it loads the
+database from IndexedDB at startup and writes `db.export()` back, debounced, after each
+transaction. `NetworkProviders.web.kt` builds the `WebWorkerDriver` around it by hand.
+
+Three things about it are easy to break:
+
+- **It is a local npm package, not a loose `.js` file.** `new Worker(new URL(…))` has to resolve
+  at bundle time, and a bare specifier out of `node_modules` is the only shape that works from a
+  library module. Both `jsMain` and `wasmJsMain` declare it.
+- **The `exec` response must stay `res[0] ?? { values: [] }`.** `db.exec` also returns `[]` for a
+  `SELECT` that matched nothing, so returning anything richer — a rows-modified count, say —
+  makes a cache miss look like a row to SQLDelight's cursor.
+- **The database name travels as the worker's own name** (`new Worker(url, { name })`), because
+  SQLDelight's message protocol has no field for it. It keys the IndexedDB snapshot.
+
+**Persisting the cache is not what makes the app work offline** — see the service worker below.
 
 Per-platform Apollo client configuration goes through
 `ApolloClient.Builder.platformConfiguration()`, an `expect` extension in
@@ -335,6 +351,31 @@ module — see `presenter/build.gradle.kts`. CMP 1.12 added
 `checkComposeUiTestConfigurationFor{Js,WasmJs}`, which hard-fails any module whose browser test
 bundle reaches skiko without an executable binary to bundle it into. It fires off the target's
 test task existing, not off there being test sources, and there is no opt-out property.
+
+### Offline, and the service worker
+
+`web/src/commonMain/resources/sw.js`, registered from `ServiceWorker.kt`. **This is the thing that
+makes the app load with no network at all.** The persistent Apollo cache only helps once the page
+is running; without a service worker an offline reload never gets that far, because the bundle
+itself cannot be fetched.
+
+| Request | Strategy | Why |
+| --- | --- | --- |
+| Same-origin `GET` | stale-while-revalidate | The app shell, the hashed `.wasm` chunks, `composeResources` |
+| `fonts.gstatic.com` | cache-first | Immutable, and what keeps flags and non-Latin text from reverting to tofu offline |
+| GraphQL `POST` | network-first, cache fallback | The Cache API ignores POSTs, so responses are keyed by a hash of the request body |
+
+**Nothing is precached.** The bundle filenames are content-hashed, so a hard-coded manifest would
+rot on every build; the shell is cached as it is first requested instead. The cost is that the app
+needs one online visit before it works offline.
+
+Two practical notes:
+
+- **Bump `CACHE_VERSION` to evict everything.** `activate` deletes every cache that is not current.
+- **Under `webpack-dev-server`, stale-while-revalidate can serve one-load-stale content.** That is
+  the strategy working, not a build bug — `skipWaiting()` means the next reload picks up the new
+  bundle. Verify offline behaviour against a *distribution* served by a static file server, not
+  against the dev server.
 
 ### Fonts on web
 

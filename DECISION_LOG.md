@@ -155,9 +155,41 @@ not a configuration flag.
 
 The mistake was reasoning about a dependency's behaviour from its name and its docs' framing
 rather than from what it does, and then not having anything that could catch it: no library test
-exercises a browser, and the module compiled and shipped for two targets regardless. Left in
-place rather than reverted, because deciding between "write the IndexedDB worker" and "drop to
-memory-only on web and say so" is a product call, not a cleanup.
+exercises a browser, and the module compiled and shipped for two targets regardless.
+
+**Resolved by writing the worker** — `network/npm/countries-sqljs-idb-worker/`, which is the
+reference worker plus a persistence layer: load the database from IndexedDB at startup, write
+`db.export()` back, debounced, after each transaction. Apollo merges inside transactions, so one
+response's writes coalesce into one save.
+
+Swapping the worker beat the obvious alternative of writing a `NormalizedCache` on IndexedDB in
+Kotlin. That interface is large — `merge` ×2, `remove` ×2, `clearAll`, `trim`, plus the read side
+— and Apollo's record serialization, including the `CacheKey` sentinels inside `Record.fields`, is
+`internal`. Reimplementing it means owning correctness for the whole cache, and getting it subtly
+wrong corrupts data silently. Changing where the SQLite bytes live changes nothing else.
+
+Two details in that worker are load-bearing and look like tidying opportunities. The `exec`
+response stays `res[0] ?? { values: [] }` because `db.exec` also returns `[]` for a `SELECT` that
+matched nothing — returning a rows-modified count there would make a cache miss look like a row to
+the cursor. And it is deliberately *not* gated on `typeof importScripts === "function"` the way the
+reference worker is: that gate silently does nothing if the bundler emits a module worker, which is
+a failure mode with no error attached to it.
+
+**And persisting the cache turned out not to be the thing that was actually wanted.** With the
+network fully off the page never loaded at all — nothing cached the bundle — so a warm Apollo cache
+only ever helped an *online* reload. Genuine offline needed a service worker as well
+(`web/…/sw.js`): stale-while-revalidate for the shell, cache-first for the Noto fallback fonts, and
+network-first with a body-hashed key for GraphQL POSTs, since the Cache API refuses to key on a
+POST. Nothing is precached, because the bundle filenames are content-hashed and a manifest would
+rot; the price is one online visit before the app works offline.
+
+Both were verified by removing the thing under test rather than simulating it. For the cache: a
+cold profile with the API blocked shows the offline error, an online load writes 61440 bytes to
+IndexedDB, and a reload with the API still blocked renders the full list. For offline: the static
+server was **killed**, its unreachability confirmed from outside the browser, and the app still
+loaded and rendered — flags included. Chrome's `Network.emulateNetworkConditions` had left
+`navigator.onLine` reporting `true`, which is exactly the kind of ambiguity that produced the
+original wrong conclusion.
 
 **`repository`: one import, and the first real test suite.** The entire module was one line away
 from `commonMain` — `android.util.Log` in `Mappers.kt`. Everything else it touches (Apollo's
@@ -432,8 +464,9 @@ rc is the part of this change least exercised by the test suite and easiest to s
 
 - Minimal error handling/presentation (generic messages, swallowed cache misses).
 - Normalized caching (memory → SQLite) was added but not deeply tuned; first launch still
-  hits the network, and cache hits are per-exact-filter. On web the SQLite tier does not
-  persist at all — see the SQL.js note above.
+  hits the network, and cache hits are per-exact-filter. ~~On web the SQLite tier does not
+  persist at all.~~ Since fixed: the worker persists to IndexedDB and a service worker caches
+  the shell, so web reloads offline.
 - ~~Tests focus on the presenter; mapping and the query builder are untested.~~ Mapping is now
   covered (`repository/src/commonTest`, running on every platform runner). The query builder
   in `network` — `asStartsWithOperator` and friends — is still untested.

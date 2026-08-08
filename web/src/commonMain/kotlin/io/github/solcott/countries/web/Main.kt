@@ -17,6 +17,9 @@ import kotlinx.browser.window
  */
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
+  // Caches the shell so the app loads offline. Fire-and-forget — nothing below waits on it.
+  registerServiceWorker()
+
   val circuit = createGraph<ComposeGraph>().circuit
 
   ComposeViewport(viewportContainerId = VIEWPORT_ID) {
