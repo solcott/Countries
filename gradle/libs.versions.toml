@@ -6,6 +6,8 @@ kotlin = "2.4.10"
 metro = "1.4.1"
 apollo = "5.0.1"
 apollo-normalized-cache = "1.0.6"
+# What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
+sqldelight = "2.1.0"
 ktfmt = "0.27.0"
 
 # @Parcelize/Parcelable usable from commonMain: real android.os.Parcelable on Android,
@@ -111,6 +113,10 @@ kermit-test = { module = "co.touchlab:kermit-test", version.ref = "kermit" }
 
 # Browser
 kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinxBrowser" }
+# The SqlDriver behind SqlNormalizedCacheFactory on web. Already present transitively via
+# normalized-cache-sqlite; declared because :network constructs the driver itself to point it at a
+# worker that persists. Pinned to the SQLDelight release normalized-cache-sqlite depends on.
+sqldelight-web-worker-driver = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqldelight" }
 
 # Coroutines
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }

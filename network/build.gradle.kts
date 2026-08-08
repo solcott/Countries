@@ -33,15 +33,27 @@ kotlin {
       implementation(libs.kotlinx.coroutines.core)
     }
 
-    // SQLDelight's SQL.js worker driver backs SqlNormalizedCacheFactory on js/wasmJs. Declared per
-    // target rather than on webMain because npm() is only available to JS-family source sets. The
-    // version tracks the SQLDelight release that normalized-cache-sqlite depends on.
+    // SQLDelight's SQL.js worker driver backs SqlNormalizedCacheFactory on js/wasmJs. :network
+    // constructs that driver itself rather than calling createDefaultWebWorkerDriver(), so it can
+    // point it at a worker that persists — see NetworkProviders.web.kt and npm/ below.
+    webMain.dependencies {
+      implementation(libs.sqldelight.web.worker.driver)
+      implementation(libs.kotlinx.browser)
+    }
+
+    // npm() is only available to JS-family source sets, so these are declared per target rather
+    // than on webMain. `sql.js` is pinned to what the SQLDelight release expects.
+    //
+    // The worker is a local package rather than a loose file because `new Worker(new URL(…))` has
+    // to resolve at bundle time, and a bare specifier resolved out of node_modules is the only
+    // shape that works from a *library* module — it is also exactly how the reference worker
+    // ships.
     jsMain.dependencies {
-      implementation(npm("@cashapp/sqldelight-sqljs-worker", "2.1.0"))
+      implementation(npm("countries-sqljs-idb-worker", file("npm/countries-sqljs-idb-worker")))
       implementation(npm("sql.js", "1.8.0"))
     }
     wasmJsMain.dependencies {
-      implementation(npm("@cashapp/sqldelight-sqljs-worker", "2.1.0"))
+      implementation(npm("countries-sqljs-idb-worker", file("npm/countries-sqljs-idb-worker")))
       implementation(npm("sql.js", "1.8.0"))
     }
   }
