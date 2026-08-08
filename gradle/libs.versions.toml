@@ -16,21 +16,24 @@ kmp-parcelize = "1.0.4"
 circuit = "0.36.0"
 
 # Compose. Explicit versions rather than the BOM, so the alpha Material3 line can be
-# pinned independently of the stable UI/foundation line.
-composeUi = "1.11.4"
+# pinned independently of the UI/foundation line.
+composeUi = "1.12.0-rc01"
 material3 = "1.5.0-alpha25"
 
 # Compose Multiplatform. androidx.compose.foundation is Android-only, so `foundation` (and the
-# TextFieldState in CountryListScreen.State) has to come from here. Its Android variants alias to
-# androidx 1.11.2, the same minor line as composeUi above.
-composeMultiplatform = "1.11.1"
+# TextFieldState in CountryListScreen.State) has to come from here.
+#
+# On the 1.12 line specifically because that is where web gained automatic fallback-font loading:
+# Skia has no system font manager in a browser, so before 1.12 every emoji and every non-Latin
+# script rendered as tofu. See the fonts note in AGENTS.md — do not bundle fallback fonts.
+composeMultiplatform = "1.12.0-beta03"
 
 # Compose Multiplatform's material3 is versioned separately from the rest of CMP — this does NOT
-# track composeMultiplatform. 1.11.0-alpha07 is the newest one still on the 1.11 core line (it
-# wants core 1.11.0-beta03, which resolves up to 1.11.1; 1.12.0-alpha* wants 1.12.0-beta01), and
-# it aliases androidx material3 1.5.0-alpha13 — the same 1.5.0-alpha line as `material3` above.
-# The CMP plugin's own default of 1.9.0 would pull androidx material3 1.4.0, a line backwards.
-composeMaterial3 = "1.11.0-alpha07"
+# track composeMultiplatform. 1.12.0-alpha03 is the newest, it wants core 1.12.0-beta01 (which
+# resolves up to our beta03), and it aliases androidx material3 1.5.0-alpha22 — older than the
+# `material3` above, so ours wins. The CMP plugin's own default accessor is far behind and would
+# pull an androidx material3 several minor lines backwards; always set this explicitly.
+composeMaterial3 = "1.12.0-alpha03"
 
 # AndroidX
 coreKtx = "1.19.0"

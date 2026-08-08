@@ -17,6 +17,14 @@ kotlin {
   // MissingResourceException at runtime.
   android { androidResources { enable = true } }
 
+  // See the same block in presenter/build.gradle.kts: CMP 1.12's
+  // checkComposeUiTestConfigurationFor{Js,WasmJs} fails any Compose module whose browser test
+  // bundle could not load skiko. It fires off the target's test task existing, not off there
+  // being test sources, so this module needs it despite having none yet.
+  js { binaries.executable() }
+
+  wasmJs { binaries.executable() }
+
   sourceSets {
     commonMain.dependencies {
       implementation(project(":model"))

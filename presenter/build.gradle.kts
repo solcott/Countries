@@ -11,6 +11,15 @@ plugins {
 }
 
 kotlin {
+  // Compose Multiplatform 1.12 fails the build (checkComposeUiTestConfigurationFor{Js,WasmJs}) for
+  // any module whose *test* compilation reaches skiko but declares no executable binary, because
+  // the browser test bundle would otherwise have no skiko runtime to load. compose.foundation
+  // pulls compose.ui pulls skiko, so this module qualifies even though its tests only drive
+  // presenters and never render. There is no property to opt out of the check.
+  js { binaries.executable() }
+
+  wasmJs { binaries.executable() }
+
   sourceSets {
     commonMain.dependencies {
       api(project(":model"))

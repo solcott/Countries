@@ -260,6 +260,11 @@ backwards from the 1.5.0-alpha this project is on. Aligning material3 to `compos
 does not work either, since there is no 1.11.1. `1.11.0-alpha07` is the answer: the last one still
 built against the 1.11 core line, and it tracks AndroidX material3 1.5.0-alpha13.
 
+That pin held until the browser app shipped and forced the whole project onto 1.12 — see the fonts
+section below. The *reasoning* survives the move even though the numbers did not: material3 is on
+its own version line, and picking one means checking both which CMP core it requires and which
+AndroidX material3 it aliases.
+
 ## Why is the detail screen no longer XML?
 
 It was an XML layout hosted in `AndroidView` because the technical assessment asked for one, not
@@ -371,6 +376,57 @@ back from a shared country link goes to the list rather than out of the app.
 argued for, and it paid twice. Once on the app itself: list, detail, deep link, browser
 back/forward, in-app back, composeResources, no console errors, on both js and wasmJs. And once
 on the SQL.js cache, whose actual behaviour is recorded above and is not what the code claimed.
+
+It did not pay a third time: every flag and every non-Latin name was rendering as tofu in those
+same screenshots, and I attributed it to the test environment instead of the app. See the fonts
+section below.
+
+## Why did fonts force a Compose upgrade?
+
+The browser app shipped rendering every flag and every non-Latin native name as a tofu box.
+
+**Skia has no system font manager in a browser.** Compose rasterises text into a canvas, so the
+browser's own fonts are unreachable from it; a codepoint with no glyph in a font Skia has been
+*handed* has no glyph at all. Android, desktop and iOS never show this because those platforms
+expose a system fallback. It is invisible until you run the web target, and it is not subtle once
+you do: flags on all 250 list rows, plus 53 countries whose `native` name needs one of 14 scripts —
+Arabic, Cyrillic, Greek, CJK, Georgian, Ethiopic, Thai, Armenian, Devanagari, Hangul, Lao, Hebrew,
+Myanmar.
+
+I got the first diagnosis wrong, and it is worth recording why. The tofu was visible in the
+screenshots taken while verifying the web module, and I wrote it off as headless Chrome lacking
+emoji fonts. That explanation is superficially reasonable and completely wrong — the browser's font
+inventory has no bearing on what Skia can draw. It survived because it was plausible and because
+nothing contradicted it; a bug was shipped as a rendering artifact of the test environment. The
+lesson is narrower than "verify more": it is that an explanation which happens to *predict* the
+observation is not the same as one that has been *checked*.
+
+**The fix was a version bump, not code.** Compose Multiplatform 1.12.0-alpha02 added automatic
+fallback-font loading on web. `ComposeWindow` calls `installFallbackFontDownloader()`
+unconditionally; Skia reports unresolved codepoints during layout, the downloader batches them,
+fetches the matching Noto woff2 subsets from `fonts.gstatic.com`, preloads them and forces a
+re-layout. Confirmed in a browser on both targets: it pulls Noto Color Emoji chunk 0 — precisely
+the flag block `U+1f1e6-1f1ff` — plus `notosansarabic`, `notosanshk`, `notosanskr` and
+`notosansgeorgian`, and it picks the CJK variant from `navigator.language`. Cyrillic and Greek
+needed nothing; the built-in font already covers them.
+
+**The alternative was rejected on the numbers.** Bundling fallback fonts and preloading them by
+hand is what the 1.11-era docs describe. It means ~1.15 MB for the flag chunk plus ~2 MB of
+per-script subsets committed to the repo, and — because `FontCache` is per-resolver in 1.11 — a
+rebuilt `FontFamily.Resolver`, re-preloaded with the whole accumulated set, every time a font
+arrives after first paint. All of it deleted on the next Compose upgrade.
+
+**What the upgrade costs, since it is not free.** The whole project moves onto prerelease Compose,
+Android included: CMP 1.11.1 → 1.12.0-beta03, AndroidX Compose UI 1.11.4 stable → 1.12.0-rc01. The
+web app gains an unconditional runtime dependency on a Google CDN with no opt-out, so non-Latin
+text will not render offline until those files are cached. And CMP 1.12 added
+`checkComposeUiTestConfiguration`, which hard-fails any Compose module whose browser test bundle
+reaches skiko without an executable binary — `:presenter` and `:ui` each needed
+`binaries.executable()` on their web targets, even though `:ui` has no tests and `:presenter`'s
+never render.
+
+Android was re-verified on an emulator rather than assumed, since the Compose jump from stable to
+rc is the part of this change least exercised by the test suite and easiest to skip.
 
 ## What tradeoffs did I make due to time constraints?
 

@@ -79,14 +79,28 @@ Compose in a migrated module comes from **two** places, and the split is not arb
 | `retain` | `androidx.compose.runtime:runtime-retain` | Multiplatform already, and has **no** Compose Multiplatform equivalent |
 | strings, drawables | `org.jetbrains.compose.components:components-resources` | The multiplatform replacement for Android `res/` |
 
-**material3 is on its own version line — `composeMaterial3`, not `composeMultiplatform`.** Two
-plausible-looking choices are both wrong:
+**The project is on the Compose 1.12 line, and that is a deliberate choice made for the web
+target** — 1.12 is where Compose Multiplatform gained automatic fallback-font loading in the
+browser. See [Fonts on web](#fonts-on-web) below before considering a downgrade; on 1.11 every
+emoji and every non-Latin script renders as tofu.
 
-| CMP material3 | needs CMP core | aliases AndroidX material3 |
+| Version ref | Value | Notes |
 | --- | --- | --- |
-| 1.9.0 — what the CMP plugin's own `compose.material3` accessor pins | — | **1.4.0**, a minor line *backwards* from this project |
-| **1.11.0-alpha07** (chosen) | 1.11.0-beta03, resolves up to our 1.11.1 | 1.5.0-alpha13 — same line as our `material3` |
-| 1.12.0-alpha03 | 1.12.0-beta01 — drags core off the 1.11 line | 1.5.0-alpha22 |
+| `composeMultiplatform` | `1.12.0-beta03` | Prerelease. The web font downloader landed in 1.12.0-alpha02 |
+| `composeUi` (AndroidX) | `1.12.0-rc01` | CMP 1.12.0-beta03 asks for AndroidX 1.12.0-beta02; this resolves up |
+| `composeMaterial3` (CMP) | `1.12.0-alpha03` | Wants CMP core 1.12.0-beta01, satisfied by beta03 |
+| `material3` (AndroidX) | `1.5.0-alpha25` | CMP material3 asks for 1.5.0-alpha22, so ours wins |
+
+**material3 is on its own version line — `composeMaterial3`, not `composeMultiplatform`.** It does
+not track the core version and never has; the CMP plugin's own `compose.material3` accessor pins
+something far behind, which would drag AndroidX material3 *backwards* several minor lines. Always
+set `composeMaterial3` explicitly, and when changing it check two things: which CMP core version it
+requires, and which AndroidX material3 it aliases.
+
+Known version skew on Android, accepted: `ui` and `runtime` resolve to 1.12.0-rc01 because the
+catalog pins them, while `foundation` and `animation` sit at 1.12.0-beta02 because only CMP
+requests those and CMP 1.12.0-beta03 was built against beta02. Same release line, weeks apart. The
+web target has no skew — every `org.jetbrains.compose.*` artifact is 1.12.0-beta03.
 
 Three build requirements that are easy to miss:
 
@@ -305,6 +319,39 @@ Both web targets need **Chrome** installed to run, and `devNpm("copy-webpack-plu
 declared per target because `npm()`/`devNpm()` are only available to JS-family source sets.
 The js and wasm npm stores have **separate lockfiles and separate upgrade tasks** —
 `kotlinUpgradeYarnLock` and `kotlinWasmUpgradeYarnLock`. Adding an npm dependency needs both.
+
+Also add `binaries.executable()` to the `js` and `wasmJs` targets of any **Compose library**
+module — see `presenter/build.gradle.kts`. CMP 1.12 added
+`checkComposeUiTestConfigurationFor{Js,WasmJs}`, which hard-fails any module whose browser test
+bundle reaches skiko without an executable binary to bundle it into. It fires off the target's
+test task existing, not off there being test sources, and there is no opt-out property.
+
+### Fonts on web
+
+**Skia has no system font manager in a browser.** The browser's own fonts are unreachable from it —
+Compose rasterises text into a canvas — so a codepoint with no glyph in a font Skia has been *given*
+renders as tofu. Android, desktop and iOS are fine because those platforms expose a system font
+fallback. This app hits it hard: flags on all 250 rows, and 53 countries whose `native` name needs
+one of 14 non-Latin scripts.
+
+Compose Multiplatform **1.12** solves it. `ComposeWindow` calls `installFallbackFontDownloader()`
+unconditionally on web; Skia reports unresolved codepoints during layout, the downloader batches
+them, fetches the matching Noto woff2 subsets from `https://fonts.gstatic.com/s/`, preloads them,
+and calls `onNewFontInstalled()` to force a re-layout. Noto Color Emoji is in that table — chunk 0
+is exactly the flag block `U+1f1e6-1f1ff` — and the CJK variant is picked from
+`navigator.language`.
+
+So:
+
+- **Do not bundle fallback fonts, and do not hand-roll `FontFamily.Resolver.preload`.** That is the
+  documented approach for 1.11 and earlier, and it is obsolete here. It would mean committing
+  megabytes of woff2 and rebuilding the resolver on every late font arrival (`FontCache` is
+  per-resolver, so a fresh one has to be re-preloaded with the whole accumulated set).
+- **The downloader is unconditional — there is no property to turn it off.** The web app therefore
+  makes runtime requests to a Google CDN, and non-Latin text and flags will not render offline
+  until the browser has cached those files.
+- **Do not drop `composeMultiplatform` below 1.12.** It reintroduces the bug silently: everything
+  builds, and only a human looking at the running page notices.
 
 ## Conventions
 
