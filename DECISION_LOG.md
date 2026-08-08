@@ -136,13 +136,28 @@ declared home before they are needed. What does *not* vary — the endpoint, the
 Metro provider — stays in `commonMain`, with a shared `memoryCacheBackedBy` helper so the four
 actuals are one line each.
 
-**Why real SQL.js persistence on web rather than memory-only.** Memory-only would have been two
-lines and no npm dependencies, but it would have made web the one platform that silently forgets
-everything on reload — a difference that shows up as a bug report, not as a build failure. The cost
-is two npm packages on `jsMain`/`wasmJsMain`, pinned to SQLDelight 2.1.0 because that is what
-`normalized-cache-sqlite` 1.0.6 actually depends on. A browser application module will additionally
-need a webpack step to copy the `.wasm`; a library module does not, so that is deferred rather than
-guessed at.
+**Why SQL.js on web rather than memory-only — and why that reasoning turned out to be wrong.**
+The argument at the time was that memory-only would have been two lines and no npm dependencies,
+but would have made web the one platform that silently forgets everything on reload. So the web
+actual took SQLDelight's SQL.js worker driver, at the cost of two npm packages on
+`jsMain`/`wasmJsMain`, pinned to SQLDelight 2.1.0 because that is what `normalized-cache-sqlite`
+1.0.6 actually depends on. The webpack step to copy the `.wasm` was deferred to whenever a browser
+application module appeared, rather than guessed at.
+
+Building `:web` was the first time any of this ran, and it does not do what the paragraph above
+assumed. The worker starts, loads `sql-wasm.wasm` and answers queries — all verified in a browser
+— but `@cashapp/sqldelight-sqljs-worker` is thirteen lines whose database is
+`new SQL.Database()`, held in memory and never written anywhere.
+`createDefaultWebWorkerDriver()` has no persistence story at all. Web still forgets everything on
+reload; it now does so via a 600 KiB wasm blob and a worker chunk instead of directly. Persisting
+would mean a custom worker that serialises the database into IndexedDB — a real piece of work,
+not a configuration flag.
+
+The mistake was reasoning about a dependency's behaviour from its name and its docs' framing
+rather than from what it does, and then not having anything that could catch it: no library test
+exercises a browser, and the module compiled and shipped for two targets regardless. Left in
+place rather than reverted, because deciding between "write the IndexedDB worker" and "drop to
+memory-only on web and say so" is a product call, not a cleanup.
 
 **`repository`: one import, and the first real test suite.** The entire module was one line away
 from `commonMain` — `android.util.Log` in `Mappers.kt`. Everything else it touches (Apollo's
@@ -308,14 +323,61 @@ One sharp edge worth recording: contributing modules have to be `api` on a graph
 consumers need to see them too; `implementation` compiles the graph fine and then fails at the
 consumer with `Cannot access 'NetworkProviders' which is a supertype of 'ComposeGraph'`.
 
-`shared-compose` is still an Android library rather than KMP, purely because `presenter` and `ui`
-are. It flips to `kmp-library` when they migrate, and the other Compose apps become possible then.
+`shared-compose` was an Android library at the time, purely because `presenter` and `ui` were. It
+flipped to `kmp-library` when they migrated, and the browser app below is the first thing to take
+the graph up on it.
+
+## How is the browser app put together?
+
+`:web` is one module targeting **both** `js` and `wasmJs`, and it is the counterpart to `:app`:
+build the Metro graph, hand its `Circuit` to the app, and nothing else.
+
+**The root composable had to move first.** The backstack, `CircuitCompositionLocals` and
+`NavigableCircuitContent` were inline in `MainActivity`, which is fine for exactly one entry
+point. They are now `CountriesApp` in `:ui`, and both entry points are three lines. The one thing
+that stayed per-platform is `onRootPop`: Circuit's common `rememberCircuitNavigator` has no
+default for it, only the Android overload does, and that turns out to be the right shape — Android
+finishes the Activity, a browser tab has nothing to close. Passing `{ finish() }` explicitly is
+more honest than inheriting it.
+
+That left `CountriesApp` needing a `@Preview` under the project's own convention, and a `Circuit`
+to preview it with. `previewCircuit()` in `PreviewSupport.kt` builds one from the real UIs and
+fake presenters over the fixtures that were already there — which is worth more than satisfying
+the convention: it is the only preview that exercises a screen through the Circuit machinery
+rather than by calling the `Ui` function directly.
+
+**Not `kmp-library`.** That convention is for libraries. It adds android, jvm, ios and macos
+targets an app module has no use for, and it never calls `binaries.executable()` — the thing that
+turns a klib into a bundle. Fourteen lines of `kotlin { }` inline beat a third convention plugin
+for one module.
+
+**`commonMain` is the web source set.** With only js and wasmJs on the module, the metadata
+compilation already resolves `kotlinx-browser` and `org.w3c.dom`, so `window`, `history` and DOM
+events are usable from common code with no `expect`/`actual` — the same thing Compose
+Multiplatform does in its own `webMain`. The history binding, which is the most platform-flavoured
+code in the project, is a single common file. `index.html` lands in `commonMain/resources` and
+both distributions pick it up.
+
+**Browser history is hand-written, because nothing offers it.** Circuit has no web history
+integration, and Compose Multiplatform's web `BackHandler` runs off a `NavigationEventDispatcher`
+that browser `popstate` does not feed. `BrowserHistory.kt` binds both directions — pushes become
+`pushState`, in-app pops become `history.back()` so the forward button keeps meaning something,
+and `popstate` drives the backstack — with two flags to stop the two directions from chasing each
+other. Routes are hashes (`#/`, `#/country/FR`) because a static bundle has no server to rewrite
+paths back to `index.html`. Deep links work: the backstack is seeded root-first from the URL, so
+back from a shared country link goes to the list rather than out of the app.
+
+**Verified by driving a real browser, not by a green build** — the habit the `:ui` migration
+argued for, and it paid twice. Once on the app itself: list, detail, deep link, browser
+back/forward, in-app back, composeResources, no console errors, on both js and wasmJs. And once
+on the SQL.js cache, whose actual behaviour is recorded above and is not what the code claimed.
 
 ## What tradeoffs did I make due to time constraints?
 
 - Minimal error handling/presentation (generic messages, swallowed cache misses).
 - Normalized caching (memory → SQLite) was added but not deeply tuned; first launch still
-  hits the network, and cache hits are per-exact-filter.
+  hits the network, and cache hits are per-exact-filter. On web the SQLite tier does not
+  persist at all — see the SQL.js note above.
 - ~~Tests focus on the presenter; mapping and the query builder are untested.~~ Mapping is now
   covered (`repository/src/commonTest`, running on every platform runner). The query builder
   in `network` — `asStartsWithOperator` and friends — is still untested.

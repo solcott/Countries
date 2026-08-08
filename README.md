@@ -1,8 +1,13 @@
 # Countries
 
-A small Android app that lists world countries from the public
+A small Kotlin Multiplatform app that lists world countries from the public
 [Countries GraphQL API](https://countries.trevorblades.com/), lets you filter them by
 name and continent, and drills into a detail screen for each one.
+
+It started as an Android app and every library module is now multiplatform. There are two
+entry points today — the Android app (`:app`) and a Compose Multiplatform browser app
+(`:web`, targeting both Kotlin/JS and Kotlin/Wasm) — sharing all of their UI, presentation
+and data code.
 
 ## API choice
 
@@ -16,7 +21,7 @@ list filtering. It is also stable, unauthenticated, and small enough to reason a
 | Requirement | Where |
 | --- | --- |
 | Fetch a list from a GraphQL API | `network` (Apollo Kotlin) |
-| Display the list in Jetpack Compose | `ui/CountryListUi.kt` |
+| Display the list in Jetpack Compose | `ui/CountryListUi.kt` — Compose Multiplatform, shared by Android and the browser |
 | Filter / search the list | name search + continent multi-select (server-side) |
 | Detail screen built with **XML layouts** | Originally `res/layout/view_country_detail.xml` via `AndroidView`; since converted to Compose in `ui/CountryDetailUi.kt` ahead of the Kotlin Multiplatform migration |
 | Loading / error / success states | `model/Response.kt`, surfaced through the presenters |
@@ -26,12 +31,13 @@ list filtering. It is also stable, unauthenticated, and small enough to reason a
 
 ## How to run
 
-Requirements:
+A **JDK is auto-provisioned** by the Gradle daemon via the foojay resolver (Amazon
+Corretto 25), so you do not need to install one manually.
 
-- **Android SDK** with API 37 installed (`compileSdk = 37` — see the note below).
-- A **JDK is auto-provisioned** by the Gradle daemon via the foojay resolver (Amazon
-  Corretto 25), so you do not need to install one manually.
-- An emulator or device on **API 28+** (`minSdk = 28`).
+### Android
+
+Requirements: the **Android SDK** with API 37 installed (`compileSdk = 37` — see the note
+below), and an emulator or device on **API 28+** (`minSdk = 28`).
 
 ```bash
 ./gradlew assembleDebug        # build the debug APK
@@ -46,6 +52,24 @@ Then launch the **Countries** app from the launcher, or:
 adb shell am start -n io.github.solcott.countries/.MainActivity
 ```
 
+### Browser
+
+No Android SDK needed. Gradle downloads Node and Yarn itself.
+
+```bash
+./gradlew :web:wasmJsBrowserDevelopmentRun   # Kotlin/Wasm, http://localhost:8080
+./gradlew :web:jsBrowserDevelopmentRun       # Kotlin/JS, same app
+```
+
+Both produce a static bundle you can serve from anywhere:
+
+```bash
+./gradlew :web:wasmJsBrowserDistribution     # → web/build/dist/wasmJs/productionExecutable
+```
+
+Routes are hashes, so the bundle needs no server-side rewriting and links are shareable:
+`#/` is the list, `#/country/FR` opens France. Browser back and forward work.
+
 ### Cleaner `git blame`
 
 Bulk formatting commits are listed in [`.git-blame-ignore-revs`](.git-blame-ignore-revs) so
@@ -58,16 +82,23 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 ## Architecture at a glance
 
-Six Gradle modules, dependencies flowing strictly downward:
+Nine Gradle modules, dependencies flowing strictly downward:
 
 ```
-app          → wires the Metro dependency graph, hosts the Activity
-ui           → Compose UI (Circuit Ui)
-presenter    → Circuit Screens, presenters, state, events  (the state holders)
-repository   → domain-facing data access, generated → model mapping
-network      → Apollo client, .graphql operations, generated code
-model        → plain Kotlin domain types + Response<T>
+app            → Android entry point: Activity, theme, manifest
+web            → Browser entry point (js + wasmJs): main(), index.html, URL routing
+shared-compose → ComposeGraph — the Metro graph every Compose app shares
+shared         → CoreGraph for non-Compose consumers, plus the root Logger
+ui             → Compose UI (Circuit Ui), and CountriesApp — the app both entry points mount
+presenter      → Circuit Screens, presenters, state, events  (the state holders)
+repository     → domain-facing data access, generated → model mapping
+network        → Apollo client, .graphql operations, generated code
+model          → plain Kotlin domain types + Response<T>
 ```
+
+Everything from `shared-compose` down is Kotlin Multiplatform and builds for Android, JVM,
+iOS, macOS, js and wasmJs. `app` and `web` are the only platform-specific modules, and each
+does the same two things: build the Metro graph, and hand its `Circuit` to `CountriesApp`.
 
 - **UI:** Jetpack Compose throughout.
 - **Architecture:** MVI via [Circuit](https://slackhq.github.io/circuit/) — presenters own

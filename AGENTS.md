@@ -178,9 +178,18 @@ ignore the name**. The web driver needs two npm dependencies, declared on `jsMai
 `wasmJsMain` in `network/build.gradle.kts` — pin them to the SQLDelight version that
 `normalized-cache-sqlite` actually depends on (currently 2.1.0), not to the latest.
 
-A future browser **application** module will additionally need a `webpack.config.d/` entry
-copying `sql.js`'s `.wasm` into the bundle. That is not required for a library module, so
-`:network` does not have one.
+A browser **application** module additionally needs a `webpack.config.d/` entry copying
+`sql.js`'s `.wasm` into the bundle — see `web/webpack.config.d/sqljs.js`. Nothing in the
+Kotlin sources references that file, so without the copy step the build is clean and the
+worker 404s at runtime. That is not required for a library module, so `:network` does not
+have one.
+
+**The default web driver is in-memory, so nothing survives a reload.** SQLDelight's
+`@cashapp/sqldelight-sqljs-worker` does `new SQL.Database()` and never writes it anywhere;
+`createDefaultWebWorkerDriver()` has no persistence story. The worker does start and does load
+`sql-wasm.wasm` — verified in a browser — but on web the SQLite tier is functionally a second
+memory cache behind the first one. Real persistence needs a custom worker that saves to
+IndexedDB.
 
 Per-platform Apollo client configuration goes through
 `ApolloClient.Builder.platformConfiguration()`, an `expect` extension in
@@ -190,10 +199,11 @@ tier, the Metro provider itself — stays in `commonMain`. Add new per-platform 
 
 ## Module structure
 
-Eight modules, with dependencies flowing strictly downward:
+Nine modules, with dependencies flowing strictly downward:
 
 ```
 app             → Android entry point: Activity, theme, manifest. Nothing else.
+web             → Browser entry point (js + wasmJs): main(), index.html, URL routing.
 shared-compose  → ComposeGraph — the Metro graph every Compose app shares
 shared          → CoreGraph for non-Compose consumers, plus the root Logger
 ui              → Compose UI (Circuit Ui implementations), CircuitProviders
@@ -206,8 +216,8 @@ model           → Kotlin domain types
 There are **two graphs** because of how the platform apps differ:
 
 - `shared-compose` declares `ComposeGraph`, which exposes `Circuit`. Every Compose consumer
-  shares it — the Android app today, and the Compose Multiplatform iOS, desktop and web apps
-  alongside it. None of them declares a graph of its own.
+  shares it — the Android and browser apps today, and the Compose Multiplatform iOS and desktop
+  apps alongside them. None of them declares a graph of its own.
 - `shared` declares `CoreGraph`, which exposes repositories and no Compose types at all. That
   is what a SwiftUI/UIKit iOS app uses: it drives Circuit `Presenter`s directly (see Circuit's
   counter sample) and needs neither a `Circuit` instance nor any `Ui.Factory`, so it must not
@@ -216,15 +226,21 @@ There are **two graphs** because of how the platform apps differ:
 All packages live under `io.github.solcott.countries`, with each module using its
 own name as the suffix — `…countries.model`, `…countries.network`,
 `…countries.repository`, `…countries.presenter`, `…countries.ui`,
-`…countries.shared`, `…countries.shared.compose`. The `app`
+`…countries.shared`, `…countries.shared.compose`, `…countries.web`. The `app`
 module uses the root `io.github.solcott.countries`, which is also the
 `applicationId`. Each module's Gradle `namespace` matches its package.
 
 Rules:
 
-- **`app` holds no dependency wiring.** It depends on `shared-compose` and nothing else from
-  this project. Adding a `@Provides` to an app module is almost always wrong — it would not be
-  available to the other platform apps.
+- **An app module holds no dependency wiring.** `app` and `web` depend on `shared-compose`
+  and nothing else from this project for the graph. Adding a `@Provides` to an app module is
+  almost always wrong — it would not be available to the other platform apps.
+- **The app itself is `CountriesApp` in `:ui`, not the entry point.** The theme, the backstack,
+  `CircuitCompositionLocals` and `NavigableCircuitContent` live there; `MainActivity` and the
+  browser `main()` each do two things only — read `circuit` off the graph, and call it. New
+  screen-agnostic wiring belongs in `CountriesApp`, not in an entry point.
+  `rememberCircuitNavigator`'s `onRootPop` is the exception: it is genuinely per-platform
+  (Android finishes the Activity, the browser no-ops) and is passed in.
 - A module contributes its own providers with `@ContributesTo(AppScope::class)`, next to the
   code they construct: `NetworkProviders` in `network`, `CircuitProviders` in `ui`,
   `LoggingProviders` in `shared`.
@@ -255,6 +271,40 @@ front when adding a module or a new graph:
    interfaces become *supertypes* of the generated graph, so anything consuming the graph has to
    see them too.
    *Symptom:* `Cannot access '…NetworkProviders' which is a supertype of 'ComposeGraph'`.
+
+### The `web` module
+
+The browser app, targeting **both** `js` and `wasmJs` from one module. Four things about it are
+not obvious:
+
+- **It does not apply `kmp-library`.** That convention is for libraries: it adds android, jvm,
+  ios and macos targets, and it never calls `binaries.executable()` — which is what turns a klib
+  into a webpack bundle. `web/build.gradle.kts` declares its two targets itself. It still applies
+  `formatting`, and it applies `metro` so `createGraph<ComposeGraph>()` resolves, exactly as
+  `:app` does.
+- **`commonMain` *is* the web source set.** With only js and wasmJs on the module, the metadata
+  compilation resolves against `kotlinx-browser` and `org.w3c.dom`, so `window`, `history` and
+  the DOM event types are usable from common code with no `expect`/`actual` — the same thing
+  Compose Multiplatform does in its own `webMain`. There is no `src/webMain` here, and adding one
+  would buy nothing. `index.html` and `styles.css` live in `src/commonMain/resources/` and both
+  target distributions pick them up.
+- **`main()` mounts through `ComposeViewport(viewportContainerId = "composeApp")`** from
+  `androidx.compose.ui.window`, which is `@ExperimentalComposeUiApi`. It waits for the DOM and,
+  on wasm, for the runtime, so no `onWasmReady` wrapper is needed. The container must be sized by
+  CSS — Compose measures its viewport from the element, and a zero-height container renders
+  nothing with no error.
+- **Browser history is hand-written**, in `BrowserHistory.kt`. Circuit ships no web history
+  integration, and Compose Multiplatform's web `BackHandler` is driven by a
+  `NavigationEventDispatcher` that browser `popstate` does not feed. The binding is
+  bidirectional: pushes become `pushState`, in-app pops become `history.back()`, and `popstate`
+  drives the backstack. `Routes.kt` owns the URL scheme — hash routes (`#/`,
+  `#/country/{code}`), because a static bundle has no server to rewrite paths back to
+  `index.html`.
+
+Both web targets need **Chrome** installed to run, and `devNpm("copy-webpack-plugin")` is
+declared per target because `npm()`/`devNpm()` are only available to JS-family source sets.
+The js and wasm npm stores have **separate lockfiles and separate upgrade tasks** —
+`kotlinUpgradeYarnLock` and `kotlinWasmUpgradeYarnLock`. Adding an npm dependency needs both.
 
 ## Conventions
 
@@ -315,8 +365,11 @@ toolchain downloads, which `FAIL_ON_PROJECT_REPOS` rejects at registration time.
 downloads (Node, Yarn, Binaryen) are declared as content-filtered `ivy` repositories in the
 settings `repositories` block instead, so every dependency still resolves from there.
 
-`kotlin-js-store/yarn.lock` is a committed lockfile for the js/wasmJs npm dependencies.
-Regenerate it with `./gradlew kotlinUpgradeYarnLock` rather than editing it.
+`kotlin-js-store/` holds **two** committed lockfiles, because js and wasmJs have separate npm
+stores: `yarn.lock` for js and `wasm/yarn.lock` for wasmJs. Regenerate them with
+`./gradlew kotlinUpgradeYarnLock` and `./gradlew kotlinWasmUpgradeYarnLock` rather than editing
+them. A build that touches only one store fails with "Lock file was changed" naming the task it
+needs, so it is easy to fix one and forget the other.
 
 ## Commands
 
@@ -328,6 +381,12 @@ Regenerate it with `./gradlew kotlinUpgradeYarnLock` rather than editing it.
 
 ./gradlew :model:assemble   # build a KMP module for every target
 ./gradlew :model:allTests   # run a KMP module's tests on every target
+
+# Browser app — serves on http://localhost:8080
+./gradlew :web:wasmJsBrowserDevelopmentRun
+./gradlew :web:jsBrowserDevelopmentRun
+./gradlew :web:wasmJsBrowserDistribution   # → web/build/dist/wasmJs/productionExecutable
+./gradlew :web:jsBrowserDistribution       # → web/build/dist/js/productionExecutable
 ```
 
 `ktfmtCheck` at the root does not cover `build-logic` — that is a separate included build.

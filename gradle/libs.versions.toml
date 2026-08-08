@@ -39,6 +39,11 @@ lifecycle = "2.11.0"
 
 coroutines = "1.11.0"
 
+# window/history/DOM types for js and wasmJs from one shared source set. The JS stdlib still ships
+# kotlinx.browser; wasmJs never did, and this is where both come from. Pinned to what Compose
+# Multiplatform and skiko already put on the web classpath rather than resolving forward.
+kotlinxBrowser = "0.5.0"
+
 # Multiplatform logging. Logcat on Android, NSLog on Apple, console on js/wasm — no init needed.
 kermit = "2.1.0"
 
@@ -100,6 +105,9 @@ apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.r
 # Logging
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 kermit-test = { module = "co.touchlab:kermit-test", version.ref = "kermit" }
+
+# Browser
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinxBrowser" }
 
 # Coroutines
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
