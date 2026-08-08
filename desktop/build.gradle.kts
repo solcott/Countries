@@ -33,6 +33,7 @@ sourceSets.main {
 dependencies {
   implementation(project(":shared-compose"))
   implementation(project(":ui"))
+  implementation(project(":presenter"))
 
   implementation(libs.circuit.foundation)
   implementation(libs.compose.runtime)

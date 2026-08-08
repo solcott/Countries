@@ -3,13 +3,19 @@ package io.github.solcott.countries.desktop
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.slack.circuit.backstack.rememberSaveableBackStack
 import dev.zacsweers.metro.createGraph
+import io.github.solcott.countries.presenter.CountryListScreen
 import io.github.solcott.countries.shared.compose.ComposeGraph
 import io.github.solcott.countries.ui.CountriesApp
 import java.awt.Dimension
@@ -26,9 +32,13 @@ private val MINIMUM_SIZE = Dimension(480, 600)
  * The desktop entry point, and the jvm counterpart to `:app`'s `MainActivity` and `:web`'s
  * `main()`. All three do the same two things: read the `Circuit` out of [ComposeGraph], and hand it
  * to `CountriesApp`.
+ *
+ * The backstack is hoisted for the same reason `:web` hoists it — something outside `CountriesApp`
+ * needs to drive it. There it is `window.history`; here it is the keyboard.
  */
 fun main() = application {
   val circuit = remember { createGraph<ComposeGraph>().circuit }
+  val backStack = rememberSaveableBackStack(root = CountryListScreen)
   val windowState =
     rememberWindowState(size = INITIAL_SIZE, position = WindowPosition(Alignment.Center))
 
@@ -37,6 +47,17 @@ fun main() = application {
     state = windowState,
     title = WINDOW_TITLE,
     icon = appIcon,
+    onKeyEvent = { event ->
+      isBackShortcut(
+          key = event.key,
+          type = event.type,
+          isMetaPressed = event.isMetaPressed,
+          isAltPressed = event.isAltPressed,
+          canPop = backStack.size > 1,
+        )
+        // Returning true consumes the event; false lets it reach the focused composable.
+        .also { if (it) backStack.pop() }
+    },
   ) {
     // AWT, and not expressible through WindowState. Without it the window can be dragged narrower
     // than the list rows tolerate.
@@ -44,6 +65,6 @@ fun main() = application {
 
     // onRootPop is left at its default no-op: on desktop the window's close button is how you
     // leave, and popping past the list should not quit the app out from under the user.
-    CountriesApp(circuit = circuit)
+    CountriesApp(circuit = circuit, backStack = backStack)
   }
 }
