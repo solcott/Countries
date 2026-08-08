@@ -28,8 +28,8 @@ The project **is Kotlin Multiplatform**. The migration ran one module at a time,
 `model` → `network` → `repository` → `presenter` → `ui` → `shared` → `shared-compose`.
 
 **Every library module is migrated.** The only Android-specific module left is `app`, which stays
-an Android application module — it is the Android entry point, and the CMP iOS, desktop and web
-apps get their own equivalents.
+an Android application module — it is the Android entry point. `web` and `desktop` are its
+equivalents for the browser and the JVM; a CMP iOS app would be the fourth.
 
 Supported targets, declared once in the `kmp-library` convention plugin:
 
@@ -229,11 +229,12 @@ tier, the Metro provider itself — stays in `commonMain`. Add new per-platform 
 
 ## Module structure
 
-Nine modules, with dependencies flowing strictly downward:
+Ten modules, with dependencies flowing strictly downward:
 
 ```
 app             → Android entry point: Activity, theme, manifest. Nothing else.
 web             → Browser entry point (js + wasmJs): main(), index.html, URL routing.
+desktop         → Desktop entry point (jvm): main(), Window, keyboard back, flag font.
 shared-compose  → ComposeGraph — the Metro graph every Compose app shares
 shared          → CoreGraph for non-Compose consumers, plus the root Logger
 ui              → Compose UI (Circuit Ui implementations), CircuitProviders
@@ -246,8 +247,8 @@ model           → Kotlin domain types
 There are **two graphs** because of how the platform apps differ:
 
 - `shared-compose` declares `ComposeGraph`, which exposes `Circuit`. Every Compose consumer
-  shares it — the Android and browser apps today, and the Compose Multiplatform iOS and desktop
-  apps alongside them. None of them declares a graph of its own.
+  shares it — the Android, browser and desktop apps today, and a Compose Multiplatform iOS app
+  alongside them. None of them declares a graph of its own.
 - `shared` declares `CoreGraph`, which exposes repositories and no Compose types at all. That
   is what a SwiftUI/UIKit iOS app uses: it drives Circuit `Presenter`s directly (see Circuit's
   counter sample) and needs neither a `Circuit` instance nor any `Ui.Factory`, so it must not
@@ -256,21 +257,25 @@ There are **two graphs** because of how the platform apps differ:
 All packages live under `io.github.solcott.countries`, with each module using its
 own name as the suffix — `…countries.model`, `…countries.network`,
 `…countries.repository`, `…countries.presenter`, `…countries.ui`,
-`…countries.shared`, `…countries.shared.compose`, `…countries.web`. The `app`
+`…countries.shared`, `…countries.shared.compose`, `…countries.web`,
+`…countries.desktop`. The `app`
 module uses the root `io.github.solcott.countries`, which is also the
 `applicationId`. Each module's Gradle `namespace` matches its package.
 
 Rules:
 
-- **An app module holds no dependency wiring.** `app` and `web` depend on `shared-compose`
-  and nothing else from this project for the graph. Adding a `@Provides` to an app module is
-  almost always wrong — it would not be available to the other platform apps.
+- **An app module holds no dependency wiring.** `app`, `web` and `desktop` depend on
+  `shared-compose` and nothing else from this project for the graph. Adding a `@Provides` to an app
+  module is almost always wrong — it would not be available to the other platform apps.
 - **The app itself is `CountriesApp` in `:ui`, not the entry point.** The theme, the backstack,
-  `CircuitCompositionLocals` and `NavigableCircuitContent` live there; `MainActivity` and the
-  browser `main()` each do two things only — read `circuit` off the graph, and call it. New
-  screen-agnostic wiring belongs in `CountriesApp`, not in an entry point.
+  `CircuitCompositionLocals` and `NavigableCircuitContent` live there; `MainActivity`, the browser
+  `main()` and the desktop `main()` each do two things only — read `circuit` off the graph, and
+  call it. New screen-agnostic wiring belongs in `CountriesApp`, not in an entry point.
   `rememberCircuitNavigator`'s `onRootPop` is the exception: it is genuinely per-platform
-  (Android finishes the Activity, the browser no-ops) and is passed in.
+  (Android finishes the Activity; the browser and desktop no-op) and is passed in.
+- **`:ui` has exactly one platform seam: `LocalFlagFontFamily`.** It is null everywhere but
+  desktop — see [Fonts on desktop](#fonts-on-desktop). Resist adding a second; the reason this one
+  earns its place is that the alternative was a wrong-looking list on two of the six platforms.
 - A module contributes its own providers with `@ContributesTo(AppScope::class)`, next to the
   code they construct: `NetworkProviders` in `network`, `CircuitProviders` in `ui`,
   `LoggingProviders` in `shared`.
@@ -351,6 +356,82 @@ module — see `presenter/build.gradle.kts`. CMP 1.12 added
 `checkComposeUiTestConfigurationFor{Js,WasmJs}`, which hard-fails any module whose browser test
 bundle reaches skiko without an executable binary to bundle it into. It fires off the target's
 test task existing, not off there being test sources, and there is no opt-out property.
+
+### The `desktop` module
+
+The Windows/Linux/macOS app. It is the smallest of the three entry points, because everything that
+made `:web` interesting — history, a service worker, npm — the JVM either has already or does not
+need. Four things are worth knowing:
+
+- **It is a plain `kotlin("jvm")` module, not multiplatform.** Desktop *is* the jvm target, so
+  `kotlin { }` would hold exactly one target and `src/jvmMain` would be a directory with nothing to
+  distinguish it from `src/main`. `:web` is multiplatform because it genuinely serves two targets
+  from one module. Like `:web` it does not apply `kmp-library`, and like `:web` it declares
+  `kotlin("test")` and the JVM toolchain itself, since no convention is doing it.
+- **`compose.desktop.currentOs` is the one dependency declared through a plugin accessor rather
+  than a catalog coordinate.** It has to be: skiko's runtime jar is classified by OS *and*
+  architecture, and only the accessor picks the right one. **The consequence is that everything
+  built here runs on the build host's OS only** — including `packageUberJarForCurrentOS`. Real
+  cross-platform installers need the packaging task run on each OS, because jpackage cannot
+  cross-build either; that is a CI matrix, and this repo has no CI yet.
+- **`nativeDistributions { modules(...) }` is load-bearing and fails invisibly.** jpackage jlinks a
+  trimmed JDK, and the default module set has neither `java.sql`/`jdk.unsupported` (sqlite-jdbc,
+  under the Apollo cache) nor `java.naming`/`jdk.crypto.ec` (OkHttp's TLS). `run` uses the full
+  JDK, so a missing module never shows up in development — only in an installed build, as a crash
+  on the first query. Test packaging changes with `packageDistributionForCurrentOS`, not `run`.
+- **Keyboard back is `isBackShortcut()` in `BackShortcut.kt`**, pure and tested, for the same
+  reason `historyAction()` is: a rule welded to a `KeyEvent` cannot be tested without a window. The
+  backstack is hoisted out of `CountriesApp` so `Window`'s `onKeyEvent` can reach it. `onRootPop`
+  is deliberately left at its default no-op — the close button is how you leave a desktop app, and
+  Esc on the root screen should not quit it.
+
+Icons live in `desktop/icons/` and are the source of truth for both consumers: jpackage reads all
+three from disk, and `icon.png` is also on the runtime classpath for the window and dock icon.
+`build.gradle.kts` adds that directory as a resource root and excludes `*.icns`/`*.ico` from the
+jar, since only the PNG is useful at runtime.
+
+### Fonts on desktop
+
+Same root cause as [Fonts on web](#fonts-on-web) — Skia has no system font manager — but a
+different outcome per platform, and the 1.12 web font downloader does not apply here.
+
+| Platform | Flags | Non-Latin native names |
+| --- | --- | --- |
+| macOS | Apple Color Emoji, fine | fine |
+| Windows | **Segoe UI Emoji has no flag glyphs** — renders as the letter pair, e.g. "FR" | fine |
+| Linux | tofu without Noto Color Emoji | tofu without Noto CJK etc. |
+
+Windows omitting flag glyphs is Microsoft's deliberate policy, not a gap that will close. So
+`:desktop` bundles `NotoColorEmoji-flagsonly.ttf` and provides it through `:ui`'s
+`LocalFlagFontFamily`. That covers the flags. **It does not cover the non-Latin names on Linux** —
+that would mean committing several MB of Noto CJK, and a Linux desktop that renders no CJK at all
+is a system that will fail on far more than this app.
+
+The font is upstream, verbatim, so updating it is a download:
+
+```
+curl -LO https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji-flagsonly.ttf
+```
+
+It is SIL Open Font License 1.1; the notice is committed beside it as
+`desktop/src/main/resources/font/OFL.txt`.
+
+Two rules that `FlagFontTest` pins, both discovered the hard way:
+
+- **It must be the CBDT build, not `Noto-COLRv1.ttf`.** COLRv1 needs FreeType 2.11+ on Linux or a
+  Windows 11-era DirectWrite to rasterise, and where it is unsupported it draws *nothing* rather
+  than falling back. Blank is a worse failure than letters. CBDT stores each glyph as a PNG, which
+  is the most widely supported colour format there is.
+- **It must not be handed to macOS.** Skia goes through CoreText there, and CoreText refuses to
+  load a bitmap-only font outright — `makeFromData` returns null, and the flags would disappear on
+  the one platform that never needed the font. `needsBundledFlagFont()` is the guard, and
+  `flagFontFamily` is null on macOS. (The COLRv1 build is not the escape hatch: CoreText loads it
+  and then Skia's CoreText scaler renders its layers as nothing.)
+
+The practical consequence for anyone changing this: **macOS cannot verify the font renders.** The
+test states the invariant as "wherever Skia can load it, it must ligate and rasterise in colour;
+where it cannot, the app must not be using it", which is the strongest thing a Mac can assert.
+Flags on Windows and Linux need a real machine.
 
 ### Offline, and the service worker
 
@@ -485,7 +566,15 @@ needs, so it is easy to fix one and forget the other.
 ./gradlew :web:jsBrowserDevelopmentRun
 ./gradlew :web:wasmJsBrowserDistribution   # → web/build/dist/wasmJs/productionExecutable
 ./gradlew :web:jsBrowserDistribution       # → web/build/dist/js/productionExecutable
+
+# Desktop app
+./gradlew :desktop:run
+./gradlew :desktop:packageUberJarForCurrentOS      # → desktop/build/compose/jars
+./gradlew :desktop:packageDistributionForCurrentOS # → desktop/build/compose/binaries
 ```
+
+Both desktop packaging tasks produce a build for the **host** OS only — see
+[The `desktop` module](#the-desktop-module).
 
 `ktfmtCheck` at the root does not cover `build-logic` — that is a separate included build.
 Run it from inside `build-logic/` to check the convention plugins.
