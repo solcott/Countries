@@ -86,7 +86,7 @@ fun CountryDetailUi(
 @Composable
 private fun CountryDetailContent(country: CountryDetail, modifier: Modifier = Modifier) {
   Column(modifier = modifier.verticalScroll(rememberScrollState()).padding(24.dp)) {
-    Text(country.emoji, fontSize = 56.sp)
+    Text(country.emoji, fontSize = 56.sp, fontFamily = LocalFlagFontFamily.current)
     Text(
       country.name,
       style = MaterialTheme.typography.headlineMedium,
