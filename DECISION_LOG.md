@@ -460,6 +460,70 @@ never render.
 Android was re-verified on an emulator rather than assumed, since the Compose jump from stable to
 rc is the part of this change least exercised by the test suite and easiest to skip.
 
+## How is the desktop app put together?
+
+`:desktop` is the third entry point, and by far the least interesting one to build — which is the
+point. `CountriesApp` was already extracted for `:web`, every library module already published a
+`jvm` target, and `:network` already had a JVM `platformConfiguration` pointing the Apollo SQLite
+cache at `~/.apollo`. The module is a `main()`, a `Window`, and two platform affordances.
+
+**A plain `kotlin("jvm")` module, not multiplatform.** Desktop *is* the jvm target. A `kotlin { }`
+block would hold exactly one target and `src/jvmMain` would be a directory distinguishable from
+`src/main` only by name. `:web` earns multiplatform because it serves js and wasmJs from one
+module; this does not.
+
+**Two things are genuinely per-platform, and both are small.** A keyboard back binding, because
+desktop has no back gesture and the top-bar arrow was the only way out of the detail screen; and a
+window with a starting size and a floor under it. `onRootPop` stays the default no-op — Android
+passes `finish()` because leaving the app is what back-past-root means there, but on desktop the
+close button is how you leave, and Esc should not quit the app out from under you. The back rule
+went into a pure `isBackShortcut()` for the same reason `historyAction()` is pure: a decision
+welded to a `KeyEvent` cannot be tested without a window.
+
+**Flags forced the one platform seam in `:ui`.** This is the same root cause as the web tofu —
+Skia has no system font manager, so it draws with the font it is handed — but it does not resolve
+the same way. macOS is fine. Windows renders every one of the 250 rows as a letter pair, because
+Segoe UI Emoji has no flag glyphs *by Microsoft's policy*, and no amount of waiting fixes that.
+Linux without Noto Color Emoji renders tofu. So `:ui` gained `LocalFlagFontFamily`, null
+everywhere but desktop, applied to the two composables that render nothing but a flag.
+
+**Choosing the font is where the real work was, and my first two answers were both wrong.** I
+started from the plan's assumption — subset the flag block out of `Noto-COLRv1.ttf` with
+`pyftsubset` — then found upstream ships `NotoColorEmoji-flagsonly.ttf` ready-made, at a third of
+the size, which made the whole pipeline a `curl`. Both of those were decided on size and
+provenance, neither on whether Skia could actually draw them. It cannot, in both cases, on the
+machine I was building on:
+
+- The CBDT build does not **load** on macOS at all. Skia goes through CoreText there, and CoreText
+  refuses a bitmap-only font; `makeFromData` returns null.
+- The COLRv1 build loads, shapes the ligature correctly, reports a sensible advance — and
+  rasterises to a blank canvas, because Skia's CoreText scaler has no COLRv1 path.
+
+The second one is the instructive failure. Every signal short of looking at the pixels said it
+worked. What settled it was a control: rendering the same string with Apple Color Emoji through
+the identical code produced 697 distinct colours, and the bundled font produced one. That is the
+lesson the web fonts section already paid for once — an explanation that predicts the observation
+is not one that has been checked — arriving in a form where the check was cheap and I nearly
+skipped it anyway.
+
+The resolution is that macOS never gets the font: it does not need one, and handing it either
+build would *delete* the flags rather than leave them alone. CBDT is right for the two platforms
+that do need it, because PNG glyph images are the most widely supported colour format there is,
+where COLRv1 wants FreeType 2.11+ or a Windows 11-era DirectWrite. Between "letters" and "blank",
+letters is the better failure.
+
+**Packaging stops short of installers on purpose.** `run`, an uber jar, and
+`packageDistributionForCurrentOS` are all wired, and the `.dmg` builds. But `compose.desktop
+.currentOs` resolves skiko by OS *and* architecture, and jpackage cannot cross-build, so genuine
+Windows and Linux artifacts need the task run on each OS. That is a CI matrix, and this repo has
+none yet; adding one alongside signing and notarisation is a larger change than the module itself.
+
+**What is not verified: Windows and Linux.** I have neither, and the flag font is precisely the
+thing that only shows itself on those two. The test states the invariant as far as a Mac can —
+"wherever Skia can load this font it must ligate and rasterise in colour, and where it cannot, the
+app must not be using it" — plus a structural check that the file is still the CBDT build. That is
+a real guard against a regression, and it is not the same as having seen a flag on Windows.
+
 ## What tradeoffs did I make due to time constraints?
 
 - Minimal error handling/presentation (generic messages, swallowed cache misses).

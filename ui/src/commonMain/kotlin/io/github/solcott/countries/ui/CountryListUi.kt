@@ -211,7 +211,7 @@ private fun CountryRow(country: Country, onClick: () -> Unit, modifier: Modifier
     horizontalArrangement = Arrangement.spacedBy(16.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Text(country.emoji)
+    Text(country.emoji, fontFamily = LocalFlagFontFamily.current)
     Column(modifier = Modifier.weight(1f)) {
       Text(country.name)
       Text(listOfNotNull(country.capital, country.continentName).joinToString(" · "))

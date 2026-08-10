@@ -4,10 +4,11 @@ A small Kotlin Multiplatform app that lists world countries from the public
 [Countries GraphQL API](https://countries.trevorblades.com/), lets you filter them by
 name and continent, and drills into a detail screen for each one.
 
-It started as an Android app and every library module is now multiplatform. There are two
-entry points today — the Android app (`:app`) and a Compose Multiplatform browser app
-(`:web`, targeting both Kotlin/JS and Kotlin/Wasm) — sharing all of their UI, presentation
-and data code.
+It started as an Android app and every library module is now multiplatform. There are three
+entry points today — the Android app (`:app`), a Compose Multiplatform browser app (`:web`,
+targeting both Kotlin/JS and Kotlin/Wasm), and a Compose Multiplatform desktop app
+(`:desktop`, for Windows, Linux and macOS) — sharing all of their UI, presentation and data
+code.
 
 ## API choice
 
@@ -70,6 +71,25 @@ Both produce a static bundle you can serve from anywhere:
 Routes are hashes, so the bundle needs no server-side rewriting and links are shareable:
 `#/` is the list, `#/country/FR` opens France. Browser back and forward work.
 
+### Desktop
+
+No Android SDK needed.
+
+```bash
+./gradlew :desktop:run
+```
+
+`Esc`, `Cmd+[` and `Alt+←` navigate back from the detail screen. To build something
+installable:
+
+```bash
+./gradlew :desktop:packageUberJarForCurrentOS      # → desktop/build/compose/jars
+./gradlew :desktop:packageDistributionForCurrentOS # .dmg / .msi / .deb, host OS only
+```
+
+Both are **host-OS builds** — the Skia runtime is selected by OS and architecture, and
+jpackage cannot cross-build, so a Windows installer has to be produced on Windows.
+
 ### Cleaner `git blame`
 
 Bulk formatting commits are listed in [`.git-blame-ignore-revs`](.git-blame-ignore-revs) so
@@ -82,14 +102,15 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 ## Architecture at a glance
 
-Nine Gradle modules, dependencies flowing strictly downward:
+Ten Gradle modules, dependencies flowing strictly downward:
 
 ```
 app            → Android entry point: Activity, theme, manifest
 web            → Browser entry point (js + wasmJs): main(), index.html, URL routing
+desktop        → Desktop entry point (jvm): main(), Window, keyboard back, flag font
 shared-compose → ComposeGraph — the Metro graph every Compose app shares
 shared         → CoreGraph for non-Compose consumers, plus the root Logger
-ui             → Compose UI (Circuit Ui), and CountriesApp — the app both entry points mount
+ui             → Compose UI (Circuit Ui), and CountriesApp — the app every entry point mounts
 presenter      → Circuit Screens, presenters, state, events  (the state holders)
 repository     → domain-facing data access, generated → model mapping
 network        → Apollo client, .graphql operations, generated code
@@ -97,8 +118,9 @@ model          → plain Kotlin domain types + Response<T>
 ```
 
 Everything from `shared-compose` down is Kotlin Multiplatform and builds for Android, JVM,
-iOS, macOS, js and wasmJs. `app` and `web` are the only platform-specific modules, and each
-does the same two things: build the Metro graph, and hand its `Circuit` to `CountriesApp`.
+iOS, macOS, js and wasmJs. `app`, `web` and `desktop` are the only platform-specific modules,
+and each does the same two things: build the Metro graph, and hand its `Circuit` to
+`CountriesApp`.
 
 - **UI:** Jetpack Compose throughout.
 - **Architecture:** MVI via [Circuit](https://slackhq.github.io/circuit/) — presenters own
