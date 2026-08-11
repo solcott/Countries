@@ -45,16 +45,20 @@ kotlin {
     moduleName = frameworkName
     flattenPackage = "io.github.solcott.countries.apple"
 
-    // The same non-transitivity rule as `export()` on a framework: every module whose types show
-    // up in the Swift API needs naming, and each stays an `api` dependency below.
-    export(project(":model")) {
-      moduleName = "CountriesModel"
-      flattenPackage = "io.github.solcott.countries.model"
-    }
-    export(project(":presenter")) {
-      moduleName = "CountriesPresenter"
-      flattenPackage = "io.github.solcott.countries.presenter"
-    }
+    // Deliberately NO `export(project(":model"))` / `export(project(":presenter"))`, unlike the
+    // framework block below.
+    //
+    // `export()` here does not mean the same thing it means for an Obj-C framework. There it is
+    // the only way to get a module's types into the API at all, and it is not transitive. Swift
+    // export instead emits every declaration *reachable* from this module's public API whether or
+    // not the owning module is named — `:model` and `:presenter` still come through as their own
+    // Swift modules. Naming them explicitly does something extra and unwanted: it exports each
+    // module's public API *in full*, including declarations Swift never touches.
+    //
+    // That is not merely wasteful, it breaks the build. `Outcome<out T>` in `:model` is a generic
+    // sealed interface, and 2.4.20-Beta2's new sealed-to-Swift-enum codegen emits invalid Swift
+    // for it ("cannot convert value of type '…Outcome_Data' to specified type '…Outcome'"). No
+    // Swift code references `Outcome`; it was breaking the build purely for being public.
   }
 
   // One XCFramework holding all three slices, because a plain .framework covers a single platform
