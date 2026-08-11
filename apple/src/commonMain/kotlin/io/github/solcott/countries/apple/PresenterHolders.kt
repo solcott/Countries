@@ -3,8 +3,8 @@ package io.github.solcott.countries.apple
 import androidx.compose.runtime.Composable
 import app.cash.molecule.RecompositionMode
 import app.cash.molecule.launchMolecule
-import com.slack.circuit.runtime.CircuitUiState
 import com.slack.circuit.runtime.Navigator
+import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.presenter.CountryDetailPresenter
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListPresenter
@@ -21,8 +21,9 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * The presenters are `@Composable` functions, which have a hidden `$composer` parameter and are
  * therefore not callable from Swift at all. Molecule is the bridge: it recomposes the function on a
- * coroutine scope and folds each emission into a [StateFlow], which SKIE in turn exposes to Swift
- * as an `AsyncSequence` with a non-optional `value`.
+ * coroutine scope and folds each emission into a [StateFlow], which Swift export exposes as
+ * `KotlinTypedStateFlow<T>` — a typed, non-optional `value` plus `asAsyncSequence()`. That is a
+ * like-for-like replacement for what SKIE used to provide, and it needs no help from this class.
  *
  * Circuit's own iOS sample wraps the presenter in `presenterOf { }` first. That is unnecessary here
  * — [launchMolecule] already takes a `@Composable` lambda — and it would introduce a
@@ -30,24 +31,30 @@ import kotlinx.coroutines.flow.StateFlow
  * the presenter function directly is what `CountryListPresenterTest` does too.
  *
  * **This class is deliberately not generic**, even though every subclass differs only in its state
- * type. A `PresenterHolder<UiState>` would reach Swift as an Objective-C lightweight generic and
- * force SKIE to express `SkieSwiftStateFlow<UiState>` for a type parameter; keeping `state`
- * declared concretely on each subclass is what makes it read as
- * `SkieSwiftStateFlow<CountryListScreen.State>` over there. Circuit's sample has the generic
- * version, and its own comments complain about the resulting Swift ergonomics. So the shared part
- * is a generic *method*, [moleculeState], rather than a type parameter.
+ * type. The original reason was SKIE — a `PresenterHolder<UiState>` reached Swift as an Objective-C
+ * lightweight generic and forced `SkieSwiftStateFlow<UiState>` to be expressed for a type
+ * parameter. Swift export erases generic type parameters to their upper bounds instead, which is no
+ * better, so the conclusion is unchanged: the shared part is a generic *method*, [moleculeState],
+ * rather than a type parameter, and each subclass declares `state` concretely.
+ *
+ * Subclasses publish [CountryListUiState]/[CountryDetailUiState] rather than the Circuit state, and
+ * expose named methods rather than an `eventSink`. See [CountryListUiState] for why.
  *
  * Construct subclasses through [CountriesCore], never directly, so Swift never assembles the object
  * graph by hand.
  */
 abstract class PresenterHolder internal constructor(private val scope: CoroutineScope) {
 
-  /** Recomposes [body] and folds every emission into a [StateFlow]. */
+  /**
+   * Recomposes [body] and folds every emission into a [StateFlow].
+   *
+   * The type parameter is no longer bounded by `CircuitUiState`: [body] now maps the Circuit state
+   * to a plain Apple-facing type before emitting, and those deliberately implement nothing.
+   */
   // `body = body` is named, not positional: launchMolecule's second positional parameter is
   // `context` on one overload and `emitter` on another, so a bare second argument is ambiguous.
-  protected fun <UiState : CircuitUiState> moleculeState(
-    body: @Composable () -> UiState
-  ): StateFlow<UiState> = scope.launchMolecule(mode = RecompositionMode.Immediate, body = body)
+  protected fun <UiState> moleculeState(body: @Composable () -> UiState): StateFlow<UiState> =
+    scope.launchMolecule(mode = RecompositionMode.Immediate, body = body)
 
   /**
    * Stops the presenter. Call when the owning view goes away.
@@ -71,8 +78,27 @@ internal constructor(
 
   // Molecule's Immediate mode computes the first frame synchronously, so `value` holds a real state
   // before anything is awaited — no optional, and no empty first render.
-  val state: StateFlow<CountryListScreen.State> = moleculeState {
-    CountryListPresenter(navigator, countryRepository, continentRepository)
+  val state: StateFlow<CountryListUiState> = moleculeState {
+    CountryListPresenter(navigator, countryRepository, continentRepository).toUiState()
+  }
+
+  /**
+   * Sets the search text.
+   *
+   * Goes through `SearchTextChanged` rather than a shared `TextFieldState`, which is what that
+   * event exists for: the Compose hosts bind the `TextFieldState` directly, and a host that is not
+   * a composition cannot.
+   */
+  fun search(text: String) {
+    state.value.eventSink(CountryListScreen.Event.SearchTextChanged(text))
+  }
+
+  fun toggleContinent(continent: Continent) {
+    state.value.eventSink(CountryListScreen.Event.ToggleContinentSelection(continent))
+  }
+
+  fun retry() {
+    state.value.eventSink(CountryListScreen.Event.Retry)
   }
 }
 
@@ -85,7 +111,15 @@ internal constructor(
   scope: CoroutineScope = MainScope(),
 ) : PresenterHolder(scope) {
 
-  val state: StateFlow<CountryDetailScreen.State> = moleculeState {
-    CountryDetailPresenter(screen, navigator, countryRepository)
+  val state: StateFlow<CountryDetailUiState> = moleculeState {
+    CountryDetailPresenter(screen, navigator, countryRepository).toUiState()
+  }
+
+  fun back() {
+    state.value.eventSink(CountryDetailScreen.Event.BackClicked)
+  }
+
+  fun retry() {
+    state.value.eventSink(CountryDetailScreen.Event.Retry)
   }
 }

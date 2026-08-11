@@ -53,9 +53,9 @@ class PresenterHolderTest {
 
     holder.state.test {
       var state = awaitItem()
-      while (state.countriesState.status is LoadStatus.Loading) state = awaitItem()
+      while (state.countriesStatus is LoadStatus.Loading) state = awaitItem()
 
-      assertEquals(listOf(canada), state.countriesState.data)
+      assertEquals(listOf(canada), state.countries)
       cancelAndIgnoreRemainingEvents()
     }
   }
@@ -81,7 +81,7 @@ class PresenterHolderTest {
 
     holder.state.test {
       var state = awaitItem()
-      while (state.countriesState.status is LoadStatus.Loading) state = awaitItem()
+      while (state.countriesStatus is LoadStatus.Loading) state = awaitItem()
 
       state.eventSink(CountryListScreen.Event.CountryClicked("CA"))
 
