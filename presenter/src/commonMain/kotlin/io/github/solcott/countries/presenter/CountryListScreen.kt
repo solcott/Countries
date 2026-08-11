@@ -25,6 +25,16 @@ data object CountryListScreen : Screen {
 
     data class ToggleContinentSelection(val continent: Continent) : Event
 
+    /**
+     * Sets the search text.
+     *
+     * Compose UIs do not send this — they bind [State.nameStartsWithText] directly, which is the
+     * whole point of a [TextFieldState]. It exists for hosts that cannot: a `TextFieldState` is
+     * snapshot-backed Compose Foundation state with no meaning outside a composition, so the
+     * SwiftUI app owns a plain `String` and sends it here instead.
+     */
+    data class SearchTextChanged(val text: String) : Event
+
     data object Retry : Event
   }
 }

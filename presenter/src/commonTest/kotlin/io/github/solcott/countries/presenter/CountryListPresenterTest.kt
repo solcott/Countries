@@ -130,6 +130,39 @@ class CountryListPresenterTest {
     }
   }
 
+  /**
+   * The same filtering as above, driven through [CountryListScreen.Event.SearchTextChanged] rather
+   * than by mutating the [androidx.compose.foundation.text.input.TextFieldState] — the only route
+   * open to a host that is not a composition, such as the SwiftUI app.
+   */
+  @Test
+  fun searchTextChangedEventFiltersCountries() = runTest {
+    val navigator = FakeNavigator(CountryListScreen)
+    val repository =
+      FakeCountryRepository(
+        countriesAsFlow = { name, _ ->
+          if (name.startsWith("c")) flowOf(data(listOf(canada))) else flowOf(data(countries))
+        }
+      )
+
+    val continentRepository = FakeContinentRepository()
+
+    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+      val initial = awaitCountriesSettledState()
+      assertEquals(countries, initial.countriesState.data)
+
+      initial.eventSink(CountryListScreen.Event.SearchTextChanged("c"))
+      assertEquals(listOf(canada), awaitCountriesSettled().data)
+      // The event is the sole writer, so the TextFieldState has to end up holding the same text —
+      // otherwise a Compose host sharing this presenter would show a stale search box.
+      assertEquals("c", initial.nameStartsWithText.text.toString())
+
+      initial.eventSink(CountryListScreen.Event.SearchTextChanged(""))
+      assertEquals(countries, awaitCountriesSettled().data)
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
   @Test
   fun clickingACountryNavigatesToDetail() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
