@@ -86,9 +86,9 @@ emoji and every non-Latin script renders as tofu.
 
 | Version ref | Value | Notes |
 | --- | --- | --- |
-| `composeMultiplatform` | `1.12.0-beta03` | Prerelease. The web font downloader landed in 1.12.0-alpha02 |
-| `composeUi` (AndroidX) | `1.12.0-rc01` | CMP 1.12.0-beta03 asks for AndroidX 1.12.0-beta02; this resolves up |
-| `composeMaterial3` (CMP) | `1.12.0-alpha03` | Wants CMP core 1.12.0-beta01, satisfied by beta03 |
+| `composeMultiplatform` | `1.12.0-rc01` | Prerelease. The web font downloader landed in 1.12.0-alpha02 |
+| `composeUi` (AndroidX) | `1.12.0-rc01` | CMP 1.12.0-rc01 asks for the same AndroidX version |
+| `composeMaterial3` (CMP) | `1.12.0-alpha03` | Wants CMP core 1.12.0-beta01, satisfied by rc01 |
 | `material3` (AndroidX) | `1.5.0-alpha25` | CMP material3 asks for 1.5.0-alpha22, so ours wins |
 
 **material3 is on its own version line — `composeMaterial3`, not `composeMultiplatform`.** It does
@@ -97,10 +97,13 @@ something far behind, which would drag AndroidX material3 *backwards* several mi
 set `composeMaterial3` explicitly, and when changing it check two things: which CMP core version it
 requires, and which AndroidX material3 it aliases.
 
-Known version skew on Android, accepted: `ui` and `runtime` resolve to 1.12.0-rc01 because the
-catalog pins them, while `foundation` and `animation` sit at 1.12.0-beta02 because only CMP
-requests those and CMP 1.12.0-beta03 was built against beta02. Same release line, weeks apart. The
-web target has no skew — every `org.jetbrains.compose.*` artifact is 1.12.0-beta03.
+There is **no version skew on Android** — every `androidx.compose.{ui,foundation,animation,runtime}`
+artifact resolves to 1.12.0-rc01. That is worth stating because it was not true before: while CMP
+sat at 1.12.0-beta03 it requested AndroidX beta02 for `foundation` and `animation`, and only `ui`
+and `runtime` came up to rc01 off the catalog pin. Moving CMP to rc01 closed the gap. Check it with
+`./gradlew :ui:dependencies --configuration androidCompileClasspath` after any Compose bump; a split
+across two prerelease builds of the same line is tolerable, but it should be a known state rather
+than a surprise.
 
 Three build requirements that are easy to miss:
 

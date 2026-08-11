@@ -28,11 +28,11 @@ material3 = "1.5.0-alpha25"
 # On the 1.12 line specifically because that is where web gained automatic fallback-font loading:
 # Skia has no system font manager in a browser, so before 1.12 every emoji and every non-Latin
 # script rendered as tofu. See the fonts note in AGENTS.md — do not bundle fallback fonts.
-composeMultiplatform = "1.12.0-beta03"
+composeMultiplatform = "1.12.0-rc01"
 
 # Compose Multiplatform's material3 is versioned separately from the rest of CMP — this does NOT
 # track composeMultiplatform. 1.12.0-alpha03 is the newest, it wants core 1.12.0-beta01 (which
-# resolves up to our beta03), and it aliases androidx material3 1.5.0-alpha22 — older than the
+# resolves up to our rc01), and it aliases androidx material3 1.5.0-alpha22 — older than the
 # `material3` above, so ours wins. The CMP plugin's own default accessor is far behind and would
 # pull an androidx material3 several minor lines backwards; always set this explicitly.
 composeMaterial3 = "1.12.0-alpha03"
@@ -67,9 +67,6 @@ androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-ru
 
 # Compose
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "composeUi" }
-androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "composeUi" }
-androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "composeUi" }
-androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "composeUi" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.4" }
 
