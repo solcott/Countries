@@ -9,8 +9,10 @@ https://countries.trevorblades.com/ and displays them.
 | --- | --- |
 | Language | Kotlin |
 | GraphQL client | Apollo Kotlin |
-| UI | Jetpack Compose |
+| UI | Jetpack Compose; hand-written SwiftUI on Apple — see [The `apple` module](#the-apple-module) |
 | Architecture | MVI via [Circuit](https://slackhq.github.io/circuit/) |
+| Presenters outside Compose | [Molecule](https://github.com/cashapp/molecule) — `@Composable` presenter → `StateFlow` for Swift |
+| Swift interop | [SKIE](https://skie.touchlab.co/) — sealed types → Swift enums, `Flow` → `AsyncSequence` |
 | Dependency injection | [Metro](https://zacsweers.github.io/metro/) |
 | Multiplatform | Kotlin Multiplatform — every library module; `app` is the Android entry point |
 | Compose (KMP) | Compose Multiplatform `foundation` + AndroidX `runtime` — see below |
@@ -263,12 +265,13 @@ tier, the Metro provider itself — stays in `commonMain`. Add new per-platform 
 
 ## Module structure
 
-Ten modules, with dependencies flowing strictly downward:
+Eleven modules, with dependencies flowing strictly downward:
 
 ```
 app             → Android entry point: Activity, theme, manifest. Nothing else.
 web             → Browser entry point (js + wasmJs): main(), index.html, URL routing.
 desktop         → Desktop entry point (jvm): main(), Window, keyboard back, flag font.
+apple           → Apple bridge (ios + macos): CountriesKit.xcframework for the SwiftUI app.
 shared-compose  → ComposeGraph — the Metro graph every Compose app shares
 shared          → CoreGraph for non-Compose consumers, plus the root Logger
 ui              → Compose UI (Circuit Ui implementations), CircuitProviders
@@ -283,16 +286,18 @@ There are **two graphs** because of how the platform apps differ:
 - `shared-compose` declares `ComposeGraph`, which exposes `Circuit`. Every Compose consumer
   shares it — the Android, browser and desktop apps today, and a Compose Multiplatform iOS app
   alongside them. None of them declares a graph of its own.
-- `shared` declares `CoreGraph`, which exposes repositories and no Compose types at all. That
-  is what a SwiftUI/UIKit iOS app uses: it drives Circuit `Presenter`s directly (see Circuit's
-  counter sample) and needs neither a `Circuit` instance nor any `Ui.Factory`, so it must not
-  link Compose.
+- `shared` declares `CoreGraph`, which exposes repositories and no Compose types at all. That is
+  what the SwiftUI app uses, via `:apple`: it drives Circuit `Presenter`s directly (the shape of
+  Circuit's counter sample) and needs neither a `Circuit` instance nor any `Ui.Factory`, so it
+  links no Compose **UI**. It does link the Compose *runtime* and *foundation*, because that is
+  what running a `@Composable` presenter under Molecule requires — see
+  [The `apple` module](#the-apple-module).
 
 All packages live under `io.github.solcott.countries`, with each module using its
 own name as the suffix — `…countries.model`, `…countries.network`,
 `…countries.repository`, `…countries.presenter`, `…countries.ui`,
 `…countries.shared`, `…countries.shared.compose`, `…countries.web`,
-`…countries.desktop`. The `app`
+`…countries.desktop`, `…countries.apple`. The `app`
 module uses the root `io.github.solcott.countries`, which is also the
 `applicationId`. Each module's Gradle `namespace` matches its package.
 
@@ -301,6 +306,8 @@ Rules:
 - **An app module holds no dependency wiring.** `app`, `web` and `desktop` depend on
   `shared-compose` and nothing else from this project for the graph. Adding a `@Provides` to an app
   module is almost always wrong — it would not be available to the other platform apps.
+  `:apple` is the one exception, and only because there is no Compose UI for it to mount: something
+  has to turn `CoreGraph` into an observable, and it is better done in Kotlin than in Xcode.
 - **The app itself is `CountriesApp` in `:ui`, not the entry point.** The theme, the backstack,
   `CircuitCompositionLocals` and `NavigableCircuitContent` live there; `MainActivity`, the browser
   `main()` and the desktop `main()` each do two things only — read `circuit` off the graph, and
@@ -423,6 +430,99 @@ Icons live in `desktop/icons/` and are the source of truth for both consumers: j
 three from disk, and `icon.png` is also on the runtime classpath for the window and dock icon.
 `build.gradle.kts` adds that directory as a resource root and excludes `*.icns`/`*.ico` from the
 jar, since only the PNG is useful at runtime.
+
+### The `apple` module
+
+The Kotlin half of the SwiftUI app, packaged as `CountriesKit.xcframework` and linked by
+`iosApp/Countries.xcodeproj`. One target covers iPhone, iPad and Mac — hence `:apple`, not `:ios`.
+
+**The UI is hand-written SwiftUI and is not a port of the Compose design.** Same data, same states,
+same behaviour, expressed with Apple idioms: `.searchable` rather than a text field pinned in the
+list, `ContentUnavailableView` rather than `ErrorContent`, pull-to-refresh rather than a progress
+strip, `Form`/`LabeledContent` rather than a column of "Label: value" text.
+
+SwiftUI rather than UIKit because **UIKit does not run on macOS** — that is AppKit, a different
+framework — and the usual escape hatch is closed: **Kotlin/Native has no Mac Catalyst target**, so a
+KMP framework cannot link into a Catalyst app.
+
+Five things worth knowing:
+
+- **Presenters reach Swift through Molecule, not directly.** A Circuit presenter here is a
+  `@Composable` function with a hidden `$composer` parameter, so Swift cannot call it at all.
+  `PresenterHolders.kt` runs it with `launchMolecule(RecompositionMode.Immediate)` and exposes a
+  `StateFlow`. That is why `:apple` applies the Compose compiler plugin despite rendering nothing,
+  and why the framework links Compose runtime and foundation. Unlike Circuit's counter sample the
+  holders do **not** wrap in `presenterOf { }` — `launchMolecule` already takes a `@Composable`
+  lambda, and wrapping introduces a `@ComposableTarget("presenter")` mismatch — and they expose
+  `cancel()`, which the sample omits and a repeatedly-opened detail screen needs.
+- **`PresenterHolder`, the shared base, is deliberately not generic.** The scope, `cancel()` and the
+  Molecule launch are shared; `state` stays declared concretely on each subclass. A
+  `PresenterHolder<UiState>` would reach Swift as an Objective-C lightweight generic and make SKIE
+  express `SkieSwiftStateFlow<UiState>` for a type parameter — Circuit's sample does exactly that
+  and its own comments complain about the result. The Swift side *is* generic
+  (`PresenterModel<Holder>`), which is fine: Swift generics are real.
+- **SKIE is what makes the API usable from Swift.** It turns the sealed `DataError` and `LoadStatus`
+  into exhaustively switchable Swift enums via `onEnum(of:)`, and `StateFlow` into an
+  `AsyncSequence` with a non-optional `value`. Its Kotlin support range is 2.0.0–2.4.10; check it
+  before bumping Kotlin. Analytics upload is turned off in `build.gradle.kts`.
+- **Every type in the Swift API must be `export`ed by name, and `export` is not transitive.**
+  `Screen` lives in `circuit-runtime-screen`, a different artifact from `circuit-runtime`; without
+  its own `export` it reaches Swift as `Circuit_runtime_screenScreen`.
+- **`linkerOpts("-lsqlite3")` is load-bearing.** The Apollo plugin adds it automatically, but only
+  for `:network`'s binaries. This framework is a different binary in a module that does not apply
+  Apollo, so without it the link fails on a wall of undefined `_sqlite3_*` symbols from SQLiter.
+- **A Kotlin class must not share the framework's name.** `CountriesKit` would be silently renamed
+  to `CountriesKit_` in Swift; the entry point is `CountriesCore` for that reason.
+
+Navigation is Swift's. `NavigationSplitView` with a `selection: String?` is the whole navigation
+state — it collapses to push-and-pop on iPhone and gives two columns on iPad and Mac. `SwiftNavigator`
+only forwards `goTo`/`pop` into Swift closures and mirrors the stack back through `syncFromSwift`,
+so there is exactly one writer and none of the feedback-loop guarding `BrowserHistory` needs.
+
+Two consequences of keeping `TextFieldState` in `CountryListScreen.State`: the search box is driven
+by the `SearchTextChanged` event rather than shared state, and Compose UI plus skiko end up in the
+exported Obj-C header. Dropping `TextFieldState` for a plain `String` would remove both.
+
+Xcode integration is the standard KMP "direct integration": a Run Script phase runs
+`:apple:embedAndSignAppleFrameworkForXcode`, which builds only the slice Xcode is currently
+targeting and embeds it. `assembleCountriesKitDebugXCFramework` builds all three slices and is for
+distribution — far too slow for an edit-build-run loop. `project.pbxproj` uses a
+`PBXFileSystemSynchronizedRootGroup`, so new Swift files need no project edit.
+
+**`ContentState<T>` is a generic Objective-C class in Swift, and Swift forbids extending one in a
+way that touches its type parameters.** `LoadPhase.swift` maps the non-generic `status` instead —
+do not try to reinstate `isLoading`/`errorOrNull` as a `ContentState` extension.
+
+### Testing the Apple app
+
+Three suites, and they are deliberately different tools:
+
+| Where | Tool | Covers |
+| --- | --- | --- |
+| `apple/src/commonTest` | `kotlin.test` | `SwiftNavigator`, and that Molecule turns a `@Composable` presenter into an observable `StateFlow` |
+| `iosApp/CountriesTests` | Swift Testing | the pure Swift presentation logic — `userMessage(for:)`, `loadPhase`, row subtitles |
+| `iosApp/CountriesUITests` | **XCTest** | the touch paths: selection, search, continent filter, back, and the iPad two-column layout |
+
+The UI tests are XCTest rather than Swift Testing because Swift Testing has no UI-testing support —
+`XCUIApplication` assertions require `XCTestCase`. That inconsistency is forced, not an oversight.
+
+Two things to know before adding a UI test:
+
+- **Fixtures must be at the top of the list.** `List` only realises visible rows, so a country
+  further down does not exist as an accessibility element until it is scrolled to. The first draft
+  of these tests used Canada and every one failed on a row that was merely off screen; they use
+  Andorra and the UAE, rows one and two, via the constants in `UITestSupport.swift`.
+- **`LabeledContent` merges its label and value into one element**, so the detail screen's values
+  are not addressable as exact `staticTexts`. Match with a `label CONTAINS` predicate.
+
+`NavigationUITests` branches on `UIDevice.current.userInterfaceIdiom` with `XCTSkipUnless`, so the
+suite is meaningful on both destinations rather than passing vacuously on one.
+`testListAndDetailAreVisibleTogetherOnIPad` is the regression test for the iPad portrait bug and has
+been confirmed to fail against the pre-fix `.automatic` column visibility.
+
+These tests hit the live GraphQL API, so a cold simulator needs network; reruns are warm from the
+Apollo SQLite cache. A hermetic version would need a launch argument swapping in a stub repository,
+which means production code changing shape for tests — not done.
 
 ### Fonts on desktop
 
@@ -605,7 +705,32 @@ needs, so it is easy to fix one and forget the other.
 ./gradlew :desktop:run
 ./gradlew :desktop:packageUberJarForCurrentOS      # → desktop/build/compose/jars
 ./gradlew :desktop:packageDistributionForCurrentOS # → desktop/build/compose/binaries
+
+# Apple bridge — the Kotlin half of the SwiftUI app
+./gradlew :apple:macosArm64Test :apple:iosSimulatorArm64Test
+./gradlew :apple:assembleCountriesKitDebugXCFramework   # → apple/build/XCFrameworks/debug
+
+# iOS / iPadOS / macOS app. Xcode runs the Gradle framework build itself, so open the project
+# and hit run rather than building the framework first.
+open iosApp/Countries.xcodeproj
+xcodebuild -project iosApp/Countries.xcodeproj -scheme Countries \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+xcodebuild -project iosApp/Countries.xcodeproj -scheme Countries \
+  -destination 'platform=macOS,arch=arm64' build
+
+# Unit tests and UI tests together. Run both destinations — several UI tests are device-shape
+# specific and skip themselves on the shape they do not describe.
+xcodebuild test -project iosApp/Countries.xcodeproj -scheme Countries \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+xcodebuild test -project iosApp/Countries.xcodeproj -scheme Countries \
+  -destination 'platform=iOS Simulator,name=iPad mini (A17 Pro),OS=18.4'
 ```
+
+**Tests run on iOS simulators only; the macOS destination is build-and-run.** `xcodebuild test` for
+macOS fails with "Signing for CountriesUITests requires a development team" — Xcode builds every
+testable in the scheme regardless of the target's `SUPPORTED_PLATFORMS` or of `-only-testing`, and a
+macOS UI-test runner cannot be ad-hoc signed. Nothing is lost: the unit tests are pure functions
+with no platform-specific behaviour, and they run on the simulator.
 
 Both desktop packaging tasks produce a build for the **host** OS only — see
 [The `desktop` module](#the-desktop-module).
