@@ -23,22 +23,39 @@ plugins {
   // So createGraph<CoreGraph>() resolves, exactly as in :app, :web and :desktop. The graph itself,
   // and every contribution to it, is aggregated on :shared's compile classpath — not here.
   alias(libs.plugins.metro)
-  // Rewrites the produced framework so Swift gets exhaustive enums for DataError and LoadStatus,
-  // and AsyncSequence/Combine for StateFlow. Without it those are opaque protocols and an
-  // uncollectable Flow.
-  alias(libs.plugins.skie)
 }
 
 // Matches the `import CountriesKit` in the Swift sources and the framework name the Xcode target
 // links. Changing it means changing both.
 val frameworkName = "CountriesKit"
 
-// SKIE posts anonymous build metrics to Touchlab on every link task by default. Off: this is a
-// personal project, and a build should not make network calls nobody asked for.
-skie { analytics { enabled.set(false) } }
-
 kotlin {
   jvmToolchain(Versions.JVM_TOOLCHAIN)
+
+  // SPIKE (Gate 1): generate Swift export output alongside the existing Obj-C framework, to find
+  // out what it makes of this module's API before anything commits to it. Additive on purpose —
+  // the framework block below still produces the binary `iosApp/` links, so nothing is broken
+  // while this question is open.
+  //
+  // Deliberately still on Kotlin 2.4.10 with SKIE merely removed rather than on 2.4.20-Beta2:
+  // Swift export has run on stable Kotlin since 2.2.20, so the export question and the beta-Kotlin
+  // question are separable, and fusing them would make a failure uninterpretable.
+  @OptIn(org.jetbrains.kotlin.gradle.swiftexport.ExperimentalSwiftExportDsl::class)
+  swiftExport {
+    moduleName = frameworkName
+    flattenPackage = "io.github.solcott.countries.apple"
+
+    // The same non-transitivity rule as `export()` on a framework: every module whose types show
+    // up in the Swift API needs naming, and each stays an `api` dependency below.
+    export(project(":model")) {
+      moduleName = "CountriesModel"
+      flattenPackage = "io.github.solcott.countries.model"
+    }
+    export(project(":presenter")) {
+      moduleName = "CountriesPresenter"
+      flattenPackage = "io.github.solcott.countries.presenter"
+    }
+  }
 
   // One XCFramework holding all three slices, because a plain .framework covers a single platform
   // and the Xcode target has iPhone, iPad and Mac destinations. Left dynamic (the Kotlin default);
