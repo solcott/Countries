@@ -1,33 +1,32 @@
 import CountriesKit
+import CountriesModel
+import CountriesPresenter
 import Foundation
 
-/// `ContentState.status`, as something Swift can switch over.
+/// `LoadStatus`, as something Swift can switch over.
 ///
-/// This deliberately does *not* live in an extension on `ContentState`. `ContentState<T>` is a
-/// Kotlin generic class, which reaches Swift as an Objective-C lightweight generic, and Swift
-/// forbids an extension of one from touching its type parameters at runtime — the compiler rejects
-/// the whole extension, not just the members that use `T`. Reading `status` off the concrete
-/// property and mapping it here sidesteps that entirely.
-///
-/// It also replaces `isLoading` and `errorOrNull` from `ContentState.kt`, which are Kotlin
-/// extension properties and so are absent from the framework header: extensions are not members,
-/// and the Obj-C header only carries members.
+/// Kept as a Swift enum of its own even though `sealedType()` now produces one, because the three
+/// helpers below read far better at the call sites than repeated `switch`es, and because this is
+/// what `isLoading`/`errorOrNull`/`isNotFound` — Kotlin extension properties, which do not cross to
+/// Swift as members — used to provide.
 enum LoadPhase {
   case loading
   case idle
   case failed(any DataError)
 }
 
-/// SKIE turns the sealed `LoadStatus` into an exhaustive Swift enum, so this cannot silently miss a
-/// case the way an `if let` chain over `as?` casts would.
+/// Swift export maps the sealed `LoadStatus` to a Swift enum through a generated `sealedType()`, so
+/// this cannot silently miss a case the way an `if let` chain over `as?` casts would. That
+/// exhaustiveness is the single most valuable thing SKIE used to provide, and the reason this spike
+/// needed Kotlin 2.4.20-Beta2 — on 2.4.10 a `default:` would be mandatory here.
 func loadPhase(of status: any LoadStatus) -> LoadPhase {
-  switch onEnum(of: status) {
+  switch status.sealedType() {
   case .loading:
     return .loading
   case .idle:
     return .idle
   case .failed(let failed):
-    return .failed(failed.error)
+    return .failed(failed.value.error)
   }
 }
 
@@ -57,14 +56,14 @@ extension LoadPhase {
 /// from compose-resources, so it cannot be linked here. The wording matches deliberately — the apps
 /// should say the same thing.
 func userMessage(for error: any DataError) -> String {
-  switch onEnum(of: error) {
+  switch error.sealedType() {
   case .network:
     return String(
       localized: "You appear to be offline. Check your connection and try again.",
       comment: "Shown when a request failed with no usable response")
   case .http(let http):
     return String(
-      localized: "The server returned an error (\(http.code)).",
+      localized: "The server returned an error (\(http.value.code)).",
       comment: "Shown when a request returned a non-success HTTP status")
   case .api:
     return String(

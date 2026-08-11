@@ -1,4 +1,5 @@
-import CountriesKit
+import CountriesModel
+import CountriesPresenter
 import Testing
 
 @testable import Countries

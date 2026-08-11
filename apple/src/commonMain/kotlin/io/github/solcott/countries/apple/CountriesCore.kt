@@ -1,6 +1,5 @@
 package io.github.solcott.countries.apple
 
-import com.slack.circuit.runtime.Navigator
 import dev.zacsweers.metro.createGraph
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.shared.CoreGraph
@@ -24,14 +23,17 @@ class CountriesCore {
 
   private val graph: CoreGraph = createGraph<CoreGraph>()
 
-  fun countryListPresenter(navigator: Navigator): CountryListPresenterHolder =
+  fun countryListPresenter(navigator: SwiftNavigator): CountryListPresenterHolder =
     CountryListPresenterHolder(
       navigator = navigator,
       countryRepository = graph.countryRepository,
       continentRepository = graph.continentRepository,
     )
 
-  fun countryDetailPresenter(code: String, navigator: Navigator): CountryDetailPresenterHolder =
+  fun countryDetailPresenter(
+    code: String,
+    navigator: SwiftNavigator,
+  ): CountryDetailPresenterHolder =
     CountryDetailPresenterHolder(
       screen = CountryDetailScreen(code),
       navigator = navigator,

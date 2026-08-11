@@ -5,8 +5,11 @@ import Foundation
 ///
 /// SwiftUI is the single source of truth: ``selectedCode`` is what `NavigationSplitView` binds to,
 /// and everything else follows from it. The Kotlin ``SwiftNavigator`` only forwards intent — when a
-/// presenter calls `navigator.goTo(CountryDetailScreen(code))` the closure below sets
-/// ``selectedCode``, and the view updates because of that, not because Kotlin pushed anything.
+/// presenter navigates to a country the closure below sets ``selectedCode``, and the view updates
+/// because of that, not because Kotlin pushed anything.
+///
+/// The Circuit `Screen`s that intent is really made of stay in Kotlin. This side deals in country
+/// codes, which is all it ever needed.
 ///
 /// Having exactly one writer is deliberate. `:web`'s `BrowserHistory` binds a backstack to
 /// `window.history` in both directions and needs two guard flags to stop the binding feeding
@@ -27,10 +30,8 @@ final class NavigationModel {
     // Assigned after the stored properties above have their defaults, which is what lets the
     // closures capture `self`.
     _navigator = SwiftNavigator(
-      root: CountryListScreen.shared,
-      onGoTo: { [weak self] screen in
-        guard let detail = screen as? CountryDetailScreen else { return }
-        MainActor.assumeIsolated { self?.selectedCode = detail.code }
+      onShowCountry: { [weak self] code in
+        MainActor.assumeIsolated { self?.selectedCode = code }
       },
       onPop: {
         [weak self] in MainActor.assumeIsolated { self?.selectedCode = nil }
@@ -43,10 +44,6 @@ final class NavigationModel {
   /// Call after every change to ``selectedCode``, including ones the navigator caused — it is
   /// idempotent, and that is cheaper than tracking which changes originated where.
   func syncToKotlin() {
-    var screens: [any Screen] = [CountryListScreen.shared]
-    if let selectedCode {
-      screens.append(CountryDetailScreen(code: selectedCode))
-    }
-    navigator.syncFromSwift(screens: screens)
+    navigator.syncFromSwift(selectedCode: selectedCode)
   }
 }
