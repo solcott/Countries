@@ -12,7 +12,7 @@ https://countries.trevorblades.com/ and displays them.
 | UI | Jetpack Compose; hand-written SwiftUI on Apple — see [The `apple` module](#the-apple-module) |
 | Architecture | MVI via [Circuit](https://slackhq.github.io/circuit/) |
 | Presenters outside Compose | [Molecule](https://github.com/cashapp/molecule) — `@Composable` presenter → `StateFlow` for Swift |
-| Swift interop | [SKIE](https://skie.touchlab.co/) — sealed types → Swift enums, `Flow` → `AsyncSequence` |
+| Swift interop | Kotlin **Swift export** (Alpha) — sealed types → Swift enums, `Flow` → `AsyncSequence` |
 | Dependency injection | [Metro](https://zacsweers.github.io/metro/) |
 | Multiplatform | Kotlin Multiplatform — every library module; `app` is the Android entry point |
 | Compose (KMP) | Compose Multiplatform `foundation` + AndroidX `runtime` — see below |
@@ -265,21 +265,37 @@ tier, the Metro provider itself — stays in `commonMain`. Add new per-platform 
 
 ## Module structure
 
-Eleven modules, with dependencies flowing strictly downward:
+Thirteen modules, with dependencies flowing strictly downward:
 
 ```
 app             → Android entry point: Activity, theme, manifest. Nothing else.
 web             → Browser entry point (js + wasmJs): main(), index.html, URL routing.
 desktop         → Desktop entry point (jvm): main(), Window, keyboard back, flag font.
-apple           → Apple bridge (ios + macos): CountriesKit.xcframework for the SwiftUI app.
+apple           → Apple bridge (ios + macos): the Swift export for the SwiftUI app.
 shared-compose  → ComposeGraph — the Metro graph every Compose app shares
 shared          → CoreGraph for non-Compose consumers, plus the root Logger
 ui              → Compose UI (Circuit Ui implementations), CircuitProviders
 presenter       → Circuit Screens, presenters, state, and events
+uistate         → ContentState and LoadStatus — view state for content from a data source
 repository      → domain-facing data access
 network         → Apollo client, .graphql operations, generated code
-model           → Kotlin domain types
+model           → Kotlin domain types: Country, CountryDetail, Language, Continent
+dataresult      → DataError, Origin, Outcome — how a read went and where it came from
 ```
+
+**`model` is domain nouns only.** `DataError`, `Origin` and `Outcome` describe not a thing in the
+domain but the result of *reading* one, so they live in `dataresult`, which sits at the bottom with
+no dependencies at all. `uistate` sits just above it and depends on nothing else.
+
+That split is also what makes the Apple app's Swift export work, and the two reasons reinforce each
+other — see [The `apple` module](#the-apple-module). `dataresult`, `model` and `uistate` are the
+three modules exported to Swift *in full*, which is only safe because none of them contains anything
+the generator chokes on. Adding a Compose type or a generic sealed type to any of the three breaks
+the iOS build, and nothing else will warn you.
+
+`applyEmission` is the one exception to `uistate` holding all of `ContentState`'s API: it takes an
+`Outcome`, and lives in `presenter/ApplyEmission.kt` next to its only two callers so that `uistate`
+depends on `dataresult` and nothing more.
 
 There are **two graphs** because of how the platform apps differ:
 
@@ -320,8 +336,9 @@ Rules:
 - A module contributes its own providers with `@ContributesTo(AppScope::class)`, next to the
   code they construct: `NetworkProviders` in `network`, `CircuitProviders` in `ui`,
   `LoggingProviders` in `shared`.
-- `model` contains model data classes. `network`,
-  `repository`, `presenter`, and `ui` all depend on it.
+- `model` contains domain data classes and nothing else. `network`, `repository`, `presenter` and
+  `ui` all depend on it. Anything describing a *read* — an error taxonomy, a cache/network origin,
+  an emission — belongs in `dataresult`; anything describing *view state* belongs in `uistate`.
 - **Apollo generated types never cross the `network` boundary.** `network` owns
   the mapping from generated GraphQL data classes to `model` types and returns
   only the latter. No other module imports anything from the generated package.
@@ -482,7 +499,7 @@ macOS. Neither exists when the catalog is empty.
 
 ### The `apple` module
 
-The Kotlin half of the SwiftUI app, packaged as `CountriesKit.xcframework` and linked by
+The Kotlin half of the SwiftUI app, exported to Swift and linked by
 `iosApp/Countries.xcodeproj`. One target covers iPhone, iPad and Mac — hence `:apple`, not `:ios`.
 
 **The UI is hand-written SwiftUI and is not a port of the Compose design.** Same data, same states,
@@ -506,41 +523,79 @@ Five things worth knowing:
   `cancel()`, which the sample omits and a repeatedly-opened detail screen needs.
 - **`PresenterHolder`, the shared base, is deliberately not generic.** The scope, `cancel()` and the
   Molecule launch are shared; `state` stays declared concretely on each subclass. A
-  `PresenterHolder<UiState>` would reach Swift as an Objective-C lightweight generic and make SKIE
-  express `SkieSwiftStateFlow<UiState>` for a type parameter — Circuit's sample does exactly that
-  and its own comments complain about the result. The Swift side *is* generic
-  (`PresenterModel<Holder>`), which is fine: Swift generics are real.
-- **SKIE is what makes the API usable from Swift.** It turns the sealed `DataError` and `LoadStatus`
-  into exhaustively switchable Swift enums via `onEnum(of:)`, and `StateFlow` into an
-  `AsyncSequence` with a non-optional `value`. Its Kotlin support range is 2.0.0–2.4.10; check it
-  before bumping Kotlin. Analytics upload is turned off in `build.gradle.kts`.
-- **Every type in the Swift API must be `export`ed by name, and `export` is not transitive.**
-  `Screen` lives in `circuit-runtime-screen`, a different artifact from `circuit-runtime`; without
-  its own `export` it reaches Swift as `Circuit_runtime_screenScreen`.
-- **`linkerOpts("-lsqlite3")` is load-bearing.** The Apollo plugin adds it automatically, but only
-  for `:network`'s binaries. This framework is a different binary in a module that does not apply
-  Apollo, so without it the link fails on a wall of undefined `_sqlite3_*` symbols from SQLiter.
-- **A Kotlin class must not share the framework's name.** `CountriesKit` would be silently renamed
-  to `CountriesKit_` in Swift; the entry point is `CountriesCore` for that reason.
+  `PresenterHolder<UiState>` would have its type parameter erased to its upper bound. The Swift side
+  *is* generic (`PresenterModel<Holder>`), which is fine: Swift generics are real.
+- **Swift export replaced SKIE, and needed Kotlin 2.4.20-Beta2 to do it.** `StateFlow` arrives as
+  `KotlinTypedStateFlow<T>` with a typed non-optional `value` and `asAsyncSequence()`; sealed types
+  get a generated `sealedType()` returning an exhaustively switchable Swift enum. Both landed after
+  2.4.10, and SKIE caps at 2.4.10, so the two cannot coexist — reverting to SKIE means reverting
+  Kotlin too.
+- **Sealed types that cross to Swift must be `sealed class`, not `sealed interface`.** This is the
+  single most surprising rule here and nothing warns you. A sealed *interface* member reaches Swift
+  as a mangled top-level class plus a nested typealias emitted with **no access modifier** — so it
+  is internal to the generated module and unusable from the app. A sealed *class* member is a
+  genuinely nested public class: `DataError.Network` just works. Worse, a **generic** sealed
+  interface emits Swift that does not compile at all, because the erased subtype cannot be made to
+  conform to the erased parent protocol; as a class it is plain subclassing and survives erasure.
+  `Outcome`, `DataError` and `LoadStatus` are all sealed classes for these reasons. `Event` in the
+  two Screens stays an interface — it has `CircuitUiEvent` as a second supertype, and it never
+  crosses to Swift.
+- **`export(project(…))` means something different here than on an Obj-C framework.** Swift export
+  already emits everything reachable from the module's public API, so exporting is not what makes
+  types visible — it is the only way to set `flattenPackage`, and it exports that module's API *in
+  full*. Only `:dataresult`, `:model` and `:uistate` are exported, because only they are free of
+  anything the generator rejects.
+- **`-lsqlite3` moved to Xcode.** Swift export produces a static library, which records no linker
+  options, so SQLiter's symbols resolve at the app link via `OTHER_LDFLAGS`. macOS additionally
+  needs `-Wl,-U,_sqlite3_load_extension` and `-Wl,-U,_sqlite3_enable_load_extension`: Apple's system
+  libsqlite3 omits both, SQLiter references and never calls them, and the old *dynamic* framework
+  never had to resolve them.
+- **The deployment floor is iOS 18, not 17.** Swift export's generated coroutine support uses
+  `Synchronization.Mutex`. Nothing in the documentation mentions a minimum OS.
+- **A Kotlin class must not share the module's name.** `CountriesKit` would be silently renamed to
+  `CountriesKit_` in Swift; the entry point is `CountriesCore` for that reason.
 
 Navigation is Swift's. `NavigationSplitView` with a `selection: String?` is the whole navigation
 state — it collapses to push-and-pop on iPhone and gives two columns on iPad and Mac. `SwiftNavigator`
-only forwards `goTo`/`pop` into Swift closures and mirrors the stack back through `syncFromSwift`,
-so there is exactly one writer and none of the feedback-loop guarding `BrowserHistory` needs.
+forwards navigation into Swift closures and mirrors the stack back through `syncFromSwift`, so there
+is exactly one writer and none of the feedback-loop guarding `BrowserHistory` needs. Its Swift-facing
+API is **country codes, not `Screen`s** — the two Circuit `Screen`s are built inside `SwiftNavigator`,
+which keeps Circuit out of the Swift surface entirely.
 
-Two consequences of keeping `TextFieldState` in `CountryListScreen.State`: the search box is driven
-by the `SearchTextChanged` event rather than shared state, and Compose UI plus skiko end up in the
-exported Obj-C header. Dropping `TextFieldState` for a plain `String` would remove both.
+**`AppleUiState.kt` is the boundary, and it exists because of `TextFieldState`.** Swift never sees
+`CountryListScreen.State`: it carries a Compose `TextFieldState`, and Swift export generates
+uncompilable Swift for Compose's `Saver` (its `save` takes an extension receiver, and the generated
+reverse-interop thunk drops it). `:apple` publishes `CountryListUiState`/`CountryDetailUiState`
+instead — no Compose, no Circuit, no generics — and replaces `eventSink` with named methods on the
+holder. Keeping `eventSink` `internal` matters: `CountryListScreen.Event` is a sibling nested type of
+`CountryListScreen.State`, so exporting one risks dragging the other, and `TextFieldState` with it.
 
 Xcode integration is the standard KMP "direct integration": a Run Script phase runs
-`:apple:embedAndSignAppleFrameworkForXcode`, which builds only the slice Xcode is currently
-targeting and embeds it. `assembleCountriesKitDebugXCFramework` builds all three slices and is for
-distribution — far too slow for an edit-build-run loop. `project.pbxproj` uses a
-`PBXFileSystemSynchronizedRootGroup`, so new Swift files need no project edit.
+`:apple:embedSwiftExportForXcode`, which handles only the slice Xcode is currently targeting. There
+is no framework and nothing to sign — Swift export emits Swift source, builds it as a synthetic SPM
+package, and copies a static `libCountriesKit.a` plus the `.swiftmodule` interfaces into
+`$BUILT_PRODUCTS_DIR`. `project.pbxproj` uses a `PBXFileSystemSynchronizedRootGroup`, so new Swift
+files need no project edit.
 
-**`ContentState<T>` is a generic Objective-C class in Swift, and Swift forbids extending one in a
-way that touches its type parameters.** `LoadPhase.swift` maps the non-generic `status` instead —
-do not try to reinstate `isLoading`/`errorOrNull` as a `ContentState` extension.
+### Swift export bugs worth reporting
+
+Found while porting, all against Kotlin 2.4.20-Beta2, none of them documented. A YouTrack search
+turned up no existing report for either of the first two, though that search was shallow:
+
+1. **A generic sealed interface generates Swift that does not compile.** `sealed interface
+   Outcome<out T>` produces `cannot convert value of type '…Outcome_Data' to specified type
+   '…Outcome'` — the erased subtype is not made to conform to the erased parent protocol. Workaround:
+   make it a `sealed class`.
+2. **Sealed interface members are unreachable across modules.** The nested convenience names
+   (`DataError.Network`) are emitted as typealiases with no access modifier, so they default to
+   `internal` in the generated module while only the mangled top-level class is `public`. Workaround:
+   make it a `sealed class`.
+3. **`Saver.save` — a method with an extension receiver — generates a malformed reverse-interop
+   thunk**, passing the receiver as the `value:` argument and omitting the receiver. This is what
+   makes any Compose type in the exported API fatal.
+4. **The generated coroutine support requires iOS 18** (`Synchronization.Mutex`) with no
+   documentation of a minimum OS, and no diagnostic beyond a Swift compile error deep in generated
+   code.
 
 ### Testing the Apple app
 
@@ -768,10 +823,15 @@ needs, so it is easy to fix one and forget the other.
 
 # Apple bridge — the Kotlin half of the SwiftUI app
 ./gradlew :apple:macosArm64Test :apple:iosSimulatorArm64Test
-./gradlew :apple:assembleCountriesKitDebugXCFramework   # → apple/build/XCFrameworks/debug
 
-# iOS / iPadOS / macOS app. Xcode runs the Gradle framework build itself, so open the project
-# and hit run rather than building the framework first.
+# Inspect the generated Swift without going through Xcode. Swift export registers its tasks only
+# when Xcode's environment variables are present, hence the prefix. Output lands in
+# apple/build/SwiftExport/<target>/Debug/files/.
+CONFIGURATION=Debug SDK_NAME=macosx ARCHS=arm64 TARGET_BUILD_DIR=/tmp/se \
+FRAMEWORKS_FOLDER_PATH=Frameworks ./gradlew :apple:macosArm64DebugSwiftExport
+
+# iOS / iPadOS / macOS app. Xcode runs the Gradle export itself, so open the project and hit run
+# rather than building anything first.
 open iosApp/Countries.xcodeproj
 xcodebuild -project iosApp/Countries.xcodeproj -scheme Countries \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
