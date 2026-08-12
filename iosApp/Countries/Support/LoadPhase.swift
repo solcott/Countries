@@ -1,6 +1,5 @@
-import CountriesKit
-import CountriesModel
-import CountriesPresenter
+import CountriesDataResult
+import CountriesUiState
 import Foundation
 
 /// `LoadStatus`, as something Swift can switch over.
@@ -12,14 +11,14 @@ import Foundation
 enum LoadPhase {
   case loading
   case idle
-  case failed(any DataError)
+  case failed(DataError)
 }
 
 /// Swift export maps the sealed `LoadStatus` to a Swift enum through a generated `sealedType()`, so
 /// this cannot silently miss a case the way an `if let` chain over `as?` casts would. That
 /// exhaustiveness is the single most valuable thing SKIE used to provide, and the reason this spike
 /// needed Kotlin 2.4.20-Beta2 — on 2.4.10 a `default:` would be mandatory here.
-func loadPhase(of status: any LoadStatus) -> LoadPhase {
+func loadPhase(of status: LoadStatus) -> LoadPhase {
   switch status.sealedType() {
   case .loading:
     return .loading
@@ -37,7 +36,7 @@ extension LoadPhase {
     return false
   }
 
-  var failure: (any DataError)? {
+  var failure: (DataError)? {
     if case .failed(let error) = self { return error }
     return nil
   }
@@ -55,7 +54,7 @@ extension LoadPhase {
 /// `:ui` has this already in `DataErrorMessage.kt`, but that version is `@Composable` and reads
 /// from compose-resources, so it cannot be linked here. The wording matches deliberately — the apps
 /// should say the same thing.
-func userMessage(for error: any DataError) -> String {
+func userMessage(for error: DataError) -> String {
   switch error.sealedType() {
   case .network:
     return String(

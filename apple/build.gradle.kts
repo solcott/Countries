@@ -37,20 +37,33 @@ kotlin {
     moduleName = frameworkName
     flattenPackage = "io.github.solcott.countries.apple"
 
-    // Deliberately NO `export(project(":model"))` / `export(project(":presenter"))`, unlike the
-    // `export()` an Obj-C framework binary takes.
+    // `export()` does not mean here what it means on an Obj-C framework. There it is the only way
+    // to get a module's types into the API at all. Swift export already emits everything
+    // *reachable* from this module's public API, so these three would appear regardless — naming
+    // them does one extra thing, and it is the thing worth having: it exports the module's public
+    // API in full, which is the only way to set `flattenPackage`.
     //
-    // `export()` here does not mean the same thing it means for an Obj-C framework. There it is
-    // the only way to get a module's types into the API at all, and it is not transitive. Swift
-    // export instead emits every declaration *reachable* from this module's public API whether or
-    // not the owning module is named — `:model` and `:presenter` still come through as their own
-    // Swift modules. Naming them explicitly does something extra and unwanted: it exports each
-    // module's public API *in full*, including declarations Swift never touches.
+    // Flattening is what removes an entire file of Swift typealiases. Without it every Kotlin type
+    // is spelled `ExportedKotlinPackages.io.github.solcott.countries.model.Country` at the use
+    // site, because Swift export nests exported declarations under their Kotlin package.
     //
-    // That is not merely wasteful, it breaks the build. `Outcome<out T>` in `:model` is a generic
-    // sealed interface, and 2.4.20-Beta2's new sealed-to-Swift-enum codegen emits invalid Swift
-    // for it ("cannot convert value of type '…Outcome_Data' to specified type '…Outcome'"). No
-    // Swift code references `Outcome`; it was breaking the build purely for being public.
+    // Exporting a module in full is only safe if *nothing* in it breaks the generator, which is
+    // why `:dataresult` and `:uistate` exist as separate modules at all — see AGENTS.md.
+    // `:presenter` is deliberately absent: `CountryListScreen.State.nameStartsWithText` is a
+    // Compose `TextFieldState`, and Swift export emits uncompilable Swift for Compose's `Saver`.
+    // Nothing here reaches into `:presenter` anyway — the facade in `AppleUiState.kt` sees to that.
+    export(project(":dataresult")) {
+      moduleName = "CountriesDataResult"
+      flattenPackage = "io.github.solcott.countries.dataresult"
+    }
+    export(project(":model")) {
+      moduleName = "CountriesModel"
+      flattenPackage = "io.github.solcott.countries.model"
+    }
+    export(project(":uistate")) {
+      moduleName = "CountriesUiState"
+      flattenPackage = "io.github.solcott.countries.uistate"
+    }
   }
 
   // No `binaries.framework`, and no XCFramework. Swift export does not produce a framework at all:
@@ -77,7 +90,9 @@ kotlin {
     commonMain.dependencies {
       // `api` because Swift export emits everything reachable from this module's public API, and
       // :model's data classes and :presenter's LoadStatus are reachable through the facade.
+      api(project(":dataresult"))
       api(project(":model"))
+      api(project(":uistate"))
       api(project(":presenter"))
       api(libs.circuit.runtime)
       api(libs.circuit.runtime.screen)

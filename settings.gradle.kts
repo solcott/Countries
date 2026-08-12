@@ -55,7 +55,9 @@ dependencyResolutionManagement {
 
 rootProject.name = "Countries"
 
+include(":dataresult")
 include(":model")
+include(":uistate")
 include(":network")
 include(":repository")
 include(":presenter")

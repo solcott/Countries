@@ -10,17 +10,17 @@ import com.slack.circuit.foundation.Circuit
 import com.slack.circuit.runtime.presenter.presenterOf
 import com.slack.circuit.runtime.screen.Screen
 import com.slack.circuit.runtime.ui.ui
+import io.github.solcott.countries.dataresult.DataError
+import io.github.solcott.countries.dataresult.Origin
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
-import io.github.solcott.countries.model.DataError
 import io.github.solcott.countries.model.Language
-import io.github.solcott.countries.model.Origin
-import io.github.solcott.countries.presenter.ContentState
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListScreen
-import io.github.solcott.countries.presenter.LoadStatus
 import io.github.solcott.countries.ui.theme.AppTheme
+import io.github.solcott.countries.uistate.ContentState
+import io.github.solcott.countries.uistate.LoadStatus
 
 /**
  * The screen-size sweep every full-screen composable gets.

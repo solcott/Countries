@@ -5,7 +5,7 @@ import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListScreen
-import io.github.solcott.countries.presenter.LoadStatus
+import io.github.solcott.countries.uistate.LoadStatus
 
 /**
  * The Swift-facing view state, and the reason it is not just `CountryListScreen.State`.

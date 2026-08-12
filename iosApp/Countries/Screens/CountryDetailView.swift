@@ -1,6 +1,6 @@
 import CountriesKit
 import CountriesModel
-import CountriesPresenter
+import CountriesUiState
 import SwiftUI
 
 /// One country's details.

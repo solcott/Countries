@@ -22,10 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.slack.circuit.codegen.annotations.CircuitInject
 import dev.zacsweers.metro.AppScope
 import io.github.solcott.countries.model.CountryDetail
-import io.github.solcott.countries.presenter.ContentState
 import io.github.solcott.countries.presenter.CountryDetailScreen
-import io.github.solcott.countries.presenter.errorOrNull
-import io.github.solcott.countries.presenter.isLoading
 import io.github.solcott.countries.presenter.isNotFound
 import io.github.solcott.countries.ui.resources.Res
 import io.github.solcott.countries.ui.resources.arrow_back_24px
@@ -35,6 +32,9 @@ import io.github.solcott.countries.ui.resources.continent
 import io.github.solcott.countries.ui.resources.country_with_code_not_found
 import io.github.solcott.countries.ui.resources.currency
 import io.github.solcott.countries.ui.resources.languages
+import io.github.solcott.countries.uistate.ContentState
+import io.github.solcott.countries.uistate.errorOrNull
+import io.github.solcott.countries.uistate.isLoading
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 

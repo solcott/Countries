@@ -1,4 +1,4 @@
-package io.github.solcott.countries.model
+package io.github.solcott.countries.dataresult
 
 /**
  * A single emission from a data source: either [Data] carrying a value, or an [Error] carrying a
@@ -16,8 +16,8 @@ package io.github.solcott.countries.model
  * Every case records the [Origin] it came from, letting callers distinguish cached data from fresh
  * network data.
  */
-sealed interface Outcome<out T> {
-  data class Data<out T>(val data: T, val origin: Origin) : Outcome<T>
+sealed class Outcome<out T> {
+  data class Data<out T>(val data: T, val origin: Origin) : Outcome<T>()
 
-  data class Error(val cause: DataError, val origin: Origin) : Outcome<Nothing>
+  data class Error(val cause: DataError, val origin: Origin) : Outcome<Nothing>()
 }

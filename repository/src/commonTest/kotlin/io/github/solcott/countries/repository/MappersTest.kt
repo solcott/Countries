@@ -18,12 +18,12 @@ import com.apollographql.apollo.exception.JsonDataException
 import com.apollographql.apollo.exception.JsonEncodingException
 import com.apollographql.cache.normalized.CacheInfo
 import com.benasher44.uuid.uuid4
+import io.github.solcott.countries.dataresult.DataError
+import io.github.solcott.countries.dataresult.Origin
+import io.github.solcott.countries.dataresult.Outcome
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
-import io.github.solcott.countries.model.DataError
 import io.github.solcott.countries.model.Language
-import io.github.solcott.countries.model.Origin
-import io.github.solcott.countries.model.Outcome
 import io.github.solcott.countries.network.graphql.CountriesQuery
 import io.github.solcott.countries.network.graphql.CountryDetailQuery
 import kotlin.test.Test

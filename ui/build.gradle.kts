@@ -37,7 +37,9 @@ kotlin {
     }
 
     commonMain.dependencies {
+      implementation(project(":dataresult"))
       implementation(project(":model"))
+      implementation(project(":uistate"))
       // Screens, state, and events live in :presenter. UI depends on presenter, never the reverse.
       implementation(project(":presenter"))
       // `api`: Circuit appears in CircuitProviders.provideCircuit's signature.

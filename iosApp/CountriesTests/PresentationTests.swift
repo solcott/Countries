@@ -1,5 +1,6 @@
+import CountriesDataResult
 import CountriesModel
-import CountriesPresenter
+import CountriesUiState
 import Testing
 
 @testable import Countries
@@ -12,20 +13,20 @@ import Testing
 struct DataErrorMessageTests {
 
   @Test func networkErrorMentionsBeingOffline() {
-    #expect(userMessage(for: DataErrorNetwork.shared).contains("offline"))
+    #expect(userMessage(for: DataError.Network.shared).contains("offline"))
   }
 
   @Test func httpErrorIncludesTheStatusCode() {
-    #expect(userMessage(for: DataErrorHttp(code: 503)).contains("503"))
+    #expect(userMessage(for: DataError.Http(code: 503)).contains("503"))
   }
 
   @Test func everyCaseProducesNonEmptyText() {
-    let errors: [any DataError] = [
-      DataErrorNetwork.shared,
-      DataErrorHttp(code: 500),
-      DataErrorApi(messages: ["boom"], code: nil),
-      DataErrorSerialization.shared,
-      DataErrorUnknown(cause: nil, message: nil),
+    let errors: [DataError] = [
+      DataError.Network.shared,
+      DataError.Http(code: 500),
+      DataError.Api(messages: ["boom"], code: nil),
+      DataError.Serialization.shared,
+      DataError.Unknown(cause: nil, message: nil),
     ]
     for error in errors {
       #expect(!userMessage(for: error).isEmpty)
@@ -36,14 +37,14 @@ struct DataErrorMessageTests {
 struct LoadPhaseTests {
 
   @Test func mapsEachStatusToItsPhase() {
-    #expect(loadPhase(of: LoadStatusLoading.shared).isLoading)
-    #expect(loadPhase(of: LoadStatusIdle.shared).isSettled)
-    #expect(loadPhase(of: LoadStatusFailed(error: DataErrorNetwork.shared)).failure != nil)
+    #expect(loadPhase(of: LoadStatus.Loading.shared).isLoading)
+    #expect(loadPhase(of: LoadStatus.Idle.shared).isSettled)
+    #expect(loadPhase(of: LoadStatus.Failed(error: DataError.Network.shared)).failure != nil)
   }
 
   @Test func loadingIsNotSettled() {
     // The distinction the detail screen leans on: "still loading" must not read as "not found".
-    #expect(!loadPhase(of: LoadStatusLoading.shared).isSettled)
+    #expect(!loadPhase(of: LoadStatus.Loading.shared).isSettled)
   }
 }
 

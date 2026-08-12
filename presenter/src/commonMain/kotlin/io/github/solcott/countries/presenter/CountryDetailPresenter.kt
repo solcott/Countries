@@ -12,6 +12,8 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.repository.CountryRepository
+import io.github.solcott.countries.uistate.ContentState
+import io.github.solcott.countries.uistate.settled
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onCompletion
