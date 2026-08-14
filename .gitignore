@@ -17,3 +17,8 @@ xcuserdata/
 *.xcuserstate
 *.xcscmblueprint
 .swiftpm/
+
+# Claude Code. `skills/` is project documentation and is committed — AGENTS.md routes to it by
+# path, and it is reviewable in a PR like any other doc. Everything else here is per-user state.
+.claude/*
+!.claude/skills/
