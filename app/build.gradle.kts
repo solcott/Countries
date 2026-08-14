@@ -26,6 +26,10 @@ dependencies {
 
   implementation(libs.circuit.foundation)
 
+  // Aligns every androidx.compose.* artifact on 1.12.0. Without it `foundation` and `animation`,
+  // which nothing declares, drift to whatever material3 and Compose Multiplatform ask for.
+  implementation(platform(libs.androidx.compose.bom))
+
   implementation(libs.androidx.appcompat)
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.activity.compose)

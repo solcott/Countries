@@ -17,10 +17,25 @@ kmp-parcelize = "1.0.4"
 # Circuit (MVI). Metro provides the @CircuitInject codegen.
 circuit = "0.36.1"
 
-# Compose. Explicit versions rather than the BOM, so the alpha Material3 line can be
-# pinned independently of the UI/foundation line.
-composeUi = "1.12.0"
+# AndroidX Compose. The BOM aligns the whole androidx.compose.* family on Android — without it
+# nothing declares `foundation` or `animation`, so they drift to whatever Compose Multiplatform and
+# material3 happen to request while `ui` and `runtime` follow `composeUi`. 2026.08.00 is the BOM
+# whose core artifacts are 1.12.0.
+#
+# It is applied to Android configurations ONLY (`:app`, and androidMain in `:ui`/`:presenter`).
+# Never commonMain: androidx.compose.runtime is genuinely multiplatform, so a common-scoped BOM
+# would drag jvm/native/web onto the AndroidX line too.
+composeBom = "2026.08.00"
+
+# `material3` is the deliberate exception to the BOM. The BOM manages material3 at 1.4.0, which is
+# older than the alpha line this project tracks; a direct dependency with an explicit version beats
+# a BOM constraint when it is higher, so this wins. Check that it still does after a BOM bump.
 material3 = "1.5.0-alpha26"
+
+# Still needed alongside the BOM, for the two coordinates it cannot reach from an Android-only
+# scope: `androidx-compose-ui` in :app, and `androidx-compose-runtime-retain`, which is declared in
+# :presenter's commonMain because it has no Compose Multiplatform equivalent.
+composeUi = "1.12.0"
 
 # Compose Multiplatform. androidx.compose.foundation is Android-only, so `foundation` (and the
 # TextFieldState in CountryListScreen.State) has to come from here.
@@ -66,6 +81,8 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 
 # Compose
+# Android only, and applied via platform() — see the note on composeBom.
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "composeUi" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.4" }
