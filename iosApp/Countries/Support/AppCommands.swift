@@ -26,10 +26,10 @@ struct CountriesCommands: Commands {
 
   var body: some Commands {
     CommandGroup(after: .toolbar) {
-      Button("Find") { bus.focusSearch() }
+      Button(.commandFind) { bus.focusSearch() }
         .keyboardShortcut("f", modifiers: .command)
 
-      Button("Refresh") { bus.refresh() }
+      Button(.commandRefresh) { bus.refresh() }
         .keyboardShortcut("r", modifiers: .command)
     }
   }

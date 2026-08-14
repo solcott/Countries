@@ -1,0 +1,354 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "commandFind" : {
+      "comment" : "macOS menu item that focuses the search field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find"
+          }
+        }
+      }
+    },
+    "commandRefresh" : {
+      "comment" : "macOS menu item that reloads the country list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh"
+          }
+        }
+      }
+    },
+    "commonRetry" : {
+      "comment" : "Button that retries a failed load. Shown on both the list and the detail screen",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        }
+      }
+    },
+    "countryDetailCallingCode" : {
+      "comment" : "Detail screen field label for the international dialling prefix",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calling code"
+          }
+        }
+      }
+    },
+    "countryDetailCapital" : {
+      "comment" : "Detail screen field label for a country's capital city",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capital"
+          }
+        }
+      }
+    },
+    "countryDetailContinent" : {
+      "comment" : "Detail screen field label for the continent a country is on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continent"
+          }
+        }
+      }
+    },
+    "countryDetailCurrency" : {
+      "comment" : "Detail screen field label for a country's currency",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Currency"
+          }
+        }
+      }
+    },
+    "countryDetailLanguages" : {
+      "comment" : "Detail screen field label for the languages spoken in a country",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Languages"
+          }
+        }
+      }
+    },
+    "countryDetailLoadFailedTitle" : {
+      "comment" : "Title shown when one country's details could not be loaded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't Load Country"
+          }
+        }
+      }
+    },
+    "countryDetailNotFoundDescription" : {
+      "comment" : "Shown when the API has no country for a code. %@ is the two-letter country code",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No country exists with the code %@."
+          }
+        }
+      }
+    },
+    "countryDetailNotFoundTitle" : {
+      "comment" : "Title shown when the API has no country for the requested code",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Country Not Found"
+          }
+        }
+      }
+    },
+    "countryListCountCaption" : {
+      "comment" : "Caption showing how many countries are listed. Shown as the macOS window subtitle",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld country"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld countries"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "countryListEmptyDescription" : {
+      "comment" : "Shown when the continent filter matches no countries",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No country matches the current filter."
+          }
+        }
+      }
+    },
+    "countryListEmptyTitle" : {
+      "comment" : "Title shown when the country list is empty",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Countries Found"
+          }
+        }
+      }
+    },
+    "countryListFilterLabel" : {
+      "comment" : "Toolbar menu that filters the list by continent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter"
+          }
+        }
+      }
+    },
+    "countryListLoadFailedTitle" : {
+      "comment" : "Title shown when the country list could not be loaded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't Load Countries"
+          }
+        }
+      }
+    },
+    "countryListSearchPrompt" : {
+      "comment" : "Placeholder in the search field above the country list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search by name"
+          }
+        }
+      }
+    },
+    "countryListTitle" : {
+      "comment" : "Navigation title of the country list, and the app's main screen",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Countries"
+          }
+        }
+      }
+    },
+    "countryRowAccessibilityLabel" : {
+      "comment" : "VoiceOver label for a country row. %1$@ is the country name, %2$@ its capital and continent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "countryRowSubtitle" : {
+      "comment" : "Second line of a country row. %1$@ is the capital city, %2$@ the continent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "errorAPI" : {
+      "comment" : "Shown when the GraphQL response carried errors",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server was unable to complete your request."
+          }
+        }
+      }
+    },
+    "errorHTTP" : {
+      "comment" : "Shown when a request returned a non-success HTTP status. %d is the status code",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server returned an error (%d)."
+          }
+        }
+      }
+    },
+    "errorOffline" : {
+      "comment" : "Shown when a request failed with no usable response",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You appear to be offline. Check your connection and try again."
+          }
+        }
+      }
+    },
+    "errorSerialization" : {
+      "comment" : "Shown when a response could not be decoded",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong reading the response."
+          }
+        }
+      }
+    },
+    "errorUnknown" : {
+      "comment" : "Fallback error message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An unknown error occurred."
+          }
+        }
+      }
+    },
+    "rootNoSelectionDescription" : {
+      "comment" : "Shown in the detail column on iPad and Mac before a country is chosen",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a country from the list to see its details."
+          }
+        }
+      }
+    },
+    "rootNoSelectionTitle" : {
+      "comment" : "Title of the empty detail column on iPad and Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Country Selected"
+          }
+        }
+      }
+    },
+    "valueAbsent" : {
+      "comment" : "Placeholder shown for a country field the API did not return",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "—"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

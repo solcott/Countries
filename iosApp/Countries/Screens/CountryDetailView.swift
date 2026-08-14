@@ -1,6 +1,7 @@
 import CountriesKit
 import CountriesModel
 import CountriesUiState
+import Foundation
 import SwiftUI
 
 /// One country's details.
@@ -44,18 +45,18 @@ struct CountryDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     } else if country == nil, let failure = phase.failure {
       ContentUnavailableView {
-        Label("Couldn't Load Country", systemImage: "exclamationmark.triangle")
+        Label(.countryDetailLoadFailedTitle, systemImage: "exclamationmark.triangle")
       } description: {
         Text(userMessage(for: failure))
       } actions: {
-        Button("Retry") { model.holder.retry() }
+        Button(.commonRetry) { model.holder.retry() }
           .buttonStyle(.borderedProminent)
       }
     } else if country == nil, phase.isSettled {
       ContentUnavailableView(
-        "Country Not Found",
+        .countryDetailNotFoundTitle,
         systemImage: "questionmark.circle",
-        description: Text("No country exists with the code \(code).")
+        description: Text(.countryDetailNotFoundDescription(code))
       )
     } else if let country {
       detail(for: country)
@@ -81,11 +82,12 @@ struct CountryDetailView: View {
       }
 
       Section {
-        LabeledContent("Capital", value: country.capital ?? absentValue)
-        LabeledContent("Continent", value: country.continentName)
-        LabeledContent("Currency", value: country.currency ?? absentValue)
-        LabeledContent("Calling code", value: "+\(country.phone)")
-        LabeledContent("Languages", value: country.languageNames)
+        field(.countryDetailCapital, country.capital ?? absentValue)
+        field(.countryDetailContinent, country.continentName)
+        field(.countryDetailCurrency, country.currency ?? absentValue)
+        // "+" then digits is E.164 notation, not language, so it stays a literal.
+        field(.countryDetailCallingCode, "+\(country.phone)")
+        field(.countryDetailLanguages, country.languageNames)
       }
     }
     .formStyle(.grouped)
@@ -95,5 +97,18 @@ struct CountryDetailView: View {
     #if !os(macOS)
       .navigationBarTitleDisplayMode(.inline)
     #endif
+  }
+
+  /// One `LabeledContent` row, built from a catalog symbol.
+  ///
+  /// `LabeledContent(_:value:)` does have a `LocalizedStringResource` overload, but only from
+  /// iOS 26 — above this app's iOS 18 floor. The content/label builder form is iOS 16 and renders
+  /// identically, so the label still comes from the catalog rather than a literal.
+  private func field(_ label: LocalizedStringResource, _ value: String) -> some View {
+    LabeledContent {
+      Text(value)
+    } label: {
+      Text(label)
+    }
   }
 }

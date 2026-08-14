@@ -35,14 +35,12 @@ struct CountryListView: View {
     Set(model.state.selectedContinents.map(\.code))
   }
 
-  private var countCaption: String {
-    countries.count == 1 ? "1 country" : "\(countries.count) countries"
-  }
+  private var countCaption: String { countriesCaption(countries.count) }
 
   var body: some View {
     content
-      .navigationTitle("Countries")
-      .searchable(text: $query, prompt: "Search by name")
+      .navigationTitle(.countryListTitle)
+      .searchable(text: $query, prompt: .countryListSearchPrompt)
       // macOS only, and not just because `.searchFocused` needs macOS 15: ⌘F is a menu-bar command,
       // and there is no menu bar on iOS. The iPhone and iPad search field is already on screen.
       #if os(macOS)
@@ -78,20 +76,20 @@ struct CountryListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     } else if countries.isEmpty, let failure = phase.failure {
       ContentUnavailableView {
-        Label("Couldn't Load Countries", systemImage: "exclamationmark.triangle")
+        Label(.countryListLoadFailedTitle, systemImage: "exclamationmark.triangle")
       } description: {
         Text(userMessage(for: failure))
       } actions: {
-        Button("Retry") { model.holder.retry() }
+        Button(.commonRetry) { model.holder.retry() }
           .buttonStyle(.borderedProminent)
       }
     } else if countries.isEmpty, !query.isEmpty {
       ContentUnavailableView.search(text: query)
     } else if countries.isEmpty {
       ContentUnavailableView(
-        "No Countries Found",
+        .countryListEmptyTitle,
         systemImage: "globe",
-        description: Text("No country matches the current filter.")
+        description: Text(.countryListEmptyDescription)
       )
     } else {
       list
@@ -145,7 +143,7 @@ struct CountryListView: View {
       }
     } label: {
       Label(
-        "Filter",
+        .countryListFilterLabel,
         systemImage: selectedContinentCodes.isEmpty
           ? "line.3.horizontal.decrease.circle"
           : "line.3.horizontal.decrease.circle.fill"

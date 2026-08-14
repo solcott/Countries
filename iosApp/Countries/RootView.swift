@@ -54,9 +54,9 @@ struct RootView: View {
           .id(code)
       } else {
         ContentUnavailableView(
-          "No Country Selected",
+          .rootNoSelectionTitle,
           systemImage: "globe",
-          description: Text("Choose a country from the list to see its details.")
+          description: Text(.rootNoSelectionDescription)
         )
         .accessibilityIdentifier("no-country-selected")
       }
