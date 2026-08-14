@@ -3,7 +3,7 @@
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
 agp = "9.3.1"
 kotlin = "2.4.10"
-metro = "1.4.1"
+metro = "1.4.2"
 apollo = "5.0.1"
 apollo-normalized-cache = "1.0.6"
 # What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
@@ -15,12 +15,27 @@ ktfmt = "0.27.0"
 kmp-parcelize = "1.0.4"
 
 # Circuit (MVI). Metro provides the @CircuitInject codegen.
-circuit = "0.36.0"
+circuit = "0.36.1"
 
-# Compose. Explicit versions rather than the BOM, so the alpha Material3 line can be
-# pinned independently of the UI/foundation line.
-composeUi = "1.12.0-rc01"
-material3 = "1.5.0-alpha25"
+# AndroidX Compose. The BOM aligns the whole androidx.compose.* family on Android — without it
+# nothing declares `foundation` or `animation`, so they drift to whatever Compose Multiplatform and
+# material3 happen to request while `ui` and `runtime` follow `composeUi`. 2026.08.00 is the BOM
+# whose core artifacts are 1.12.0.
+#
+# It is applied to Android configurations ONLY (`:app`, and androidMain in `:ui`/`:presenter`).
+# Never commonMain: androidx.compose.runtime is genuinely multiplatform, so a common-scoped BOM
+# would drag jvm/native/web onto the AndroidX line too.
+composeBom = "2026.08.00"
+
+# `material3` is the deliberate exception to the BOM. The BOM manages material3 at 1.4.0, which is
+# older than the alpha line this project tracks; a direct dependency with an explicit version beats
+# a BOM constraint when it is higher, so this wins. Check that it still does after a BOM bump.
+material3 = "1.5.0-alpha26"
+
+# Still needed alongside the BOM, for the two coordinates it cannot reach from an Android-only
+# scope: `androidx-compose-ui` in :app, and `androidx-compose-runtime-retain`, which is declared in
+# :presenter's commonMain because it has no Compose Multiplatform equivalent.
+composeUi = "1.12.0"
 
 # Compose Multiplatform. androidx.compose.foundation is Android-only, so `foundation` (and the
 # TextFieldState in CountryListScreen.State) has to come from here.
@@ -28,11 +43,11 @@ material3 = "1.5.0-alpha25"
 # On the 1.12 line specifically because that is where web gained automatic fallback-font loading:
 # Skia has no system font manager in a browser, so before 1.12 every emoji and every non-Latin
 # script rendered as tofu. See the fonts note in AGENTS.md — do not bundle fallback fonts.
-composeMultiplatform = "1.12.0-beta03"
+composeMultiplatform = "1.12.0-rc01"
 
 # Compose Multiplatform's material3 is versioned separately from the rest of CMP — this does NOT
 # track composeMultiplatform. 1.12.0-alpha03 is the newest, it wants core 1.12.0-beta01 (which
-# resolves up to our beta03), and it aliases androidx material3 1.5.0-alpha22 — older than the
+# resolves up to our rc01), and it aliases androidx material3 1.5.0-alpha22 — older than the
 # `material3` above, so ours wins. The CMP plugin's own default accessor is far behind and would
 # pull an androidx material3 several minor lines backwards; always set this explicitly.
 composeMaterial3 = "1.12.0-alpha03"
@@ -60,16 +75,15 @@ turbine = "1.2.1"
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 
 # AndroidX core
-androidx-appcompat = { module = "androidx.appcompat:appcompat", version = "1.7.1" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version = "1.8.0" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 
 # Compose
+# Android only, and applied via platform() — see the note on composeBom.
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "composeUi" }
-androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "composeUi" }
-androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "composeUi" }
-androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "composeUi" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.4" }
 
@@ -137,7 +151,7 @@ kotlin-compose-compiler-plugin = { module = "org.jetbrains.kotlin:compose-compil
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-dependency-sorter = { id = "com.squareup.sort-dependencies", version = "0.20.0" }
+dependency-sorter = { id = "com.squareup.sort-dependencies", version = "0.21.0" }
 detekt = { id = "dev.detekt", version = "2.0.0-alpha.6" }
 metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }

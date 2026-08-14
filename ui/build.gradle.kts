@@ -26,6 +26,16 @@ kotlin {
   wasmJs { binaries.executable() }
 
   sourceSets {
+    // The AndroidX Compose BOM, scoped to Android because that is the only place it applies.
+    // Compose Multiplatform's `foundation` redirects to androidx `foundation-android` here, and
+    // without the BOM that lands on whatever CMP requested rather than the version the rest of the
+    // Android build uses. Non-Android targets are unaffected and stay on CMP 1.12.0-rc01.
+    // `project.dependencies.platform(...)`, not a bare `platform(...)`: a KMP source-set
+    // dependency handler is not Gradle's DependencyHandler and has no platform() of its own.
+    androidMain.dependencies {
+      implementation(project.dependencies.platform(libs.androidx.compose.bom))
+    }
+
     commonMain.dependencies {
       implementation(project(":model"))
       // Screens, state, and events live in :presenter. UI depends on presenter, never the reverse.

@@ -86,10 +86,11 @@ emoji and every non-Latin script renders as tofu.
 
 | Version ref | Value | Notes |
 | --- | --- | --- |
-| `composeMultiplatform` | `1.12.0-beta03` | Prerelease. The web font downloader landed in 1.12.0-alpha02 |
-| `composeUi` (AndroidX) | `1.12.0-rc01` | CMP 1.12.0-beta03 asks for AndroidX 1.12.0-beta02; this resolves up |
-| `composeMaterial3` (CMP) | `1.12.0-alpha03` | Wants CMP core 1.12.0-beta01, satisfied by beta03 |
-| `material3` (AndroidX) | `1.5.0-alpha25` | CMP material3 asks for 1.5.0-alpha22, so ours wins |
+| `composeMultiplatform` | `1.12.0-rc01` | Prerelease. The web font downloader landed in 1.12.0-alpha02 |
+| `composeBom` (AndroidX) | `2026.08.00` | The BOM whose core artifacts are 1.12.0. Android configurations only |
+| `composeUi` (AndroidX) | `1.12.0` | For the two coordinates the Android-only BOM cannot reach — see below |
+| `composeMaterial3` (CMP) | `1.12.0-alpha03` | Wants CMP core 1.12.0-beta01, satisfied by rc01 |
+| `material3` (AndroidX) | `1.5.0-alpha26` | Deliberately outside the BOM, which manages it at 1.4.0 |
 
 **material3 is on its own version line — `composeMaterial3`, not `composeMultiplatform`.** It does
 not track the core version and never has; the CMP plugin's own `compose.material3` accessor pins
@@ -97,10 +98,43 @@ something far behind, which would drag AndroidX material3 *backwards* several mi
 set `composeMaterial3` explicitly, and when changing it check two things: which CMP core version it
 requires, and which AndroidX material3 it aliases.
 
-Known version skew on Android, accepted: `ui` and `runtime` resolve to 1.12.0-rc01 because the
-catalog pins them, while `foundation` and `animation` sit at 1.12.0-beta02 because only CMP
-requests those and CMP 1.12.0-beta03 was built against beta02. Same release line, weeks apart. The
-web target has no skew — every `org.jetbrains.compose.*` artifact is 1.12.0-beta03.
+**The AndroidX Compose BOM aligns the Android side; Compose Multiplatform owns everything else.**
+That division is the whole versioning story here, and it is worth stating because the failure it
+prevents is silent.
+
+Without the BOM only `ui` and `runtime` were declared anywhere, so only they followed the `composeUi`
+pin; nothing declared `foundation` or `animation`, so those drifted to whatever CMP and material3
+happened to request — 1.12.0-beta01 while the rest of `:app` was on 1.12.0. Nothing warns about that.
+
+`androidx.compose:compose-bom` is applied to **Android configurations only** — `:app`, and an
+`androidMain.dependencies` block in `:ui` and `:presenter`, the only two KMP modules that pull
+Compose. It must never go in `commonMain`: `androidx.compose.runtime` is genuinely multiplatform and
+reaches jvm/native/web through CMP's thin alias, so a common-scoped BOM would drag those onto the
+AndroidX line too.
+
+Two details that will bite whoever bumps this next:
+
+- **`platform(...)` does not exist on a KMP source-set dependency handler.** It is not Gradle's
+  `DependencyHandler`, so an `androidMain.dependencies { }` block needs
+  `project.dependencies.platform(...)`. A bare `platform(...)` fails with `Unresolved reference`.
+- **material3 is deliberately outside the BOM.** The BOM manages it at 1.4.0, older than the alpha
+  line this project tracks. That is harmless *because* a direct dependency with an explicit version
+  beats a lower BOM constraint: `:app` resolves 1.5.0-alpha26 from the catalog and `:ui` resolves
+  1.5.0-alpha22 through CMP's material3. Both resolve **up** from 1.4.0, never back. Re-check that
+  after a BOM bump — if a future BOM pins material3 higher than the alpha, the BOM silently wins.
+
+  Those two numbers differing is expected, not skew: material3 is on its own line by design, and
+  `:ui` gets it via Compose Multiplatform while `:app` declares AndroidX directly.
+
+Verify after any Compose or BOM change — both configurations, since one module is not
+representative:
+
+```
+./gradlew :app:dependencies --configuration debugCompileClasspath
+./gradlew :ui:dependencies  --configuration androidCompileClasspath
+```
+
+Every `androidx.compose.{ui,foundation,animation,runtime}` artifact should read 1.12.0 on both.
 
 Three build requirements that are easy to miss:
 
