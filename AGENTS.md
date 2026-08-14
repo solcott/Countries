@@ -530,16 +530,30 @@ Five things worth knowing:
   get a generated `sealedType()` returning an exhaustively switchable Swift enum. Both landed after
   2.4.10, and SKIE caps at 2.4.10, so the two cannot coexist — reverting to SKIE means reverting
   Kotlin too.
-- **Sealed types that cross to Swift must be `sealed class`, not `sealed interface`.** This is the
-  single most surprising rule here and nothing warns you. A sealed *interface* member reaches Swift
-  as a mangled top-level class plus a nested typealias emitted with **no access modifier** — so it
-  is internal to the generated module and unusable from the app. A sealed *class* member is a
-  genuinely nested public class: `DataError.Network` just works. Worse, a **generic** sealed
-  interface emits Swift that does not compile at all, because the erased subtype cannot be made to
-  conform to the erased parent protocol; as a class it is plain subclassing and survives erasure.
-  `Outcome`, `DataError` and `LoadStatus` are all sealed classes for these reasons. `Event` in the
-  two Screens stays an interface — it has `CircuitUiEvent` as a second supertype, and it never
-  crosses to Swift.
+- **Sealed types that cross to Swift are `sealed class`, not `sealed interface`.** The release notes
+  say 2.4.20-RC "adds support for sealed classes and interfaces", and that is true of the pattern
+  their example shows — *reading* a non-generic hierarchy through `sealedType()`. Two things outside
+  that pattern still do not work, both **re-verified against 2.4.20-RC**, and nothing warns you:
+
+  | | sealed interface | sealed class |
+  | --- | --- | --- |
+  | Read via `sealedType()` | works | works |
+  | **Generic** (`Outcome<out T>`) | **generated Swift does not compile** | works |
+  | Name or construct a member (`DataError.Network`) from another module | **unreachable** | works |
+
+  The generic case fails because the erased subtype cannot be made to conform to the erased parent
+  protocol; as a class it is plain subclassing, which survives erasure. The member case fails
+  because the nested convenience names are emitted as typealiases with **no access modifier**, so
+  they default to `internal` in the generated module while only the mangled top-level class is
+  `public`.
+
+  So `Outcome` has no choice — it is generic. `DataError` and `LoadStatus` are a deliberate
+  trade: the app only ever *reads* them through `sealedType()` and would be fine either way, but
+  `CountriesTests` constructs their members, and as interfaces that would mean reintroducing a file
+  of mangled-name aliases. Sealed classes cost the more idiomatic Kotlin and buy no shim.
+
+  `Event` in the two Screens stays an interface — it has `CircuitUiEvent` as a second supertype, and
+  it never crosses to Swift.
 - **`export(project(…))` means something different here than on an Obj-C framework.** Swift export
   already emits everything reachable from the module's public API, so exporting is not what makes
   types visible — it is the only way to set `flattenPackage`, and it exports that module's API *in
@@ -586,11 +600,13 @@ turned up no existing report for either of the first two, though that search was
 1. **A generic sealed interface generates Swift that does not compile.** `sealed interface
    Outcome<out T>` produces `cannot convert value of type '…Outcome_Data' to specified type
    '…Outcome'` — the erased subtype is not made to conform to the erased parent protocol. Workaround:
-   make it a `sealed class`.
+   make it a `sealed class`. **Still present on 2.4.20-RC**, the release that claims sealed-interface
+   support; a non-generic sealed interface is fine, so the gap is specifically generics.
 2. **Sealed interface members are unreachable across modules.** The nested convenience names
    (`DataError.Network`) are emitted as typealiases with no access modifier, so they default to
    `internal` in the generated module while only the mangled top-level class is `public`. Workaround:
-   make it a `sealed class`.
+   make it a `sealed class`. **Still present on 2.4.20-RC.** Reading through `sealedType()` is
+   unaffected — this only bites code that names or constructs a member.
 3. **`Saver.save` — a method with an extension receiver — generates a malformed reverse-interop
    thunk**, passing the receiver as the `value:` argument and omitting the receiver. This is what
    makes any Compose type in the exported API fatal.
