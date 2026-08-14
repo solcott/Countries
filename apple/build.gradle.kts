@@ -48,7 +48,8 @@ kotlin {
     // site, because Swift export nests exported declarations under their Kotlin package.
     //
     // Exporting a module in full is only safe if *nothing* in it breaks the generator, which is
-    // why `:dataresult` and `:uistate` exist as separate modules at all — see AGENTS.md.
+    // why `:dataresult` and `:uistate` exist as separate modules at all — see AGENTS.md, and
+    // `.claude/skills/apple-app/SKILL.md` for what the generator rejects.
     // `:presenter` is deliberately absent: `CountryListScreen.State.nameStartsWithText` is a
     // Compose `TextFieldState`, and Swift export emits uncompilable Swift for Compose's `Saver`.
     // Nothing here reaches into `:presenter` anyway — the facade in `AppleUiState.kt` sees to that.
