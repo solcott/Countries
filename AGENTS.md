@@ -525,11 +525,11 @@ Five things worth knowing:
   Molecule launch are shared; `state` stays declared concretely on each subclass. A
   `PresenterHolder<UiState>` would have its type parameter erased to its upper bound. The Swift side
   *is* generic (`PresenterModel<Holder>`), which is fine: Swift generics are real.
-- **Swift export replaced SKIE, and needed Kotlin 2.4.20 to do it.** `StateFlow` arrives as
+- **Swift export is why `kotlin` is pinned to 2.4.20.** `StateFlow` arrives as
   `KotlinTypedStateFlow<T>` with a typed non-optional `value` and `asAsyncSequence()`; sealed types
   get a generated `sealedType()` returning an exhaustively switchable Swift enum. Both landed after
-  2.4.10, and SKIE caps at 2.4.10, so the two cannot coexist — reverting to SKIE means reverting
-  Kotlin too.
+  2.4.10, so dropping below 2.4.20 costs the two things that make the exported API usable from
+  Swift at all.
 - **Sealed types that cross to Swift are `sealed class`, not `sealed interface`.** The release notes
   say 2.4.20-RC "adds support for sealed classes and interfaces", and that is true of the pattern
   their example shows — *reading* a non-generic hierarchy through `sealedType()`. Two things outside

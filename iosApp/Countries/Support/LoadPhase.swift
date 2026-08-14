@@ -16,8 +16,8 @@ enum LoadPhase {
 
 /// Swift export maps the sealed `LoadStatus` to a Swift enum through a generated `sealedType()`, so
 /// this cannot silently miss a case the way an `if let` chain over `as?` casts would. That
-/// exhaustiveness is the single most valuable thing SKIE used to provide, and the reason this spike
-/// needed Kotlin 2.4.20-Beta2 — on 2.4.10 a `default:` would be mandatory here.
+/// exhaustiveness is what the project is on Kotlin 2.4.20 for — the sealed-type support landed
+/// there, and on 2.4.10 a `default:` would be mandatory here.
 func loadPhase(of status: LoadStatus) -> LoadPhase {
   switch status.sealedType() {
   case .loading:

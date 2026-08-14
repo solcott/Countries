@@ -22,8 +22,8 @@ import kotlinx.coroutines.flow.StateFlow
  * The presenters are `@Composable` functions, which have a hidden `$composer` parameter and are
  * therefore not callable from Swift at all. Molecule is the bridge: it recomposes the function on a
  * coroutine scope and folds each emission into a [StateFlow], which Swift export exposes as
- * `KotlinTypedStateFlow<T>` — a typed, non-optional `value` plus `asAsyncSequence()`. That is a
- * like-for-like replacement for what SKIE used to provide, and it needs no help from this class.
+ * `KotlinTypedStateFlow<T>` — a typed, non-optional `value` plus `asAsyncSequence()`, and it needs
+ * no help from this class to do it.
  *
  * Circuit's own iOS sample wraps the presenter in `presenterOf { }` first. That is unnecessary here
  * — [launchMolecule] already takes a `@Composable` lambda — and it would introduce a
@@ -31,11 +31,11 @@ import kotlinx.coroutines.flow.StateFlow
  * the presenter function directly is what `CountryListPresenterTest` does too.
  *
  * **This class is deliberately not generic**, even though every subclass differs only in its state
- * type. The original reason was SKIE — a `PresenterHolder<UiState>` reached Swift as an Objective-C
- * lightweight generic and forced `SkieSwiftStateFlow<UiState>` to be expressed for a type
- * parameter. Swift export erases generic type parameters to their upper bounds instead, which is no
- * better, so the conclusion is unchanged: the shared part is a generic *method*, [moleculeState],
- * rather than a type parameter, and each subclass declares `state` concretely.
+ * type. Swift export erases a generic type parameter to its upper bound, so a
+ * `PresenterHolder<UiState>` would reach Swift having lost the very type Swift needs. The shared
+ * part is therefore a generic *method*, [moleculeState], rather than a type parameter, and each
+ * subclass declares `state` concretely. Circuit's own iOS sample has the generic version, and its
+ * comments complain about the resulting Swift ergonomics.
  *
  * Subclasses publish [CountryListUiState]/[CountryDetailUiState] rather than the Circuit state, and
  * expose named methods rather than an `eventSink`. See [CountryListUiState] for why.

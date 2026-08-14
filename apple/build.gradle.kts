@@ -30,8 +30,8 @@ val frameworkName = "CountriesKit"
 kotlin {
   jvmToolchain(Versions.JVM_TOOLCHAIN)
 
-  // Swift export replaces SKIE and the Obj-C framework both. It is Alpha, and this module is where
-  // the project finds out what that costs.
+  // Swift export emits Swift directly rather than going through an Obj-C framework. It is Alpha,
+  // and this module is where the project finds out what that costs.
   @OptIn(org.jetbrains.kotlin.gradle.swiftexport.ExperimentalSwiftExportDsl::class)
   swiftExport {
     moduleName = frameworkName

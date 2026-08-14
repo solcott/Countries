@@ -8,10 +8,10 @@ import KotlinCoroutineSupport
 /// inherited from the Kotlin `PresenterHolder` base — so the conformances below are empty and the
 /// associated type is inferred.
 ///
-/// This survived the move off SKIE almost unchanged, which was not a given. It works because Swift
-/// export gives `StateFlow<T>` a *typed* Swift counterpart, `KotlinTypedStateFlow<T>`, rather than
-/// erasing the element to its upper bound the way it does for generic classes. Without a type to
-/// infer `UiState` from, this protocol could not exist at all.
+/// This protocol is only possible because Swift export gives `StateFlow<T>` a *typed* Swift
+/// counterpart, `KotlinTypedStateFlow<T>`, rather than erasing the element to its upper bound the
+/// way it does for generic classes. Without a type to infer `UiState` from, there would be nothing
+/// to write here.
 protocol PresenterHolding: AnyObject {
   associatedtype UiState
   var state: any KotlinTypedStateFlow<UiState> { get }
@@ -36,8 +36,8 @@ extension CountryDetailPresenterHolder: PresenterHolding {}
 @MainActor
 final class PresenterModel<Holder: PresenterHolding> {
 
-  /// Exposed so views can send events. Under SKIE the state itself carried an `eventSink` closure;
-  /// the Kotlin facade now puts named methods on the holder instead, so this is where they live.
+  /// Exposed so views can send events: the Kotlin facade puts named methods on the holder rather
+  /// than an `eventSink` closure on the state, so this is where they live.
   let holder: Holder
 
   private(set) var state: Holder.UiState
@@ -51,9 +51,9 @@ final class PresenterModel<Holder: PresenterHolding> {
 
   /// Drives the presenter for as long as the view is on screen. Attach with `.task { }`.
   func observe() async {
-    // `asAsyncSequence()` is throwing where SKIE's was not, so this takes a `try` and swallows the
-    // cancellation that ends it. There is nothing to report: the only way out is the view going
-    // away, which is exactly when `deinit` cancels the Kotlin scope.
+    // `asAsyncSequence()` is throwing, so this takes a `try` and swallows the cancellation that
+    // ends it. There is nothing to report: the only way out is the view going away, which is
+    // exactly when `deinit` cancels the Kotlin scope.
     do {
       for try await next in holder.state.asAsyncSequence() {
         state = next

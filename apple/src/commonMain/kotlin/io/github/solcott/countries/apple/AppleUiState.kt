@@ -10,8 +10,8 @@ import io.github.solcott.countries.uistate.LoadStatus
 /**
  * The Swift-facing view state, and the reason it is not just `CountryListScreen.State`.
  *
- * Under SKIE the Circuit state crossed the boundary as-is. Swift export cannot take it, for two
- * independent reasons — both verified against the generated Swift rather than assumed:
+ * Swift export cannot carry `CountryListScreen.State` across, for two independent reasons — both
+ * verified against the generated Swift rather than assumed:
  *
  * 1. **`TextFieldState`.** Compose Foundation's `Saver.save` is a method with an extension
  *    receiver, and the reverse-interop thunk generated for it passes the receiver as the `value:`
@@ -19,13 +19,13 @@ import io.github.solcott.countries.uistate.LoadStatus
  *    `TextFieldState` also drags Compose ui-text, ui-graphics, ui-geometry and ui-unit into the
  *    export — roughly 8,000 lines of generated Swift for a property Swift can never use.
  * 2. **`ContentState<T>`.** Generic classes export with their type parameter erased, so `data`
- *    arrives as `any _KotlinBridgeable` and every read needs an unchecked cast. That was survivable
- *    — the Obj-C build already cast — but it is not something to keep once a facade exists anyway.
+ *    arrives as `any _KotlinBridgeable` and every read needs an unchecked cast — survivable, but
+ *    not worth keeping once a facade exists anyway.
  *
  * So these types are deliberately dull: no generics, no Compose, no Circuit. What does cross is
- * `:model`'s own data classes and [LoadStatus], which is a plain non-generic sealed interface and
- * therefore exactly what 2.4.20-Beta2's sealed-enum support handles well — it reaches Swift as an
- * exhaustively switchable enum, which is the SKIE behaviour worth preserving.
+ * `:model`'s own data classes and [LoadStatus], which is a plain non-generic sealed class and
+ * therefore exactly what 2.4.20's sealed-type support handles well — it reaches Swift through a
+ * generated `sealedType()` as an exhaustively switchable enum.
  *
  * [eventSink] is `internal` on purpose. It is how the holder forwards Swift's method calls back
  * into Circuit, and keeping it off the public API keeps `CountryListScreen.Event` — and with it the

@@ -16,8 +16,8 @@ import io.github.solcott.countries.shared.CoreGraph
  * instance, no `Ui.Factory`. Hold one instance for the lifetime of the app — the graph is
  * `@SingleIn(AppScope::class)`, and a second one would mean a second Apollo client and cache.
  *
- * Named `CountriesCore` rather than `CountriesKit`: a Kotlin class whose name matches the framework
- * name collides in the Obj-C header, and SKIE silently renames it to `CountriesKit_` in Swift.
+ * Named `CountriesCore` rather than `CountriesKit`: a Kotlin class whose name matches the exported
+ * module's name is silently renamed to `CountriesKit_` in the generated Swift.
  */
 class CountriesCore {
 

@@ -22,12 +22,11 @@ import io.github.solcott.countries.presenter.CountryListScreen
  * `CountryDetailPresenter` calls either, so it is close to vestigial — it is here because the
  * interface requires it, not because anything reads it.
  *
- * **Its Swift-facing API is country codes, not `Screen`s.** Under SKIE this class took and returned
- * Circuit `Screen`s and the Swift side constructed `CountryDetailScreen(code:)` itself. It no
- * longer does, for the same reason the presenter state became [CountryListUiState]: keeping Circuit
- * off the Swift surface is what keeps the export small and stable. The `Screen`s are built here
- * instead, which is also simply where they belong — there are exactly two, and Swift has no use for
- * either beyond a country code.
+ * **Its Swift-facing API is country codes, not `Screen`s**, for the same reason the presenter state
+ * is [CountryListUiState] rather than the Circuit state: keeping Circuit off the Swift surface is
+ * what keeps the export small and stable. The `Screen`s are built here instead, which is also
+ * simply where they belong — there are exactly two, and Swift has no use for either beyond a
+ * country code.
  */
 class SwiftNavigator(
   private val onShowCountry: (String) -> Unit,
