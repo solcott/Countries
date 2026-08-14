@@ -16,7 +16,7 @@ Apple idioms rather than as a port of the Compose design, while the Circuit pres
 repositories and the Apollo cache are the same Kotlin the other three run. Presenters reach Swift
 through [Molecule](https://github.com/cashapp/molecule) (a `@Composable` presenter becomes a
 `StateFlow`) and Kotlin's own **Swift export** (sealed types become exhaustive Swift enums, flows
-become `AsyncSequence`s). Swift export is Alpha and needs Kotlin 2.4.20-Beta2 for the sealed-type
+become `AsyncSequence`s). Swift export is Alpha and needs Kotlin 2.4.20 for the sealed-type
 support, which is why the app's iOS floor is 18.0 — see AGENTS.md for what that bought and cost.
 
 ## API choice

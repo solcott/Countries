@@ -2,7 +2,7 @@
 # Build tooling. AGP 9.x ships built-in Kotlin support pinned to an older KGP; the root
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
 agp = "9.3.1"
-kotlin = "2.4.20-Beta2"
+kotlin = "2.4.20-RC"
 metro = "1.4.2"
 apollo = "5.0.1"
 apollo-normalized-cache = "1.0.6"
@@ -24,7 +24,7 @@ molecule = "2.2.0"
 
 # SKIE. No longer applied — :apple uses Kotlin's own Swift export instead. Kept only so reverting
 # the spike is a two-line change, and NOT usable as-is: SKIE supports Kotlin 2.0.0 through 2.4.10,
-# and `kotlin` above is 2.4.20-Beta2. Going back to SKIE means going back to 2.4.10 too.
+# and `kotlin` above is 2.4.20-RC. Going back to SKIE means going back to 2.4.10 too.
 skie = "0.10.14"
 
 # AndroidX Compose. The BOM aligns the whole androidx.compose.* family on Android — without it
