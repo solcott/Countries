@@ -1,6 +1,7 @@
 package io.github.solcott.countries.presenter
 
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -79,6 +80,8 @@ fun CountryListPresenter(
     when (event) {
       is CountryListScreen.Event.CountryClicked -> navigator.goTo(CountryDetailScreen(event.code))
       CountryListScreen.Event.Retry -> reloadKey++
+      is CountryListScreen.Event.SearchTextChanged ->
+        nameStartsWithText.setTextAndPlaceCursorAtEnd(event.text)
       is CountryListScreen.Event.ToggleContinentSelection -> {
         if (selectedContinents.contains(event.continent)) {
           selectedContinents.remove(event.continent)
