@@ -9,3 +9,11 @@ local.properties
 captures/
 .cxx/
 /.kotlin/
+
+# Xcode. Per-user state that appears as soon as iosApp/Countries.xcodeproj is opened in the GUI —
+# window layout, breakpoints, the last selected scheme. `build/` above already covers
+# iosApp/build/DerivedData.
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+.swiftpm/

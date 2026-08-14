@@ -17,6 +17,17 @@ kmp-parcelize = "1.0.4"
 # Circuit (MVI). Metro provides the @CircuitInject codegen.
 circuit = "0.36.1"
 
+# Molecule. Runs a @Composable presenter outside Compose UI and folds it into a StateFlow, which is
+# the only way to drive Circuit's composable-function presenters from a host that is not a
+# composition — i.e. the SwiftUI app. Publishes iosArm64, iosSimulatorArm64 and macosArm64.
+molecule = "2.2.0"
+
+# SKIE. Post-processes the Apple framework so Swift sees sealed interfaces (DataError, LoadStatus)
+# as exhaustively switchable enums and Flow/StateFlow as AsyncSequence and Combine publishers.
+# Supports Kotlin 2.0.0 through 2.4.10, so it covers the `kotlin` version above exactly; check that
+# range before bumping Kotlin. Its macOS XCFramework bug (touchlab/SKIE#162) was fixed in 0.10.5.
+skie = "0.10.14"
+
 # AndroidX Compose. The BOM aligns the whole androidx.compose.* family on Android — without it
 # nothing declares `foundation` or `animation`, so they drift to whatever Compose Multiplatform and
 # material3 happen to request while `ui` and `runtime` follow `composeUi`. 2026.08.00 is the BOM
@@ -111,9 +122,16 @@ circuit-foundation = { module = "com.slack.circuit:circuit-foundation", version.
 circuit-retained = { module = "com.slack.circuit:circuit-retained", version.ref = "circuit" }
 circuit-runtime = { module = "com.slack.circuit:circuit-runtime", version.ref = "circuit" }
 circuit-runtime-presenter = { module = "com.slack.circuit:circuit-runtime-presenter", version.ref = "circuit" }
+# Separate artifact from circuit-runtime, and `Screen` appears in SwiftNavigator's public API. An
+# Apple framework must export it by name or Kotlin/Native mangles the Swift type to
+# `Circuit_runtime_screenScreen`.
+circuit-runtime-screen = { module = "com.slack.circuit:circuit-runtime-screen", version.ref = "circuit" }
 circuit-runtime-ui = { module = "com.slack.circuit:circuit-runtime-ui", version.ref = "circuit" }
 circuit-test = { module = "com.slack.circuit:circuit-test", version.ref = "circuit" }
 circuit-codegen-annotations = { module = "com.slack.circuit:circuit-codegen-annotations", version.ref = "circuit" }
+
+# Molecule
+molecule-runtime = { module = "app.cash.molecule:molecule-runtime", version.ref = "molecule" }
 
 # Apollo
 apollo-api = { module = "com.apollographql.apollo:apollo-api", version.ref = "apollo" }
@@ -161,3 +179,4 @@ kmp-parcelize = { id = "io.github.solcott.kmp.parcelize", version.ref = "kmp-par
 # npm/webpack packaging, which compose.foundation pulls in on js and wasmJs.
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 redacted = { id = "dev.zacsweers.redacted", version = "1.18.0" }
+skie = { id = "co.touchlab.skie", version.ref = "skie" }

@@ -4,11 +4,19 @@ A small Kotlin Multiplatform app that lists world countries from the public
 [Countries GraphQL API](https://countries.trevorblades.com/), lets you filter them by
 name and continent, and drills into a detail screen for each one.
 
-It started as an Android app and every library module is now multiplatform. There are three
+It started as an Android app and every library module is now multiplatform. There are four
 entry points today — the Android app (`:app`), a Compose Multiplatform browser app (`:web`,
-targeting both Kotlin/JS and Kotlin/Wasm), and a Compose Multiplatform desktop app
-(`:desktop`, for Windows, Linux and macOS) — sharing all of their UI, presentation and data
-code.
+targeting both Kotlin/JS and Kotlin/Wasm), a Compose Multiplatform desktop app
+(`:desktop`, for Windows, Linux and macOS), and a **native SwiftUI app** for iOS, iPadOS and
+macOS (`iosApp`, on top of the `:apple` bridge module).
+
+The first three share their UI as well as their presentation and data code. The SwiftUI app
+shares everything *except* the UI: its screens are hand-written SwiftUI, deliberately built from
+Apple idioms rather than as a port of the Compose design, while the Circuit presenters, the
+repositories and the Apollo cache are the same Kotlin the other three run. Presenters reach Swift
+through [Molecule](https://github.com/cashapp/molecule) (a `@Composable` presenter becomes a
+`StateFlow`) and [SKIE](https://skie.touchlab.co/) (sealed types become exhaustive Swift enums,
+flows become `AsyncSequence`s).
 
 ## API choice
 
@@ -90,6 +98,36 @@ installable:
 Both are **host-OS builds** — the Skia runtime is selected by OS and architecture, and
 jpackage cannot cross-build, so a Windows installer has to be produced on Windows.
 
+### iOS, iPadOS and macOS
+
+Needs Xcode. Open the project and run — the Kotlin framework is built by a Run Script phase, so
+there is no Gradle step to remember:
+
+```bash
+open iosApp/Countries.xcodeproj
+```
+
+The same target covers all three: `NavigationSplitView` collapses to push-and-pop on iPhone and
+becomes two columns on iPad and Mac. Minimum versions are iOS 17 and macOS 15.
+
+The Swift tests — unit tests plus XCUITest coverage of selection, search, filtering and the iPad
+two-column layout — and the Kotlin bridge's own tests:
+
+```bash
+xcodebuild test -project iosApp/Countries.xcodeproj -scheme Countries \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+xcodebuild test -project iosApp/Countries.xcodeproj -scheme Countries \
+  -destination 'platform=iOS Simulator,name=iPad mini (A17 Pro),OS=18.4'
+./gradlew :apple:macosArm64Test :apple:iosSimulatorArm64Test
+```
+
+Run both simulator destinations: several UI tests are device-shape specific and skip themselves on
+the other. Tests run on simulators only — the macOS destination is for building and running the
+app. The UI tests drive the live API, so a cold simulator needs network.
+
+Apple Silicon only — the Kotlin targets are `iosArm64`, `iosSimulatorArm64` and `macosArm64`.
+There is no Mac Catalyst build, and there cannot be: Kotlin/Native has no Catalyst target.
+
 ### Cleaner `git blame`
 
 Bulk formatting commits are listed in [`.git-blame-ignore-revs`](.git-blame-ignore-revs) so
@@ -102,12 +140,13 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 ## Architecture at a glance
 
-Ten Gradle modules, dependencies flowing strictly downward:
+Eleven Gradle modules, dependencies flowing strictly downward:
 
 ```
 app            → Android entry point: Activity, theme, manifest
 web            → Browser entry point (js + wasmJs): main(), index.html, URL routing
 desktop        → Desktop entry point (jvm): main(), Window, keyboard back, flag font
+apple          → Apple bridge (ios + macos): CountriesKit.xcframework for iosApp/ (SwiftUI)
 shared-compose → ComposeGraph — the Metro graph every Compose app shares
 shared         → CoreGraph for non-Compose consumers, plus the root Logger
 ui             → Compose UI (Circuit Ui), and CountriesApp — the app every entry point mounts
