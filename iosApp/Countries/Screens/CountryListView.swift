@@ -1,4 +1,6 @@
 import CountriesKit
+import CountriesModel
+import CountriesUiState
 import SwiftUI
 
 /// The country list.
@@ -21,12 +23,12 @@ struct CountryListView: View {
   /// through `SearchTextChanged` instead of by sharing an object.
   @State private var query = ""
 
-  private var phase: LoadPhase { loadPhase(of: model.state.countriesState.status) }
+  private var phase: LoadPhase { loadPhase(of: model.state.countriesStatus) }
 
-  private var countries: [Country] { (model.state.countriesState.data as? [Country]) ?? [] }
+  private var countries: [Country] { model.state.countries }
 
   private var continents: [Continent] {
-    (model.state.continentsState.data as? [Continent]) ?? []
+    model.state.continents
   }
 
   private var selectedContinentCodes: Set<String> {
@@ -48,10 +50,10 @@ struct CountryListView: View {
         .onChange(of: commands.focusSearchTicks) { searchFocused = true }
       #endif
       .onChange(of: query) { _, newValue in
-        model.state.eventSink(CountryListScreenEventSearchTextChanged(text: newValue))
+        model.holder.search(text: newValue)
       }
       .refreshable {
-        model.state.eventSink(CountryListScreenEventRetry.shared)
+        model.holder.retry()
       }
       .toolbar {
         if !continents.isEmpty {
@@ -59,7 +61,7 @@ struct CountryListView: View {
         }
       }
       .onChange(of: commands.refreshTicks) {
-        model.state.eventSink(CountryListScreenEventRetry.shared)
+        model.holder.retry()
       }
       #if os(macOS)
         // The Mac window has room for it, and it answers "did my filter do anything?" without
@@ -80,7 +82,7 @@ struct CountryListView: View {
       } description: {
         Text(userMessage(for: failure))
       } actions: {
-        Button("Retry") { model.state.eventSink(CountryListScreenEventRetry.shared) }
+        Button("Retry") { model.holder.retry() }
           .buttonStyle(.borderedProminent)
       }
     } else if countries.isEmpty, !query.isEmpty {
@@ -132,9 +134,7 @@ struct CountryListView: View {
     Menu {
       ForEach(continents, id: \.code) { continent in
         Button {
-          model.state.eventSink(
-            CountryListScreenEventToggleContinentSelection(continent: continent)
-          )
+          model.holder.toggleContinent(continent: continent)
         } label: {
           if selectedContinentCodes.contains(continent.code) {
             Label(continent.name, systemImage: "checkmark")

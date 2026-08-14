@@ -32,7 +32,9 @@ kotlin {
     }
 
     commonMain.dependencies {
+      api(project(":dataresult"))
       api(project(":model"))
+      api(project(":uistate"))
       api(libs.circuit.runtime)
       api(libs.circuit.runtime.presenter)
       implementation(project(":repository"))

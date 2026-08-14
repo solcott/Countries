@@ -1,6 +1,5 @@
 package io.github.solcott.countries.apple
 
-import com.slack.circuit.runtime.Navigator
 import dev.zacsweers.metro.createGraph
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.shared.CoreGraph
@@ -17,21 +16,24 @@ import io.github.solcott.countries.shared.CoreGraph
  * instance, no `Ui.Factory`. Hold one instance for the lifetime of the app — the graph is
  * `@SingleIn(AppScope::class)`, and a second one would mean a second Apollo client and cache.
  *
- * Named `CountriesCore` rather than `CountriesKit`: a Kotlin class whose name matches the framework
- * name collides in the Obj-C header, and SKIE silently renames it to `CountriesKit_` in Swift.
+ * Named `CountriesCore` rather than `CountriesKit`: a Kotlin class whose name matches the exported
+ * module's name is silently renamed to `CountriesKit_` in the generated Swift.
  */
 class CountriesCore {
 
   private val graph: CoreGraph = createGraph<CoreGraph>()
 
-  fun countryListPresenter(navigator: Navigator): CountryListPresenterHolder =
+  fun countryListPresenter(navigator: SwiftNavigator): CountryListPresenterHolder =
     CountryListPresenterHolder(
       navigator = navigator,
       countryRepository = graph.countryRepository,
       continentRepository = graph.continentRepository,
     )
 
-  fun countryDetailPresenter(code: String, navigator: Navigator): CountryDetailPresenterHolder =
+  fun countryDetailPresenter(
+    code: String,
+    navigator: SwiftNavigator,
+  ): CountryDetailPresenterHolder =
     CountryDetailPresenterHolder(
       screen = CountryDetailScreen(code),
       navigator = navigator,

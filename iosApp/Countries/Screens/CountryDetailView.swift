@@ -1,4 +1,6 @@
 import CountriesKit
+import CountriesModel
+import CountriesUiState
 import SwiftUI
 
 /// One country's details.
@@ -34,9 +36,8 @@ struct CountryDetailView: View {
 
   @ViewBuilder
   private func content(for model: CountryDetailModel) -> some View {
-    let state = model.state.content
-    let country = state.data
-    let phase = loadPhase(of: state.status)
+    let country = model.state.country
+    let phase = loadPhase(of: model.state.status)
 
     if country == nil, phase.isLoading {
       ProgressView()
@@ -47,7 +48,7 @@ struct CountryDetailView: View {
       } description: {
         Text(userMessage(for: failure))
       } actions: {
-        Button("Retry") { model.state.eventSink(CountryDetailScreenEventRetry.shared) }
+        Button("Retry") { model.holder.retry() }
           .buttonStyle(.borderedProminent)
       }
     } else if country == nil, phase.isSettled {

@@ -1,16 +1,15 @@
 package io.github.solcott.countries.apple
 
 import app.cash.turbine.test
+import io.github.solcott.countries.dataresult.Origin
+import io.github.solcott.countries.dataresult.Outcome
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
-import io.github.solcott.countries.model.Origin
-import io.github.solcott.countries.model.Outcome
-import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListScreen
-import io.github.solcott.countries.presenter.LoadStatus
 import io.github.solcott.countries.repository.ContinentRepository
 import io.github.solcott.countries.repository.CountryRepository
+import io.github.solcott.countries.uistate.LoadStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.flow.Flow
@@ -42,7 +41,7 @@ class PresenterHolderTest {
   fun countryListHolderEmitsStateFromTheComposablePresenter() = runTest {
     val holder =
       CountryListPresenterHolder(
-        navigator = SwiftNavigator(CountryListScreen, onGoTo = {}, onPop = {}),
+        navigator = SwiftNavigator(onShowCountry = {}, onPop = {}),
         countryRepository =
           FakeCountryRepository(
             countriesAsFlow = { _, _ -> flowOf(Outcome.Data(listOf(canada), Origin.Network)) }
@@ -53,9 +52,9 @@ class PresenterHolderTest {
 
     holder.state.test {
       var state = awaitItem()
-      while (state.countriesState.status is LoadStatus.Loading) state = awaitItem()
+      while (state.countriesStatus is LoadStatus.Loading) state = awaitItem()
 
-      assertEquals(listOf(canada), state.countriesState.data)
+      assertEquals(listOf(canada), state.countries)
       cancelAndIgnoreRemainingEvents()
     }
   }
@@ -65,12 +64,7 @@ class PresenterHolderTest {
     var navigatedTo: String? = null
     val holder =
       CountryListPresenterHolder(
-        navigator =
-          SwiftNavigator(
-            CountryListScreen,
-            onGoTo = { navigatedTo = (it as? CountryDetailScreen)?.code },
-            onPop = {},
-          ),
+        navigator = SwiftNavigator(onShowCountry = { navigatedTo = it }, onPop = {}),
         countryRepository =
           FakeCountryRepository(
             countriesAsFlow = { _, _ -> flowOf(Outcome.Data(listOf(canada), Origin.Network)) }
@@ -81,7 +75,7 @@ class PresenterHolderTest {
 
     holder.state.test {
       var state = awaitItem()
-      while (state.countriesState.status is LoadStatus.Loading) state = awaitItem()
+      while (state.countriesStatus is LoadStatus.Loading) state = awaitItem()
 
       state.eventSink(CountryListScreen.Event.CountryClicked("CA"))
 

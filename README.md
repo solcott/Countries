@@ -15,8 +15,9 @@ shares everything *except* the UI: its screens are hand-written SwiftUI, deliber
 Apple idioms rather than as a port of the Compose design, while the Circuit presenters, the
 repositories and the Apollo cache are the same Kotlin the other three run. Presenters reach Swift
 through [Molecule](https://github.com/cashapp/molecule) (a `@Composable` presenter becomes a
-`StateFlow`) and [SKIE](https://skie.touchlab.co/) (sealed types become exhaustive Swift enums,
-flows become `AsyncSequence`s).
+`StateFlow`) and Kotlin's own **Swift export** (sealed types become exhaustive Swift enums, flows
+become `AsyncSequence`s). Swift export is Alpha and needs Kotlin 2.4.20 for the sealed-type
+support, which is why the app's iOS floor is 18.0 — see AGENTS.md for what that bought and cost.
 
 ## API choice
 
@@ -140,20 +141,22 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 ## Architecture at a glance
 
-Eleven Gradle modules, dependencies flowing strictly downward:
+Thirteen Gradle modules, dependencies flowing strictly downward:
 
 ```
 app            → Android entry point: Activity, theme, manifest
 web            → Browser entry point (js + wasmJs): main(), index.html, URL routing
 desktop        → Desktop entry point (jvm): main(), Window, keyboard back, flag font
-apple          → Apple bridge (ios + macos): CountriesKit.xcframework for iosApp/ (SwiftUI)
+apple          → Apple bridge (ios + macos): the Swift export for iosApp/ (SwiftUI)
 shared-compose → ComposeGraph — the Metro graph every Compose app shares
 shared         → CoreGraph for non-Compose consumers, plus the root Logger
 ui             → Compose UI (Circuit Ui), and CountriesApp — the app every entry point mounts
 presenter      → Circuit Screens, presenters, state, events  (the state holders)
+uistate        → ContentState and LoadStatus — view state for content from a data source
 repository     → domain-facing data access, generated → model mapping
 network        → Apollo client, .graphql operations, generated code
-model          → plain Kotlin domain types + Response<T>
+model          → plain Kotlin domain types: Country, CountryDetail, Language, Continent
+dataresult     → DataError, Origin, Outcome — how a read went and where it came from
 ```
 
 Everything from `shared-compose` down is Kotlin Multiplatform and builds for Android, JVM,

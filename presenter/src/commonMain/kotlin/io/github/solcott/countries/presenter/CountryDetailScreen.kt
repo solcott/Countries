@@ -5,6 +5,8 @@ import com.slack.circuit.runtime.CircuitUiState
 import com.slack.circuit.runtime.screen.Screen
 import dev.zacsweers.redacted.annotations.Redacted
 import io.github.solcott.countries.model.CountryDetail
+import io.github.solcott.countries.uistate.ContentState
+import io.github.solcott.countries.uistate.LoadStatus
 import io.github.solcott.kmp.parcelize.Parcelize
 
 @Parcelize

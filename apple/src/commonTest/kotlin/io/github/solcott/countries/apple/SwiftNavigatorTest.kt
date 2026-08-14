@@ -11,26 +11,39 @@ import kotlin.test.assertTrue
 class SwiftNavigatorTest {
 
   @Test
-  fun goToForwardsTheScreenAndReportsSuccess() {
-    val seen = mutableListOf<Screen>()
-    val navigator = SwiftNavigator(CountryListScreen, onGoTo = { seen += it }, onPop = {})
+  fun goToForwardsTheCountryCodeAndReportsSuccess() {
+    val seen = mutableListOf<String>()
+    val navigator = SwiftNavigator(onShowCountry = { seen += it }, onPop = {})
 
     val handled = navigator.goTo(CountryDetailScreen("CA"))
 
     assertTrue(handled)
-    assertEquals(listOf<Screen>(CountryDetailScreen("CA")), seen.toList())
+    // A code, not a Screen: Circuit's types stay on this side of the bridge.
+    assertEquals(listOf("CA"), seen.toList())
+  }
+
+  @Test
+  fun goToIgnoresScreensThatAreNotACountry() {
+    val seen = mutableListOf<String>()
+    val navigator = SwiftNavigator(onShowCountry = { seen += it }, onPop = {})
+
+    assertTrue(navigator.goTo(CountryListScreen))
+
+    // The list is the root and is never navigated *to*. Reported as handled anyway, because
+    // returning false would tell Circuit the navigation failed when nothing was asked for.
+    assertEquals(emptyList(), seen.toList())
   }
 
   @Test
   fun goToDoesNotChangeTheMirrorUntilSwiftSyncsBack() {
-    val navigator = SwiftNavigator(CountryListScreen, onGoTo = {}, onPop = {})
+    val navigator = SwiftNavigator(onShowCountry = {}, onPop = {})
 
     navigator.goTo(CountryDetailScreen("CA"))
 
     // SwiftUI owns the stack: until it says otherwise, nothing has moved.
     assertEquals(listOf<Screen>(CountryListScreen), navigator.peekBackStack())
 
-    navigator.syncFromSwift(listOf(CountryListScreen, CountryDetailScreen("CA")))
+    navigator.syncFromSwift("CA")
 
     assertEquals(CountryDetailScreen("CA"), navigator.peek())
   }
@@ -38,8 +51,8 @@ class SwiftNavigatorTest {
   @Test
   fun popForwardsAndReturnsTheTopScreenWhenNotAtRoot() {
     var pops = 0
-    val navigator = SwiftNavigator(CountryListScreen, onGoTo = {}, onPop = { pops++ })
-    navigator.syncFromSwift(listOf(CountryListScreen, CountryDetailScreen("CA")))
+    val navigator = SwiftNavigator(onShowCountry = {}, onPop = { pops++ })
+    navigator.syncFromSwift("CA")
 
     val popped = navigator.pop()
 
@@ -50,18 +63,18 @@ class SwiftNavigatorTest {
   @Test
   fun popAtRootIsIgnored() {
     var pops = 0
-    val navigator = SwiftNavigator(CountryListScreen, onGoTo = {}, onPop = { pops++ })
+    val navigator = SwiftNavigator(onShowCountry = {}, onPop = { pops++ })
 
     assertNull(navigator.pop())
     assertEquals(0, pops)
   }
 
   @Test
-  fun syncFromSwiftFallsBackToTheRootRatherThanAnEmptyStack() {
-    val navigator = SwiftNavigator(CountryListScreen, onGoTo = {}, onPop = {})
-    navigator.syncFromSwift(listOf(CountryListScreen, CountryDetailScreen("CA")))
+  fun syncFromSwiftWithNoSelectionFallsBackToTheRoot() {
+    val navigator = SwiftNavigator(onShowCountry = {}, onPop = {})
+    navigator.syncFromSwift("CA")
 
-    navigator.syncFromSwift(emptyList())
+    navigator.syncFromSwift(null)
 
     // peek() returning null would read as "no screens at all", which is never true of a running
     // app.

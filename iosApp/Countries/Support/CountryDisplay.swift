@@ -1,4 +1,4 @@
-import CountriesKit
+import CountriesModel
 import Foundation
 
 /// Placeholder for a field the API did not return. Matches `ABSENT` in `CountryDetailUi.kt`.

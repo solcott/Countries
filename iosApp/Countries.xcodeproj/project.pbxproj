@@ -244,7 +244,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Builds the Kotlin framework for whatever Xcode is currently targeting, then copies and\n# signs it into the app bundle. embedAndSignAppleFrameworkForXcode reads CONFIGURATION,\n# SDK_NAME, ARCHS and the bundle paths out of this environment, which is why it builds one\n# slice rather than all three -- assembleCountriesKitDebugXCFramework is the distribution\n# path, and it is far too slow to sit in an edit-build-run loop.\n#\n# Xcode's PATH does not include a JDK, and Gradle needs one.\nexport JAVA_HOME=\"${JAVA_HOME:-$(/usr/libexec/java_home)}\"\ncd \"$SRCROOT/..\" || exit 1\n./gradlew :apple:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "# Exports the Kotlin API to Swift for whatever Xcode is currently targeting, builds it as a\n# synthetic SPM package, and copies the static library and .swiftmodule interfaces into\n# BUILT_PRODUCTS_DIR. embedSwiftExportForXcode reads CONFIGURATION, SDK_NAME, ARCHS and the\n# build paths out of this environment, so it does one slice rather than all three.\n#\n# There is no framework and nothing to sign: Swift export produces a static libCountriesKit.a.\n# That is also why OTHER_LDFLAGS carries -lsqlite3 -- a Kotlin/Native .a records no linker\n# options, so SQLiter's symbols resolve at the app link instead.\n#\n# Xcode's PATH does not include a JDK, and Gradle needs one.\nexport JAVA_HOME=\"${JAVA_HOME:-$(/usr/libexec/java_home)}\"\ncd \"$SRCROOT/..\" || exit 1\n./gradlew :apple:embedSwiftExportForXcode\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -304,7 +304,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
@@ -329,7 +329,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
@@ -348,7 +348,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				"FRAMEWORK_SEARCH_PATHS[sdk=*]" = "$(SRCROOT)/../apple/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -365,8 +364,9 @@
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
-					"-framework",
-					CountriesKit,
+					"-lsqlite3",
+					"-Wl,-U,_sqlite3_enable_load_extension",
+					"-Wl,-U,_sqlite3_load_extension",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.solcott.countries;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -385,7 +385,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				"FRAMEWORK_SEARCH_PATHS[sdk=*]" = "$(SRCROOT)/../apple/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -402,8 +401,9 @@
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
-					"-framework",
-					CountriesKit,
+					"-lsqlite3",
+					"-Wl,-U,_sqlite3_enable_load_extension",
+					"-Wl,-U,_sqlite3_load_extension",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.solcott.countries;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -420,7 +420,6 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				"FRAMEWORK_SEARCH_PATHS[sdk=*]" = "$(SRCROOT)/../apple/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.solcott.countries.tests;
@@ -438,7 +437,6 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				"FRAMEWORK_SEARCH_PATHS[sdk=*]" = "$(SRCROOT)/../apple/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.solcott.countries.tests;

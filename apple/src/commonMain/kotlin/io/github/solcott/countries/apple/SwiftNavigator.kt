@@ -4,6 +4,8 @@ import com.slack.circuit.runtime.Navigator
 import com.slack.circuit.runtime.navigation.NavStackList
 import com.slack.circuit.runtime.screen.PopResult
 import com.slack.circuit.runtime.screen.Screen
+import io.github.solcott.countries.presenter.CountryDetailScreen
+import io.github.solcott.countries.presenter.CountryListScreen
 
 /**
  * The [Navigator] the presenters are given, forwarding navigation intent to SwiftUI.
@@ -19,12 +21,19 @@ import com.slack.circuit.runtime.screen.Screen
  * [screens] exists only to answer [peek] and [peekBackStack]. Neither `CountryListPresenter` nor
  * `CountryDetailPresenter` calls either, so it is close to vestigial — it is here because the
  * interface requires it, not because anything reads it.
+ *
+ * **Its Swift-facing API is country codes, not `Screen`s**, for the same reason the presenter state
+ * is [CountryListUiState] rather than the Circuit state: keeping Circuit off the Swift surface is
+ * what keeps the export small and stable. The `Screen`s are built here instead, which is also
+ * simply where they belong — there are exactly two, and Swift has no use for either beyond a
+ * country code.
  */
 class SwiftNavigator(
-  private val root: Screen,
-  private val onGoTo: (Screen) -> Unit,
+  private val onShowCountry: (String) -> Unit,
   private val onPop: () -> Unit,
 ) : Navigator {
+
+  private val root: Screen = CountryListScreen
 
   private var screens: List<Screen> = listOf(root)
 
@@ -34,12 +43,15 @@ class SwiftNavigator(
    * Call this whenever the Swift-side navigation state changes, including changes this navigator
    * caused — it is idempotent, and cheaper than reasoning about which changes originated where.
    */
-  fun syncFromSwift(screens: List<Screen>) {
-    this.screens = screens.ifEmpty { listOf(root) }
+  fun syncFromSwift(selectedCode: String?) {
+    screens =
+      if (selectedCode == null) listOf(root) else listOf(root, CountryDetailScreen(selectedCode))
   }
 
   override fun goTo(screen: Screen): Boolean {
-    onGoTo(screen)
+    // The list screen is the root and is never navigated *to*; the only forward move this app has
+    // is opening a country.
+    if (screen is CountryDetailScreen) onShowCountry(screen.code)
     return true
   }
 

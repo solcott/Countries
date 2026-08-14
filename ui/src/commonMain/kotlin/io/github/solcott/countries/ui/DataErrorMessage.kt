@@ -1,7 +1,7 @@
 package io.github.solcott.countries.ui
 
 import androidx.compose.runtime.Composable
-import io.github.solcott.countries.model.DataError
+import io.github.solcott.countries.dataresult.DataError
 import io.github.solcott.countries.ui.resources.Res
 import io.github.solcott.countries.ui.resources.error_api
 import io.github.solcott.countries.ui.resources.error_data

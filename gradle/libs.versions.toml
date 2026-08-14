@@ -2,7 +2,7 @@
 # Build tooling. AGP 9.x ships built-in Kotlin support pinned to an older KGP; the root
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
 agp = "9.3.1"
-kotlin = "2.4.10"
+kotlin = "2.4.20-RC"
 metro = "1.4.2"
 apollo = "5.0.1"
 apollo-normalized-cache = "1.0.6"
@@ -21,12 +21,6 @@ circuit = "0.36.1"
 # the only way to drive Circuit's composable-function presenters from a host that is not a
 # composition — i.e. the SwiftUI app. Publishes iosArm64, iosSimulatorArm64 and macosArm64.
 molecule = "2.2.0"
-
-# SKIE. Post-processes the Apple framework so Swift sees sealed interfaces (DataError, LoadStatus)
-# as exhaustively switchable enums and Flow/StateFlow as AsyncSequence and Combine publishers.
-# Supports Kotlin 2.0.0 through 2.4.10, so it covers the `kotlin` version above exactly; check that
-# range before bumping Kotlin. Its macOS XCFramework bug (touchlab/SKIE#162) was fixed in 0.10.5.
-skie = "0.10.14"
 
 # AndroidX Compose. The BOM aligns the whole androidx.compose.* family on Android — without it
 # nothing declares `foundation` or `animation`, so they drift to whatever Compose Multiplatform and
@@ -179,4 +173,3 @@ kmp-parcelize = { id = "io.github.solcott.kmp.parcelize", version.ref = "kmp-par
 # npm/webpack packaging, which compose.foundation pulls in on js and wasmJs.
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 redacted = { id = "dev.zacsweers.redacted", version = "1.18.0" }
-skie = { id = "co.touchlab.skie", version.ref = "skie" }

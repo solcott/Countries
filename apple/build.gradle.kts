@@ -1,14 +1,13 @@
 import io.github.solcott.countries.build.Versions
-import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
-// The Apple entry point: the Kotlin half of the SwiftUI app, packaged as an XCFramework that
-// `iosApp/Countries.xcodeproj` links. Named `:apple` rather than `:ios` because one framework
-// serves iPhone, iPad and Mac.
+// The Apple entry point: the Kotlin half of the SwiftUI app, exported to Swift and linked by
+// `iosApp/Countries.xcodeproj`. Named `:apple` rather than `:ios` because one export serves
+// iPhone, iPad and Mac.
 //
 // Deliberately NOT `id("kmp-library")`, for the same reason `:web` and `:desktop` are not: that
 // convention exists for libraries. It adds android, jvm, js and wasmJs targets this module has no
-// use for, and it never declares a framework binary — which is the only thing this module exists
-// to produce.
+// use for, and it never sets up an Apple binary — which is the only thing this module exists to
+// produce.
 //
 // Unlike `:app`, `:web` and `:desktop`, this module *does* hold wiring. Those three read a
 // finished graph and mount `CountriesApp`; here there is no Compose UI to mount, so the job of
@@ -23,63 +22,77 @@ plugins {
   // So createGraph<CoreGraph>() resolves, exactly as in :app, :web and :desktop. The graph itself,
   // and every contribution to it, is aggregated on :shared's compile classpath — not here.
   alias(libs.plugins.metro)
-  // Rewrites the produced framework so Swift gets exhaustive enums for DataError and LoadStatus,
-  // and AsyncSequence/Combine for StateFlow. Without it those are opaque protocols and an
-  // uncollectable Flow.
-  alias(libs.plugins.skie)
 }
 
-// Matches the `import CountriesKit` in the Swift sources and the framework name the Xcode target
-// links. Changing it means changing both.
+// Matches the `import CountriesKit` in the Swift sources. Changing it means changing both.
 val frameworkName = "CountriesKit"
-
-// SKIE posts anonymous build metrics to Touchlab on every link task by default. Off: this is a
-// personal project, and a build should not make network calls nobody asked for.
-skie { analytics { enabled.set(false) } }
 
 kotlin {
   jvmToolchain(Versions.JVM_TOOLCHAIN)
 
-  // One XCFramework holding all three slices, because a plain .framework covers a single platform
-  // and the Xcode target has iPhone, iPad and Mac destinations. Left dynamic (the Kotlin default);
-  // going static would need SKIE's Swift bundling verified against it first.
+  // Swift export emits Swift directly rather than going through an Obj-C framework. It is Alpha,
+  // and this module is where the project finds out what that costs.
+  @OptIn(org.jetbrains.kotlin.gradle.swiftexport.ExperimentalSwiftExportDsl::class)
+  swiftExport {
+    moduleName = frameworkName
+    flattenPackage = "io.github.solcott.countries.apple"
+
+    // `export()` does not mean here what it means on an Obj-C framework. There it is the only way
+    // to get a module's types into the API at all. Swift export already emits everything
+    // *reachable* from this module's public API, so these three would appear regardless — naming
+    // them does one extra thing, and it is the thing worth having: it exports the module's public
+    // API in full, which is the only way to set `flattenPackage`.
+    //
+    // Flattening is what removes an entire file of Swift typealiases. Without it every Kotlin type
+    // is spelled `ExportedKotlinPackages.io.github.solcott.countries.model.Country` at the use
+    // site, because Swift export nests exported declarations under their Kotlin package.
+    //
+    // Exporting a module in full is only safe if *nothing* in it breaks the generator, which is
+    // why `:dataresult` and `:uistate` exist as separate modules at all — see AGENTS.md.
+    // `:presenter` is deliberately absent: `CountryListScreen.State.nameStartsWithText` is a
+    // Compose `TextFieldState`, and Swift export emits uncompilable Swift for Compose's `Saver`.
+    // Nothing here reaches into `:presenter` anyway — the facade in `AppleUiState.kt` sees to that.
+    export(project(":dataresult")) {
+      moduleName = "CountriesDataResult"
+      flattenPackage = "io.github.solcott.countries.dataresult"
+    }
+    export(project(":model")) {
+      moduleName = "CountriesModel"
+      flattenPackage = "io.github.solcott.countries.model"
+    }
+    export(project(":uistate")) {
+      moduleName = "CountriesUiState"
+      flattenPackage = "io.github.solcott.countries.uistate"
+    }
+  }
+
+  // No `binaries.framework`, and no XCFramework. Swift export does not produce a framework at all:
+  // `embedSwiftExportForXcode` emits Swift source, builds it as a synthetic SPM package, and copies
+  // a static `libCountriesKit.a` plus the .swiftmodule interfaces into $BUILT_PRODUCTS_DIR. There
+  // is
+  // nothing to embed, nothing to sign, and no bundle — so `binaryOption("bundleId", …)` went with
+  // it.
+  //
+  // `linkerOpts("-lsqlite3")` went too, and its job moved to the Xcode target's OTHER_LDFLAGS. A
+  // Kotlin/Native static library records no linker options, so SQLiter's _sqlite3_* symbols now
+  // resolve when the app links rather than when the framework did.
   //
   // No iosX64 and no macosX64: `kmp-library` declares Apple Silicon only, and a slice the library
   // modules cannot build is a slice this cannot link.
-  val xcf = XCFramework(frameworkName)
-  listOf(iosArm64(), iosSimulatorArm64(), macosArm64()).forEach { target ->
-    target.binaries.framework {
-      baseName = frameworkName
-      xcf.add(this)
-
-      // The Apollo Gradle plugin adds this automatically once it sees normalized-cache-sqlite —
-      // but it does that in `:network`, for `:network`'s own binaries. This framework is a
-      // different binary in a module that does not apply Apollo, so the flag has to be repeated
-      // here or the link fails on a wall of undefined _sqlite3_* symbols from SQLiter.
-      linkerOpts("-lsqlite3")
-
-      // Kotlin cannot infer one, because every package in this framework and its exports is a
-      // Kotlin package rather than a reverse-DNS bundle identifier. Left unset it warns and falls
-      // back to the bundle *name*, which collides across frameworks.
-      binaryOption("bundleId", "io.github.solcott.countries.apple")
-      // export() is not transitive, so every module whose types appear in the Swift API is listed
-      // even though :presenter already exposes the other two as `api`. Each must also be an `api`
-      // dependency below, or the framework task fails.
-      export(project(":model"))
-      export(project(":presenter"))
-      export(libs.circuit.runtime)
-      export(libs.circuit.runtime.screen)
-    }
-  }
+  iosArm64()
+  iosSimulatorArm64()
+  macosArm64()
 
   sourceSets {
     // With only Apple targets on the module, commonMain *is* appleMain — the same reasoning that
     // makes commonMain the web source set in `:web`. A src/appleMain would hold everything and
     // distinguish nothing.
     commonMain.dependencies {
-      // `api`, and exported above: these carry Country, CountryDetail, ContentState, DataError,
-      // the Screens and their States across the framework boundary.
+      // `api` because Swift export emits everything reachable from this module's public API, and
+      // :model's data classes and :presenter's LoadStatus are reachable through the facade.
+      api(project(":dataresult"))
       api(project(":model"))
+      api(project(":uistate"))
       api(project(":presenter"))
       api(libs.circuit.runtime)
       api(libs.circuit.runtime.screen)

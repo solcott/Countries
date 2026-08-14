@@ -39,10 +39,7 @@ import com.slack.circuit.codegen.annotations.CircuitInject
 import dev.zacsweers.metro.AppScope
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
-import io.github.solcott.countries.presenter.ContentState
 import io.github.solcott.countries.presenter.CountryListScreen
-import io.github.solcott.countries.presenter.errorOrNull
-import io.github.solcott.countries.presenter.isLoading
 import io.github.solcott.countries.ui.resources.Res
 import io.github.solcott.countries.ui.resources.check_small_24px
 import io.github.solcott.countries.ui.resources.filter
@@ -50,6 +47,9 @@ import io.github.solcott.countries.ui.resources.filter_list_24px
 import io.github.solcott.countries.ui.resources.no_countries_found
 import io.github.solcott.countries.ui.resources.search_by_name
 import io.github.solcott.countries.ui.resources.updating
+import io.github.solcott.countries.uistate.ContentState
+import io.github.solcott.countries.uistate.errorOrNull
+import io.github.solcott.countries.uistate.isLoading
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 

@@ -1,8 +1,7 @@
-package io.github.solcott.countries.presenter
+package io.github.solcott.countries.uistate
 
-import io.github.solcott.countries.model.DataError
-import io.github.solcott.countries.model.Origin
-import io.github.solcott.countries.model.Outcome
+import io.github.solcott.countries.dataresult.DataError
+import io.github.solcott.countries.dataresult.Origin
 
 /**
  * View state for a piece of content backed by a data source.
@@ -14,7 +13,7 @@ import io.github.solcott.countries.model.Outcome
  *
  * The model is agnostic to whether the source completes. A one-shot query, a cache watcher that
  * re-emits after local writes, and a subscription/SSE stream are all handled the same way: fold
- * each emission with [applyEmission], which settles [status] on every value rather than waiting for
+ * each emission with `applyEmission`, which settles [status] on every value rather than waiting for
  * the flow to end. That is what lets a never-completing stream still reach a settled, non-loading
  * state.
  */
@@ -33,12 +32,12 @@ data class ContentState<T>(
  * - [Failed] — the most recent request failed; any previously loaded [ContentState.data] is kept,
  *   and a live source may recover by emitting again.
  */
-sealed interface LoadStatus {
-  data object Idle : LoadStatus
+sealed class LoadStatus {
+  data object Idle : LoadStatus()
 
-  data object Loading : LoadStatus
+  data object Loading : LoadStatus()
 
-  data class Failed(val error: DataError) : LoadStatus
+  data class Failed(val error: DataError) : LoadStatus()
 }
 
 /** True while a request is in flight. */
@@ -50,31 +49,16 @@ val ContentState<*>.errorOrNull: DataError?
   get() = (status as? LoadStatus.Failed)?.error
 
 /**
- * Folds a single [Outcome] into the running state.
- *
- * A [Outcome.Data] settles the state: it replaces the held value, records its origin, and moves
- * [status] to [LoadStatus.Idle] (also clearing a prior failure). Settling here — rather than on
- * flow completion — is what makes a continuously emitting source (cache watcher, subscription, SSE)
- * work: each pushed value is authoritative on arrival. An [Outcome.Error] records the failure while
- * the previously loaded data is kept on screen.
- */
-fun <T> ContentState<T>.applyEmission(outcome: Outcome<T>): ContentState<T> =
-  when (outcome) {
-    is Outcome.Data -> copy(data = outcome.data, origin = outcome.origin, status = LoadStatus.Idle)
-    is Outcome.Error -> copy(status = LoadStatus.Failed(outcome.cause))
-  }
-
-/**
  * Marks a fresh request as in flight while keeping any data already on screen. Call this when
  * *intentionally* re-fetching (a filter change, a retry, pull-to-refresh) so the UI can show a
- * refresh indicator over the current content; the next emission settles it via [applyEmission].
+ * refresh indicator over the current content; the next emission settles it via `applyEmission`.
  */
 fun <T> ContentState<T>.reloading(): ContentState<T> = copy(status = LoadStatus.Loading)
 
 /**
  * Settles a still-loading request to [LoadStatus.Idle]. Used as a safety net for a source that
  * completes without emitting (so the spinner never hangs); a source that emits settles via
- * [applyEmission] instead, and a never-completing source never needs this.
+ * `applyEmission` instead, and a never-completing source never needs this.
  */
 fun <T> ContentState<T>.settled(): ContentState<T> =
   if (status is LoadStatus.Loading) copy(status = LoadStatus.Idle) else this
