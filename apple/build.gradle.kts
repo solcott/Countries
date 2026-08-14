@@ -1,3 +1,4 @@
+import io.github.solcott.countries.build.Versions
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 // The Apple entry point: the Kotlin half of the SwiftUI app, packaged as an XCFramework that
@@ -37,7 +38,7 @@ val frameworkName = "CountriesKit"
 skie { analytics { enabled.set(false) } }
 
 kotlin {
-  jvmToolchain(17)
+  jvmToolchain(Versions.JVM_TOOLCHAIN)
 
   // One XCFramework holding all three slices, because a plain .framework covers a single platform
   // and the Xcode target has iPhone, iPad and Mac destinations. Left dynamic (the Kotlin default);

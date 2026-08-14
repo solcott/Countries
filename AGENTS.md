@@ -662,6 +662,17 @@ after changing that block. The generated properties file is committed.
 Note that the daemon JVM is independent of what the modules compile against:
 **all modules target Java 17** (`compileOptions` / Kotlin `jvmTarget`).
 
+That 17 has one source, `Versions` in `build-logic`, and **a module build script can import it** —
+`import io.github.solcott.countries.build.Versions`. It is not restricted to the convention plugins,
+because `Versions.class` rides in the same `build-logic.jar` as the plugin descriptors, so applying
+any convention from that build (every non-convention module applies at least `formatting`) puts it
+on the script's own classpath. `:desktop` and `:apple` use it that way.
+
+So a one-off module needing a shared version **imports it rather than earning a convention** — which
+is why `kmp-library` and `app` are still the only two. Note `build-logic/build.gradle.kts`'s own
+`jvmToolchain(25)` is a different fact: that is the JVM the convention plugins themselves compile
+against, matching the daemon, not the modules' target.
+
 AGP 9 has built-in Kotlin support, so Android modules must **not** apply
 `org.jetbrains.kotlin.android` — AGP fails the build if they do. The root buildscript
 classpath forces the KGP and Compose compiler plugin versions Metro needs; modules apply

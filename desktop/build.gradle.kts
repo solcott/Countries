@@ -1,3 +1,4 @@
+import io.github.solcott.countries.build.Versions
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 // The desktop entry point, and the jvm counterpart to `:app` and `:web`. Like both of those it
@@ -18,9 +19,9 @@ plugins {
   alias(libs.plugins.metro)
 }
 
-// Versions.JVM_TOOLCHAIN, restated: build-logic's `Versions` is visible to convention plugins only,
-// and one module does not justify a new convention.
-kotlin { jvmToolchain(17) }
+// `Versions` reaches a module build script, not just the convention plugins: it ships in the same
+// build-logic jar as the `formatting` plugin above, which puts it on this script's classpath.
+kotlin { jvmToolchain(Versions.JVM_TOOLCHAIN) }
 
 sourceSets.main {
   // `icons/` is the source of truth for both consumers: jpackage reads the three files from disk
