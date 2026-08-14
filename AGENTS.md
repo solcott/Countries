@@ -3,13 +3,30 @@
 Android app that loads a list of countries from the public GraphQL API at
 https://countries.trevorblades.com/ and displays them.
 
+## Read first
+
+Per-platform detail lives in skills rather than here, so this file stays the part that applies to
+every task. **Read the matching skill before editing, not after** — most of what they document
+fails silently, so the cost of skipping one is a broken build you do not notice.
+
+| Touching | Read |
+| --- | --- |
+| `iosApp/`, `apple/`, or anything Swift export | `.claude/skills/apple-app/SKILL.md` |
+| the app icon, `desktop/icons/`, `Assets.xcassets` | `.claude/skills/apple-app-icons/SKILL.md` |
+| `web/`, browser history, the service worker | `.claude/skills/web-app/SKILL.md` |
+| `desktop/`, jpackage, the uber jar | `.claude/skills/desktop-app/SKILL.md` |
+| flags, emoji, or non-Latin text rendering | `.claude/skills/compose-fonts/SKILL.md` |
+| adding or changing a `@Preview` | `.claude/skills/compose-previews/SKILL.md` |
+
+They are ordinary markdown — open the path directly if the skill mechanism is not available.
+
 ## Tech stack
 
 | Concern | Choice |
 | --- | --- |
 | Language | Kotlin |
 | GraphQL client | Apollo Kotlin |
-| UI | Jetpack Compose; hand-written SwiftUI on Apple — see [The `apple` module](#the-apple-module) |
+| UI | Jetpack Compose; hand-written SwiftUI on Apple — see the `apple-app` skill |
 | Architecture | MVI via [Circuit](https://slackhq.github.io/circuit/) |
 | Presenters outside Compose | [Molecule](https://github.com/cashapp/molecule) — `@Composable` presenter → `StateFlow` for Swift |
 | Swift interop | Kotlin **Swift export** (Alpha) — sealed types → Swift enums, `Flow` → `AsyncSequence` |
@@ -83,8 +100,9 @@ Compose in a migrated module comes from **two** places, and the split is not arb
 
 **The project is on the Compose 1.12 line, and that is a deliberate choice made for the web
 target** — 1.12 is where Compose Multiplatform gained automatic fallback-font loading in the
-browser. See [Fonts on web](#fonts-on-web) below before considering a downgrade; on 1.11 every
-emoji and every non-Latin script renders as tofu.
+browser. **Do not drop `composeMultiplatform` below 1.12** — it reintroduces the bug silently, so
+everything builds and only a human looking at the running page notices. On 1.11 every emoji and
+every non-Latin script renders as tofu. See the `compose-fonts` skill before considering it.
 
 | Version ref | Value | Notes |
 | --- | --- | --- |
@@ -175,44 +193,6 @@ must contain no `?attr/…` theme attributes and no `@android:…` references** 
 resolve either, and both fail at runtime rather than at build time. Use literal colours
 (`#FFFFFFFF`) and let `Icon` supply the real colour from `LocalContentColor`.
 
-### Previews
-
-Previews come from `org.jetbrains.compose.ui:ui-tooling-preview`, and the import is
-**`androidx.compose.ui.tooling.preview.Preview`** — the AndroidX *names*, in `commonMain`. That
-artifact is the Compose Multiplatform build of the AndroidX preview API: it publishes a variant for
-every target this project has, and its common package is the `androidx` one, which is exactly why
-Android Studio renders `commonMain` previews and why the AndroidX multipreviews
-(`@PreviewScreenSizes`, `@PreviewLightDark`, `@PreviewFontScale`) and the full parameter list
-(`widthDp`, `device`, `uiMode`, …) are available in common code. There is an older
-`org.jetbrains.compose.ui.tooling.preview.Preview` from `components-ui-tooling-preview` — a bare
-annotation with no parameters. Do not use it.
-
-Two project multipreviews in `ui/…/PreviewSupport.kt`, so no preview repeats a device spec:
-
-| Annotation | Use it on | Renders |
-| --- | --- | --- |
-| `@AppScreenPreviews` | whole screens | `@PreviewScreenSizes` (phone portrait/landscape, unfolded foldable, tablet portrait/landscape, desktop) plus a compact browser window |
-| `@ComponentWidthPreviews` | a strip inside a screen | 360dp, 700dp, 1280dp |
-
-The same file holds `PreviewSurface` (wraps in `AppTheme` + `Surface`), sample `Country` /
-`Continent` / `CountryDetail` fixtures, and `loadedState` / `loadingState` / `refreshingState` /
-`failedState` for building a `ContentState`. Use them rather than inventing new fixtures — the
-sample list deliberately includes a country with a wrapping name and a null capital, which is what
-breaks a row first.
-
-Budget renders: the happy path gets the full size sweep, other states get `@PreviewLightDark` at
-phone size. `AppTheme` reads `isSystemInDarkTheme()`, which the renderer drives from `uiMode`, so
-`@PreviewLightDark` needs nothing passed to it.
-
-`PreviewSurface` is the one composable that emits UI without a `@Preview` of its own — it *is* the
-preview harness, so previewing it would be circular.
-
-**`ui/build.gradle.kts` declares the renderer as `androidRuntimeClasspath`, not
-`implementation`.** Android Studio resolves `ComposeViewAdapter` from the module's own runtime
-classpath, so the annotations alone draw nothing; `androidRuntimeClasspath` is resolvable-only and
-not a published variant, so the renderer is there for the IDE and never reaches `:app`. The AGP KMP
-library plugin has no build types, so there is no `debugImplementation` to scope it with.
-
 ### Apollo and Kotlin Multiplatform
 
 The Apollo Gradle plugin detects the KMP plugin by itself. It reads operations from
@@ -288,7 +268,7 @@ domain but the result of *reading* one, so they live in `dataresult`, which sits
 no dependencies at all. `uistate` sits just above it and depends on nothing else.
 
 That split is also what makes the Apple app's Swift export work, and the two reasons reinforce each
-other — see [The `apple` module](#the-apple-module). `dataresult`, `model` and `uistate` are the
+other — see the `apple-app` skill. `dataresult`, `model` and `uistate` are the
 three modules exported to Swift *in full*, which is only safe because none of them contains anything
 the generator chokes on. Adding a Compose type or a generic sealed type to any of the three breaks
 the iOS build, and nothing else will warn you.
@@ -307,7 +287,7 @@ There are **two graphs** because of how the platform apps differ:
   Circuit's counter sample) and needs neither a `Circuit` instance nor any `Ui.Factory`, so it
   links no Compose **UI**. It does link the Compose *runtime* and *foundation*, because that is
   what running a `@Composable` presenter under Molecule requires — see
-  [The `apple` module](#the-apple-module).
+  the `apple-app` skill.
 
 All packages live under `io.github.solcott.countries`, with each module using its
 own name as the suffix — `…countries.model`, `…countries.network`,
@@ -331,7 +311,7 @@ Rules:
   `rememberCircuitNavigator`'s `onRootPop` is the exception: it is genuinely per-platform
   (Android finishes the Activity; the browser and desktop no-op) and is passed in.
 - **`:ui` has exactly one platform seam: `LocalFlagFontFamily`.** It is null everywhere but
-  desktop — see [Fonts on desktop](#fonts-on-desktop). Resist adding a second; the reason this one
+  desktop — see the `compose-fonts` skill. Resist adding a second; the reason this one
   earns its place is that the alternative was a wrong-looking list on two of the six platforms.
 - A module contributes its own providers with `@ContributesTo(AppScope::class)`, next to the
   code they construct: `NetworkProviders` in `network`, `CircuitProviders` in `ui`,
@@ -349,6 +329,33 @@ Rules:
   never depend on `ui`.
 - Only the graph modules (`shared`, `shared-compose`) may depend broadly across the project.
 
+### The three non-Android entry points
+
+`web`, `desktop` and `apple` each have a skill; the routing table at the top says which. What
+follows is only the part you need to know without opening one — every item is something that
+**fails with no warning**, so it is repeated here deliberately rather than left to a skill load.
+
+- **None of the three applies `kmp-library`.** That convention is for libraries: it adds targets
+  they have no use for and never calls `binaries.executable()`.
+- **`:desktop`'s `nativeDistributions { modules(...) }` is load-bearing.** jpackage jlinks a
+  trimmed JDK and the default set omits what sqlite-jdbc and OkHttp's TLS need. `run` uses the full
+  JDK, so a missing module surfaces only in an *installed* build, as a crash on the first query.
+  Test packaging changes with `packageDistributionForCurrentOS`, never `run`.
+- **`:apple` — a Kotlin class must not share the exported module's name.** `CountriesKit` is
+  silently renamed `CountriesKit_` in the generated Swift; the entry point is `CountriesCore` for
+  that reason.
+- **`:apple` — sealed types that cross to Swift are `sealed class`, not `sealed interface`.**
+  Generic sealed interfaces generate Swift that does not compile, and their members are unreachable
+  from another module. Nothing warns; the skill has the full table.
+- **`:apple` — the deployment floor is iOS 18**, because Swift export's generated coroutine support
+  uses `Synchronization.Mutex`. No documentation mentions a minimum OS.
+- **The Apple app icon is generated, and an empty catalog is invisible.** An `.appiconset` whose
+  `Contents.json` lists sizes but no `filename` keys builds clean, emits no warning, and produces
+  an app with no icon. Verify in the built bundle, never from the build log.
+- **`:web`'s offline behaviour comes from the service worker, not the Apollo cache.** The
+  persistent cache only helps once the page is running; without `sw.js` an offline reload never
+  fetches the bundle at all.
+
 ### Metro graph aggregation — two rules that are easy to get wrong
 
 Both of these produce confusing errors rather than obvious ones, so they are worth knowing up
@@ -364,381 +371,6 @@ front when adding a module or a new graph:
    interfaces become *supertypes* of the generated graph, so anything consuming the graph has to
    see them too.
    *Symptom:* `Cannot access '…NetworkProviders' which is a supertype of 'ComposeGraph'`.
-
-### The `web` module
-
-The browser app, targeting **both** `js` and `wasmJs` from one module. Four things about it are
-not obvious:
-
-- **It does not apply `kmp-library`.** That convention is for libraries: it adds android, jvm,
-  ios and macos targets, and it never calls `binaries.executable()` — which is what turns a klib
-  into a webpack bundle. `web/build.gradle.kts` declares its two targets itself — and, because
-  the convention is not there to do it, wires `kotlin("test")` into `commonTest` by hand. It
-  still applies
-  `formatting`, and it applies `metro` so `createGraph<ComposeGraph>()` resolves, exactly as
-  `:app` does.
-- **`commonMain` *is* the web source set.** With only js and wasmJs on the module, the metadata
-  compilation resolves against `kotlinx-browser` and `org.w3c.dom`, so `window`, `history` and
-  the DOM event types are usable from common code with no `expect`/`actual` — the same thing
-  Compose Multiplatform does in its own `webMain`. There is no `src/webMain` here, and adding one
-  would buy nothing. `index.html` and `styles.css` live in `src/commonMain/resources/` and both
-  target distributions pick them up.
-- **`main()` mounts through `ComposeViewport(viewportContainerId = "composeApp")`** from
-  `androidx.compose.ui.window`, which is `@ExperimentalComposeUiApi`. It waits for the DOM and,
-  on wasm, for the runtime, so no `onWasmReady` wrapper is needed. The container must be sized by
-  CSS — Compose measures its viewport from the element, and a zero-height container renders
-  nothing with no error.
-- **Browser history is hand-written**, in `BrowserHistory.kt`. Circuit ships no web history
-  integration, and Compose Multiplatform's web `BackHandler` is driven by a
-  `NavigationEventDispatcher` that browser `popstate` does not feed. The binding is
-  bidirectional: pushes become `pushState`, in-app pops become `history.back()`, and `popstate`
-  drives the backstack. `Routes.kt` owns the URL scheme — hash routes (`#/`,
-  `#/country/{code}`), because a static bundle has no server to rewrite paths back to
-  `index.html`.
-
-  **The decision itself lives in `historyAction()` (`HistoryAction.kt`), which is pure and
-  tested — change the navigation rules there, not in the effect.** `BrowserHistory` only
-  executes the `HistoryAction` it returns. That split exists because the rule set is a six-way
-  precedence table that produced two bugs while it was welded to `window.history` and therefore
-  untestable. Note especially that the first reconciliation *seeds* history from the backstack
-  (`prevDepth == UNRECONCILED`): the document has one entry however deep the URL seeded the
-  backstack, so a deep link needs the list synthesised underneath it.
-
-Both web targets need **Chrome** installed to run, and `devNpm("copy-webpack-plugin")` is
-declared per target because `npm()`/`devNpm()` are only available to JS-family source sets.
-The js and wasm npm stores have **separate lockfiles and separate upgrade tasks** —
-`kotlinUpgradeYarnLock` and `kotlinWasmUpgradeYarnLock`. Adding an npm dependency needs both.
-
-Also add `binaries.executable()` to the `js` and `wasmJs` targets of any **Compose library**
-module — see `presenter/build.gradle.kts`. CMP 1.12 added
-`checkComposeUiTestConfigurationFor{Js,WasmJs}`, which hard-fails any module whose browser test
-bundle reaches skiko without an executable binary to bundle it into. It fires off the target's
-test task existing, not off there being test sources, and there is no opt-out property.
-
-### The `desktop` module
-
-The Windows/Linux/macOS app. It is the smallest of the three entry points, because everything that
-made `:web` interesting — history, a service worker, npm — the JVM either has already or does not
-need. Four things are worth knowing:
-
-- **It is a plain `kotlin("jvm")` module, not multiplatform.** Desktop *is* the jvm target, so
-  `kotlin { }` would hold exactly one target and `src/jvmMain` would be a directory with nothing to
-  distinguish it from `src/main`. `:web` is multiplatform because it genuinely serves two targets
-  from one module. Like `:web` it does not apply `kmp-library`, and like `:web` it declares
-  `kotlin("test")` and the JVM toolchain itself, since no convention is doing it.
-- **`compose.desktop.currentOs` is the one dependency declared through a plugin accessor rather
-  than a catalog coordinate.** It has to be: skiko's runtime jar is classified by OS *and*
-  architecture, and only the accessor picks the right one. **The consequence is that everything
-  built here runs on the build host's OS only** — including `packageUberJarForCurrentOS`. Real
-  cross-platform installers need the packaging task run on each OS, because jpackage cannot
-  cross-build either; that is a CI matrix, and this repo has no CI yet.
-- **`nativeDistributions { modules(...) }` is load-bearing and fails invisibly.** jpackage jlinks a
-  trimmed JDK, and the default module set has neither `java.sql`/`jdk.unsupported` (sqlite-jdbc,
-  under the Apollo cache) nor `java.naming`/`jdk.crypto.ec` (OkHttp's TLS). `run` uses the full
-  JDK, so a missing module never shows up in development — only in an installed build, as a crash
-  on the first query. Test packaging changes with `packageDistributionForCurrentOS`, not `run`.
-- **Keyboard back is `isBackShortcut()` in `BackShortcut.kt`**, pure and tested, for the same
-  reason `historyAction()` is: a rule welded to a `KeyEvent` cannot be tested without a window. The
-  backstack is hoisted out of `CountriesApp` so `Window`'s `onKeyEvent` can reach it. `onRootPop`
-  is deliberately left at its default no-op — the close button is how you leave a desktop app, and
-  Esc on the root screen should not quit it.
-
-Icons live in `desktop/icons/` and are the source of truth for the app icon **on every platform**:
-jpackage reads all three from disk, `icon.png` is also on the runtime classpath for the window and
-dock icon, and the Apple asset catalog is derived from `icon.icns` — see
-[App icons on Apple](#app-icons-on-apple). `build.gradle.kts` adds that directory as a resource
-root and excludes `*.icns`/`*.ico` from the jar, since only the PNG is useful at runtime.
-
-### App icons on Apple
-
-The PNGs in `iosApp/Countries/Assets.xcassets/AppIcon.appiconset` are **derived from
-`desktop/icons/icon.icns`**, the only file there carrying a 1024×1024 representation. They are
-committed as plain images — Xcode has no build step that would produce them, and there is no
-generator to run. Redo them by hand if the artwork changes; the recipe is below.
-
-macOS and iOS need materially different images out of that one source, which is the part to get
-right:
-
-| | macOS | iOS |
-| --- | --- | --- |
-| Shape | rounded rect inset in a transparent margin, as drawn | **full bleed**, square |
-| Alpha | required | **must not have any** |
-| Sizes | ten, 16pt–512pt @1x/2x | one 1024×1024 universal |
-
-The ten macOS images are the source art unchanged, and come straight out of the icns:
-
-```
-iconutil -c iconset desktop/icons/icon.icns -o /tmp/icon.iconset
-```
-
-`icon_16x16.png` … `icon_512x512@2x.png` map onto the `mac-*` filenames one for one.
-
-**The iOS image is the one that needs work**, because iOS applies its own superellipse mask: handing
-it the macOS art shows a rounded rect *inside* iOS's rounding with the corners going black, and App
-Store validation rejects an icon carrying an alpha channel at all. Build it from
-`icon_512x512@2x.png` (1024×1024) in four steps:
-
-1. **Crop to `(61, 61, 963, 963)`** — the opaque bounds of the rounded rect, i.e. the transparent
-   margin removed. Re-measure this if the artwork is redrawn; it is the alpha channel's bounding box.
-2. **Scale that 902px crop to 1024×1024.** Not arbitrary: it leaves the globe at 729px, the same
-   71.2% of the visible icon it occupies on macOS.
-3. **Composite over an opaque vertical gradient**, `#785F98` at the top to `#584077` at the bottom —
-   the colours sampled at the rect's own top and bottom edges. The rect's rounded corners are still
-   transparent inside that crop, and this is what fills them seamlessly.
-4. **Flatten to RGB**, so the file has no alpha channel at all.
-
-Verify the result is `RGB` and not `RGBA`, and that its four corner pixels equal the gradient
-endpoints. `actool` will add a fully-opaque alpha channel to the compiled output, which is expected
-and fine — validation looks at the source.
-
-**A missing image here fails silently.** An `.appiconset` whose `Contents.json` lists sizes but no
-`filename` keys — Xcode's default placeholder, and what this was before — builds clean, emits no
-warning, and simply produces an app with no icon. Verify by checking the built bundle rather than
-the build log: `Countries.app/AppIcon60x60@2x.png` on iOS, `Contents/Resources/AppIcon.icns` on
-macOS. Neither exists when the catalog is empty.
-
-### The `apple` module
-
-The Kotlin half of the SwiftUI app, exported to Swift and linked by
-`iosApp/Countries.xcodeproj`. One target covers iPhone, iPad and Mac — hence `:apple`, not `:ios`.
-
-**The UI is hand-written SwiftUI and is not a port of the Compose design.** Same data, same states,
-same behaviour, expressed with Apple idioms: `.searchable` rather than a text field pinned in the
-list, `ContentUnavailableView` rather than `ErrorContent`, pull-to-refresh rather than a progress
-strip, `Form`/`LabeledContent` rather than a column of "Label: value" text.
-
-SwiftUI rather than UIKit because **UIKit does not run on macOS** — that is AppKit, a different
-framework — and the usual escape hatch is closed: **Kotlin/Native has no Mac Catalyst target**, so a
-KMP framework cannot link into a Catalyst app.
-
-Five things worth knowing:
-
-- **Presenters reach Swift through Molecule, not directly.** A Circuit presenter here is a
-  `@Composable` function with a hidden `$composer` parameter, so Swift cannot call it at all.
-  `PresenterHolders.kt` runs it with `launchMolecule(RecompositionMode.Immediate)` and exposes a
-  `StateFlow`. That is why `:apple` applies the Compose compiler plugin despite rendering nothing,
-  and why the framework links Compose runtime and foundation. Unlike Circuit's counter sample the
-  holders do **not** wrap in `presenterOf { }` — `launchMolecule` already takes a `@Composable`
-  lambda, and wrapping introduces a `@ComposableTarget("presenter")` mismatch — and they expose
-  `cancel()`, which the sample omits and a repeatedly-opened detail screen needs.
-- **`PresenterHolder`, the shared base, is deliberately not generic.** The scope, `cancel()` and the
-  Molecule launch are shared; `state` stays declared concretely on each subclass. A
-  `PresenterHolder<UiState>` would have its type parameter erased to its upper bound. The Swift side
-  *is* generic (`PresenterModel<Holder>`), which is fine: Swift generics are real.
-- **Swift export is why `kotlin` is pinned to 2.4.20.** `StateFlow` arrives as
-  `KotlinTypedStateFlow<T>` with a typed non-optional `value` and `asAsyncSequence()`; sealed types
-  get a generated `sealedType()` returning an exhaustively switchable Swift enum. Both landed after
-  2.4.10, so dropping below 2.4.20 costs the two things that make the exported API usable from
-  Swift at all.
-- **Sealed types that cross to Swift are `sealed class`, not `sealed interface`.** The release notes
-  say 2.4.20-RC "adds support for sealed classes and interfaces", and that is true of the pattern
-  their example shows — *reading* a non-generic hierarchy through `sealedType()`. Two things outside
-  that pattern still do not work, both **re-verified against 2.4.20-RC**, and nothing warns you:
-
-  | | sealed interface | sealed class |
-  | --- | --- | --- |
-  | Read via `sealedType()` | works | works |
-  | **Generic** (`Outcome<out T>`) | **generated Swift does not compile** | works |
-  | Name or construct a member (`DataError.Network`) from another module | **unreachable** | works |
-
-  The generic case fails because the erased subtype cannot be made to conform to the erased parent
-  protocol; as a class it is plain subclassing, which survives erasure. The member case fails
-  because the nested convenience names are emitted as typealiases with **no access modifier**, so
-  they default to `internal` in the generated module while only the mangled top-level class is
-  `public`.
-
-  So `Outcome` has no choice — it is generic. `DataError` and `LoadStatus` are a deliberate
-  trade: the app only ever *reads* them through `sealedType()` and would be fine either way, but
-  `CountriesTests` constructs their members, and as interfaces that would mean reintroducing a file
-  of mangled-name aliases. Sealed classes cost the more idiomatic Kotlin and buy no shim.
-
-  `Event` in the two Screens stays an interface — it has `CircuitUiEvent` as a second supertype, and
-  it never crosses to Swift.
-- **`export(project(…))` means something different here than on an Obj-C framework.** Swift export
-  already emits everything reachable from the module's public API, so exporting is not what makes
-  types visible — it is the only way to set `flattenPackage`, and it exports that module's API *in
-  full*. Only `:dataresult`, `:model` and `:uistate` are exported, because only they are free of
-  anything the generator rejects.
-- **`-lsqlite3` moved to Xcode.** Swift export produces a static library, which records no linker
-  options, so SQLiter's symbols resolve at the app link via `OTHER_LDFLAGS`. macOS additionally
-  needs `-Wl,-U,_sqlite3_load_extension` and `-Wl,-U,_sqlite3_enable_load_extension`: Apple's system
-  libsqlite3 omits both, SQLiter references and never calls them, and the old *dynamic* framework
-  never had to resolve them.
-- **The deployment floor is iOS 18, not 17.** Swift export's generated coroutine support uses
-  `Synchronization.Mutex`. Nothing in the documentation mentions a minimum OS.
-- **A Kotlin class must not share the module's name.** `CountriesKit` would be silently renamed to
-  `CountriesKit_` in Swift; the entry point is `CountriesCore` for that reason.
-
-Navigation is Swift's. `NavigationSplitView` with a `selection: String?` is the whole navigation
-state — it collapses to push-and-pop on iPhone and gives two columns on iPad and Mac. `SwiftNavigator`
-forwards navigation into Swift closures and mirrors the stack back through `syncFromSwift`, so there
-is exactly one writer and none of the feedback-loop guarding `BrowserHistory` needs. Its Swift-facing
-API is **country codes, not `Screen`s** — the two Circuit `Screen`s are built inside `SwiftNavigator`,
-which keeps Circuit out of the Swift surface entirely.
-
-**`AppleUiState.kt` is the boundary, and it exists because of `TextFieldState`.** Swift never sees
-`CountryListScreen.State`: it carries a Compose `TextFieldState`, and Swift export generates
-uncompilable Swift for Compose's `Saver` (its `save` takes an extension receiver, and the generated
-reverse-interop thunk drops it). `:apple` publishes `CountryListUiState`/`CountryDetailUiState`
-instead — no Compose, no Circuit, no generics — and replaces `eventSink` with named methods on the
-holder. Keeping `eventSink` `internal` matters: `CountryListScreen.Event` is a sibling nested type of
-`CountryListScreen.State`, so exporting one risks dragging the other, and `TextFieldState` with it.
-
-Xcode integration is the standard KMP "direct integration": a Run Script phase runs
-`:apple:embedSwiftExportForXcode`, which handles only the slice Xcode is currently targeting. There
-is no framework and nothing to sign — Swift export emits Swift source, builds it as a synthetic SPM
-package, and copies a static `libCountriesKit.a` plus the `.swiftmodule` interfaces into
-`$BUILT_PRODUCTS_DIR`. `project.pbxproj` uses a `PBXFileSystemSynchronizedRootGroup`, so new Swift
-files need no project edit.
-
-### Swift export bugs worth reporting
-
-Found while porting, all against Kotlin 2.4.20 (Beta2, and still present on RC), none of them
-documented. A YouTrack search
-turned up no existing report for either of the first two, though that search was shallow:
-
-1. **A generic sealed interface generates Swift that does not compile.** `sealed interface
-   Outcome<out T>` produces `cannot convert value of type '…Outcome_Data' to specified type
-   '…Outcome'` — the erased subtype is not made to conform to the erased parent protocol. Workaround:
-   make it a `sealed class`. **Still present on 2.4.20-RC**, the release that claims sealed-interface
-   support; a non-generic sealed interface is fine, so the gap is specifically generics.
-2. **Sealed interface members are unreachable across modules.** The nested convenience names
-   (`DataError.Network`) are emitted as typealiases with no access modifier, so they default to
-   `internal` in the generated module while only the mangled top-level class is `public`. Workaround:
-   make it a `sealed class`. **Still present on 2.4.20-RC.** Reading through `sealedType()` is
-   unaffected — this only bites code that names or constructs a member.
-3. **`Saver.save` — a method with an extension receiver — generates a malformed reverse-interop
-   thunk**, passing the receiver as the `value:` argument and omitting the receiver. This is what
-   makes any Compose type in the exported API fatal.
-4. **The generated coroutine support requires iOS 18** (`Synchronization.Mutex`) with no
-   documentation of a minimum OS, and no diagnostic beyond a Swift compile error deep in generated
-   code.
-
-### Testing the Apple app
-
-Three suites, and they are deliberately different tools:
-
-| Where | Tool | Covers |
-| --- | --- | --- |
-| `apple/src/commonTest` | `kotlin.test` | `SwiftNavigator`, and that Molecule turns a `@Composable` presenter into an observable `StateFlow` |
-| `iosApp/CountriesTests` | Swift Testing | the pure Swift presentation logic — `userMessage(for:)`, `loadPhase`, row subtitles |
-| `iosApp/CountriesUITests` | **XCTest** | the touch paths: selection, search, continent filter, back, and the iPad two-column layout |
-
-The UI tests are XCTest rather than Swift Testing because Swift Testing has no UI-testing support —
-`XCUIApplication` assertions require `XCTestCase`. That inconsistency is forced, not an oversight.
-
-Two things to know before adding a UI test:
-
-- **Fixtures must be at the top of the list.** `List` only realises visible rows, so a country
-  further down does not exist as an accessibility element until it is scrolled to. The first draft
-  of these tests used Canada and every one failed on a row that was merely off screen; they use
-  Andorra and the UAE, rows one and two, via the constants in `UITestSupport.swift`.
-- **`LabeledContent` merges its label and value into one element**, so the detail screen's values
-  are not addressable as exact `staticTexts`. Match with a `label CONTAINS` predicate.
-
-`NavigationUITests` branches on `UIDevice.current.userInterfaceIdiom` with `XCTSkipUnless`, so the
-suite is meaningful on both destinations rather than passing vacuously on one.
-`testListAndDetailAreVisibleTogetherOnIPad` is the regression test for the iPad portrait bug and has
-been confirmed to fail against the pre-fix `.automatic` column visibility.
-
-These tests hit the live GraphQL API, so a cold simulator needs network; reruns are warm from the
-Apollo SQLite cache. A hermetic version would need a launch argument swapping in a stub repository,
-which means production code changing shape for tests — not done.
-
-### Fonts on desktop
-
-Same root cause as [Fonts on web](#fonts-on-web) — Skia has no system font manager — but a
-different outcome per platform, and the 1.12 web font downloader does not apply here.
-
-| Platform | Flags | Non-Latin native names |
-| --- | --- | --- |
-| macOS | Apple Color Emoji, fine | fine |
-| Windows | **Segoe UI Emoji has no flag glyphs** — renders as the letter pair, e.g. "FR" | fine |
-| Linux | tofu without Noto Color Emoji | tofu without Noto CJK etc. |
-
-Windows omitting flag glyphs is Microsoft's deliberate policy, not a gap that will close. So
-`:desktop` bundles `NotoColorEmoji-flagsonly.ttf` and provides it through `:ui`'s
-`LocalFlagFontFamily`. That covers the flags. **It does not cover the non-Latin names on Linux** —
-that would mean committing several MB of Noto CJK, and a Linux desktop that renders no CJK at all
-is a system that will fail on far more than this app.
-
-The font is upstream, verbatim, so updating it is a download:
-
-```
-curl -LO https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji-flagsonly.ttf
-```
-
-It is SIL Open Font License 1.1; the notice is committed beside it as
-`desktop/src/main/resources/font/OFL.txt`.
-
-Two rules that `FlagFontTest` pins, both discovered the hard way:
-
-- **It must be the CBDT build, not `Noto-COLRv1.ttf`.** COLRv1 needs FreeType 2.11+ on Linux or a
-  Windows 11-era DirectWrite to rasterise, and where it is unsupported it draws *nothing* rather
-  than falling back. Blank is a worse failure than letters. CBDT stores each glyph as a PNG, which
-  is the most widely supported colour format there is.
-- **It must not be handed to macOS.** Skia goes through CoreText there, and CoreText refuses to
-  load a bitmap-only font outright — `makeFromData` returns null, and the flags would disappear on
-  the one platform that never needed the font. `needsBundledFlagFont()` is the guard, and
-  `flagFontFamily` is null on macOS. (The COLRv1 build is not the escape hatch: CoreText loads it
-  and then Skia's CoreText scaler renders its layers as nothing.)
-
-The practical consequence for anyone changing this: **macOS cannot verify the font renders.** The
-test states the invariant as "wherever Skia can load it, it must ligate and rasterise in colour;
-where it cannot, the app must not be using it", which is the strongest thing a Mac can assert.
-Flags on Windows and Linux need a real machine.
-
-### Offline, and the service worker
-
-`web/src/commonMain/resources/sw.js`, registered from `ServiceWorker.kt`. **This is the thing that
-makes the app load with no network at all.** The persistent Apollo cache only helps once the page
-is running; without a service worker an offline reload never gets that far, because the bundle
-itself cannot be fetched.
-
-| Request | Strategy | Why |
-| --- | --- | --- |
-| Same-origin `GET` | stale-while-revalidate | The app shell, the hashed `.wasm` chunks, `composeResources` |
-| `fonts.gstatic.com` | cache-first | Immutable, and what keeps flags and non-Latin text from reverting to tofu offline |
-| GraphQL `POST` | network-first, cache fallback | The Cache API ignores POSTs, so responses are keyed by a hash of the request body |
-
-**Nothing is precached.** The bundle filenames are content-hashed, so a hard-coded manifest would
-rot on every build; the shell is cached as it is first requested instead. The cost is that the app
-needs one online visit before it works offline.
-
-Two practical notes:
-
-- **Bump `CACHE_VERSION` to evict everything.** `activate` deletes every cache that is not current.
-- **Under `webpack-dev-server`, stale-while-revalidate can serve one-load-stale content.** That is
-  the strategy working, not a build bug — `skipWaiting()` means the next reload picks up the new
-  bundle. Verify offline behaviour against a *distribution* served by a static file server, not
-  against the dev server.
-
-### Fonts on web
-
-**Skia has no system font manager in a browser.** The browser's own fonts are unreachable from it —
-Compose rasterises text into a canvas — so a codepoint with no glyph in a font Skia has been *given*
-renders as tofu. Android, desktop and iOS are fine because those platforms expose a system font
-fallback. This app hits it hard: flags on all 250 rows, and 53 countries whose `native` name needs
-one of 14 non-Latin scripts.
-
-Compose Multiplatform **1.12** solves it. `ComposeWindow` calls `installFallbackFontDownloader()`
-unconditionally on web; Skia reports unresolved codepoints during layout, the downloader batches
-them, fetches the matching Noto woff2 subsets from `https://fonts.gstatic.com/s/`, preloads them,
-and calls `onNewFontInstalled()` to force a re-layout. Noto Color Emoji is in that table — chunk 0
-is exactly the flag block `U+1f1e6-1f1ff` — and the CJK variant is picked from
-`navigator.language`.
-
-So:
-
-- **Do not bundle fallback fonts, and do not hand-roll `FontFamily.Resolver.preload`.** That is the
-  documented approach for 1.11 and earlier, and it is obsolete here. It would mean committing
-  megabytes of woff2 and rebuilding the resolver on every late font arrival (`FontCache` is
-  per-resolver, so a fresh one has to be re-preloaded with the whole accumulated set).
-- **The downloader is unconditional — there is no property to turn it off.** The web app therefore
-  makes runtime requests to a Google CDN, and non-Latin text and flags will not render offline
-  until the browser has cached those files.
-- **Do not drop `composeMultiplatform` below 1.12.** It reintroduces the bug silently: everything
-  builds, and only a human looking at the running page notices.
 
 ## Conventions
 
@@ -759,9 +391,9 @@ So:
   `DataError.toUserMessage()` (returns a `String`) correctly have none.
   `detekt/detekt.yml` already enables `ModifierMissing` and `ModifierNotUsedAtRoot`, but detekt
   is currently only wired up for `build-logic`, so nothing enforces this in the modules yet.
-- **Every composable that emits UI has a `@Preview`** — see [Previews](#previews) for the import,
-  the two project multipreview annotations, and the fixtures to reuse. Preview the states that are
-  easy to break, not just the happy path: loading, loaded, error, empty.
+- **Every composable that emits UI has a `@Preview`** — see the `compose-previews` skill for the
+  import, the two project multipreview annotations, and the fixtures to reuse. Preview the states
+  that are easy to break, not just the happy path: loading, loaded, error, empty.
 
 ## Build setup
 
@@ -870,7 +502,7 @@ macOS UI-test runner cannot be ad-hoc signed. Nothing is lost: the unit tests ar
 with no platform-specific behaviour, and they run on the simulator.
 
 Both desktop packaging tasks produce a build for the **host** OS only — see
-[The `desktop` module](#the-desktop-module).
+the `desktop-app` skill.
 
 `ktfmtCheck` at the root does not cover `build-logic` — that is a separate included build.
 Run it from inside `build-logic/` to check the convention plugins.

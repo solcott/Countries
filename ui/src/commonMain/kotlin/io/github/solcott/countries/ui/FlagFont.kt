@@ -8,7 +8,7 @@ import androidx.compose.ui.text.font.FontFamily
  *
  * `null` is right almost everywhere: Android, iOS and macOS all ship a font with the regional
  * indicator ligatures, and on web Compose Multiplatform downloads the Noto Color Emoji subset
- * itself (see the fonts note in AGENTS.md).
+ * itself (see `.claude/skills/compose-fonts/SKILL.md`).
  *
  * Desktop is the exception, and only on two of its three platforms. Skia has no system font manager
  * of its own, so it renders whatever the OS hands it: Windows' Segoe UI Emoji has no flag glyphs at
