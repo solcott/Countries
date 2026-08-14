@@ -3,7 +3,7 @@
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
 agp = "9.3.1"
 kotlin = "2.4.10"
-metro = "1.4.1"
+metro = "1.4.2"
 apollo = "5.0.1"
 apollo-normalized-cache = "1.0.6"
 # What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
@@ -15,12 +15,12 @@ ktfmt = "0.27.0"
 kmp-parcelize = "1.0.4"
 
 # Circuit (MVI). Metro provides the @CircuitInject codegen.
-circuit = "0.36.0"
+circuit = "0.36.1"
 
 # Compose. Explicit versions rather than the BOM, so the alpha Material3 line can be
 # pinned independently of the UI/foundation line.
-composeUi = "1.12.0-rc01"
-material3 = "1.5.0-alpha25"
+composeUi = "1.12.0"
+material3 = "1.5.0-alpha26"
 
 # Compose Multiplatform. androidx.compose.foundation is Android-only, so `foundation` (and the
 # TextFieldState in CountryListScreen.State) has to come from here.
@@ -60,7 +60,7 @@ turbine = "1.2.1"
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 
 # AndroidX core
-androidx-appcompat = { module = "androidx.appcompat:appcompat", version = "1.7.1" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version = "1.8.0" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
@@ -134,7 +134,7 @@ kotlin-compose-compiler-plugin = { module = "org.jetbrains.kotlin:compose-compil
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-dependency-sorter = { id = "com.squareup.sort-dependencies", version = "0.20.0" }
+dependency-sorter = { id = "com.squareup.sort-dependencies", version = "0.21.0" }
 detekt = { id = "dev.detekt", version = "2.0.0-alpha.6" }
 metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }

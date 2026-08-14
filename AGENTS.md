@@ -87,9 +87,9 @@ emoji and every non-Latin script renders as tofu.
 | Version ref | Value | Notes |
 | --- | --- | --- |
 | `composeMultiplatform` | `1.12.0-rc01` | Prerelease. The web font downloader landed in 1.12.0-alpha02 |
-| `composeUi` (AndroidX) | `1.12.0-rc01` | CMP 1.12.0-rc01 asks for the same AndroidX version |
+| `composeUi` (AndroidX) | `1.12.0` | Stable. Only reaches modules that declare it — see the skew note below |
 | `composeMaterial3` (CMP) | `1.12.0-alpha03` | Wants CMP core 1.12.0-beta01, satisfied by rc01 |
-| `material3` (AndroidX) | `1.5.0-alpha25` | CMP material3 asks for 1.5.0-alpha22, so ours wins |
+| `material3` (AndroidX) | `1.5.0-alpha26` | CMP material3 asks for 1.5.0-alpha22, so ours wins |
 
 **material3 is on its own version line — `composeMaterial3`, not `composeMultiplatform`.** It does
 not track the core version and never has; the CMP plugin's own `compose.material3` accessor pins
@@ -97,13 +97,27 @@ something far behind, which would drag AndroidX material3 *backwards* several mi
 set `composeMaterial3` explicitly, and when changing it check two things: which CMP core version it
 requires, and which AndroidX material3 it aliases.
 
-There is **no version skew on Android** — every `androidx.compose.{ui,foundation,animation,runtime}`
-artifact resolves to 1.12.0-rc01. That is worth stating because it was not true before: while CMP
-sat at 1.12.0-beta03 it requested AndroidX beta02 for `foundation` and `animation`, and only `ui`
-and `runtime` came up to rc01 off the catalog pin. Moving CMP to rc01 closed the gap. Check it with
-`./gradlew :ui:dependencies --configuration androidCompileClasspath` after any Compose bump; a split
-across two prerelease builds of the same line is tolerable, but it should be a known state rather
-than a surprise.
+**There is version skew on Android, in two directions, and it is accepted.** It is worth writing
+down precisely, because it is easy to measure one module and conclude the wrong thing:
+
+| | `androidx.compose.ui:*` | `runtime:*` | `foundation:*`, `animation:*` |
+| --- | --- | --- | --- |
+| `:app` | 1.12.0 | 1.12.0 | **1.12.0-beta01** |
+| `:ui` | 1.12.0-rc01 | 1.12.0-rc01 | 1.12.0-rc01 |
+
+Two separate causes. Within `:app`, `ui` and `runtime` follow the `composeUi` catalog pin because
+something declares them directly — `androidx-compose-ui` in `app/build.gradle.kts` and
+`androidx-compose-runtime-retain` in `presenter/build.gradle.kts`. Nothing declares `foundation` or
+`animation`, so they land on whatever Compose Multiplatform and material3 ask for. Across modules,
+`:ui` declares no AndroidX Compose artifact at all, so CMP's own constraints drive it wholesale.
+
+All of it stays inside the 1.12 line, which is why it is tolerable. Check **both** configurations
+after any Compose bump — a single module is not representative:
+
+```
+./gradlew :app:dependencies --configuration debugCompileClasspath
+./gradlew :ui:dependencies  --configuration androidCompileClasspath
+```
 
 Three build requirements that are easy to miss:
 
