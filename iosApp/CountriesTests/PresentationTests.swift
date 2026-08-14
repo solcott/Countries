@@ -75,3 +75,27 @@ struct CountryDisplayTests {
     #expect(!described.contains("🇨🇦"))
   }
 }
+
+/// The plural is the only piece of display logic here that a catalog can get wrong, and the only
+/// one that was wrong before: the caption used to be a hand-written `count == 1` ternary, which
+/// encodes English's two plural forms into the source.
+///
+/// These assert the *English* output, which is what the source language of the catalog resolves to
+/// under test. They are a check on the `variations.plural` entry being present and correct, not on
+/// any other language — a locale with a `few` category is the catalog's job, not Swift's.
+struct CountriesCaptionTests {
+
+  @Test func oneCountryUsesTheSingular() {
+    #expect(countriesCaption(1) == "1 country")
+  }
+
+  @Test func severalCountriesUseThePlural() {
+    #expect(countriesCaption(250) == "250 countries")
+  }
+
+  @Test func zeroUsesThePluralInEnglish() {
+    // English puts zero in `other`, not in a category of its own. Worth pinning: it is the case a
+    // hand-written `== 1` ternary gets right by accident and a bad catalog entry gets wrong.
+    #expect(countriesCaption(0) == "0 countries")
+  }
+}

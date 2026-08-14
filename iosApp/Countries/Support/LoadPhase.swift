@@ -56,23 +56,13 @@ extension LoadPhase {
 /// should say the same thing.
 func userMessage(for error: DataError) -> String {
   switch error.sealedType() {
-  case .network:
-    return String(
-      localized: "You appear to be offline. Check your connection and try again.",
-      comment: "Shown when a request failed with no usable response")
-  case .http(let http):
-    return String(
-      localized: "The server returned an error (\(http.value.code)).",
-      comment: "Shown when a request returned a non-success HTTP status")
-  case .api:
-    return String(
-      localized: "The server was unable to complete your request.",
-      comment: "Shown when the GraphQL response carried errors")
-  case .serialization:
-    return String(
-      localized: "Something went wrong reading the response.",
-      comment: "Shown when a response could not be decoded")
-  case .unknown:
-    return String(localized: "An unknown error occurred.", comment: "Fallback error message")
+  case .network: String(localized: .errorOffline)
+  // `Int32`, not `Int`: the catalog entry is written with `%d` because Kotlin's `Int` arrives here
+  // as `Int32`. The generated symbol takes whatever the specifier implies, so a mismatch between
+  // the two is a compile error rather than a malformed message.
+  case .http(let http): String(localized: .errorHTTP(http.value.code))
+  case .api: String(localized: .errorAPI)
+  case .serialization: String(localized: .errorSerialization)
+  case .unknown: String(localized: .errorUnknown)
   }
 }
