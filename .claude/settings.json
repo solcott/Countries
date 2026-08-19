@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew *)",
+      "Bash(cd build-logic && ./gradlew *)",
+      "Bash(xcodebuild *)",
+      "Bash(xcrun simctl list *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr list *)",
+      "Bash(gh api repos/solcott/Countries/*)",
+      "Bash(./gradlew :ui:dependencies *)",
+      "Bash(./gradlew :app:dependencies *)",
+      "Bash(adb shell dumpsys *)",
+      "Bash(./gradlew ktfmtCheck)",
+      "Bash(adb logcat -d *)",
+      "Bash(adb devices *)",
+      "Bash(./gradlew tasks *)",
+      "Bash(adb exec-out screencap *)",
+      "Bash(xcodebuild -list *)",
+      "Bash(xcodebuild -version *)",
+      "Bash(adb shell pidof *)",
+      "Bash(plutil -p *)"
+    ]
+  }
+}
