@@ -47,7 +47,11 @@ fun CountriesApp(
   onRootPop: (PopResult?) -> Unit = {},
 ) {
   AppTheme {
-    val navigator = rememberCircuitNavigator(backStack, onRootPop)
+    // `enableBackHandler` is passed explicitly because leaving it off does not mean "default to
+    // true" — it selects a *different* overload, the two-argument one, which installs no
+    // NavigationBackHandler at all. Without it Android's system back never reaches the navigator,
+    // so backing out of the detail screen exited the app instead of returning to the list.
+    val navigator = rememberCircuitNavigator(backStack, onRootPop, enableBackHandler = true)
     CircuitCompositionLocals(circuit) {
       CountriesAppScaffold(
         navigator = navigator,
