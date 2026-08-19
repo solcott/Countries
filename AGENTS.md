@@ -17,6 +17,11 @@ fails silently, so the cost of skipping one is a broken build you do not notice.
 | `desktop/`, jpackage, the uber jar | `.claude/skills/desktop-app/SKILL.md` |
 | flags, emoji, or non-Latin text rendering | `.claude/skills/compose-fonts/SKILL.md` |
 | adding or changing a `@Preview` | `.claude/skills/compose-previews/SKILL.md` |
+| `network/`, a `.graphql` operation, the SQL.js worker | `.claude/skills/network-apollo/SKILL.md` |
+| `gradle/libs.versions.toml`, the Compose BOM, an npm dependency | `.claude/skills/dependency-bump/SKILL.md` |
+| adding a Circuit screen | `.claude/skills/add-screen/SKILL.md` |
+| deciding what to build or test before committing | `.claude/skills/verify/SKILL.md` |
+| GitHub PR review comments, rebasing the stack | `.claude/skills/pr-review/SKILL.md` |
 
 They are ordinary markdown — open the path directly if the skill mechanism is not available.
 
@@ -89,90 +94,21 @@ only two module conventions left.
 
 ### Compose and Kotlin Multiplatform
 
-Compose in a migrated module comes from **two** places, and the split is not arbitrary:
+Compose here comes from **two** places, and the split is not arbitrary: `org.jetbrains.compose.*`
+supplies `runtime`, `foundation`, `ui` and `material3` — the AndroidX equivalents of the middle two
+are Android-only — while `retain` comes from `androidx.compose.runtime:runtime-retain`, which has no
+Compose Multiplatform equivalent. Strings and drawables come from
+`org.jetbrains.compose.components:components-resources`.
 
-| Need | Artifact | Why |
-| --- | --- | --- |
-| `runtime`, `runtime-saveable` | `org.jetbrains.compose.*` | Thin aliases; `androidx.compose.runtime` is already multiplatform |
-| `foundation` (incl. `TextFieldState`), `ui`, `material3` | `org.jetbrains.compose.*` | **The AndroidX equivalents are Android-only** — they publish `android` plus `jvmstubs`/`linuxx64stubs`, which are not real implementations |
-| `retain` | `androidx.compose.runtime:runtime-retain` | Multiplatform already, and has **no** Compose Multiplatform equivalent |
-| strings, drawables | `org.jetbrains.compose.components:components-resources` | The multiplatform replacement for Android `res/` |
+**The AndroidX Compose BOM aligns the Android side and is applied to Android configurations only,
+never `commonMain`; Compose Multiplatform owns everything else.** Every version pin carries its
+reasoning inline in `gradle/libs.versions.toml`, next to the pin.
 
-**The project is on the Compose 1.12 line, and that is a deliberate choice made for the web
-target** — 1.12 is where Compose Multiplatform gained automatic fallback-font loading in the
-browser. **Do not drop `composeMultiplatform` below 1.12** — it reintroduces the bug silently, so
-everything builds and only a human looking at the running page notices. On 1.11 every emoji and
-every non-Latin script renders as tofu. See the `compose-fonts` skill before considering it.
-
-| Version ref | Value | Notes |
-| --- | --- | --- |
-| `composeMultiplatform` | `1.12.0-rc01` | Prerelease. The web font downloader landed in 1.12.0-alpha02 |
-| `composeBom` (AndroidX) | `2026.08.00` | The BOM whose core artifacts are 1.12.0. Android configurations only |
-| `composeUi` (AndroidX) | `1.12.0` | For the two coordinates the Android-only BOM cannot reach — see below |
-| `composeMaterial3` (CMP) | `1.12.0-alpha03` | Wants CMP core 1.12.0-beta01, satisfied by rc01 |
-| `material3` (AndroidX) | `1.5.0-alpha26` | Deliberately outside the BOM, which manages it at 1.4.0 |
-
-**material3 is on its own version line — `composeMaterial3`, not `composeMultiplatform`.** It does
-not track the core version and never has; the CMP plugin's own `compose.material3` accessor pins
-something far behind, which would drag AndroidX material3 *backwards* several minor lines. Always
-set `composeMaterial3` explicitly, and when changing it check two things: which CMP core version it
-requires, and which AndroidX material3 it aliases.
-
-**The AndroidX Compose BOM aligns the Android side; Compose Multiplatform owns everything else.**
-That division is the whole versioning story here, and it is worth stating because the failure it
-prevents is silent.
-
-Without the BOM only `ui` and `runtime` were declared anywhere, so only they followed the `composeUi`
-pin; nothing declared `foundation` or `animation`, so those drifted to whatever CMP and material3
-happened to request — 1.12.0-beta01 while the rest of `:app` was on 1.12.0. Nothing warns about that.
-
-`androidx.compose:compose-bom` is applied to **Android configurations only** — `:app`, and an
-`androidMain.dependencies` block in `:ui` and `:presenter`, the only two KMP modules that pull
-Compose. It must never go in `commonMain`: `androidx.compose.runtime` is genuinely multiplatform and
-reaches jvm/native/web through CMP's thin alias, so a common-scoped BOM would drag those onto the
-AndroidX line too.
-
-Two details that will bite whoever bumps this next:
-
-- **`platform(...)` does not exist on a KMP source-set dependency handler.** It is not Gradle's
-  `DependencyHandler`, so an `androidMain.dependencies { }` block needs
-  `project.dependencies.platform(...)`. A bare `platform(...)` fails with `Unresolved reference`.
-- **material3 is deliberately outside the BOM.** The BOM manages it at 1.4.0, older than the alpha
-  line this project tracks. That is harmless *because* a direct dependency with an explicit version
-  beats a lower BOM constraint: `:app` resolves 1.5.0-alpha26 from the catalog and `:ui` resolves
-  1.5.0-alpha22 through CMP's material3. Both resolve **up** from 1.4.0, never back. Re-check that
-  after a BOM bump — if a future BOM pins material3 higher than the alpha, the BOM silently wins.
-
-  Those two numbers differing is expected, not skew: material3 is on its own line by design, and
-  `:ui` gets it via Compose Multiplatform while `:app` declares AndroidX directly.
-
-Verify after any Compose or BOM change — both configurations, since one module is not
-representative:
-
-```
-./gradlew :app:dependencies --configuration debugCompileClasspath
-./gradlew :ui:dependencies  --configuration androidCompileClasspath
-```
-
-Every `androidx.compose.{ui,foundation,animation,runtime}` artifact should read 1.12.0 on both.
-
-Three build requirements that are easy to miss:
-
-- **A Compose module must apply `alias(libs.plugins.compose.multiplatform)`**, even though every
-  dependency is declared by catalog coordinate rather than through `compose.*` accessors.
-  `compose.foundation` pulls `compose.ui`, which on js and wasmJs depends on
-  `org.jetbrains.skiko:skiko`; that plugin is what configures skiko's web packaging. Keep
-  `org.jetbrains.kotlin.plugin.compose` applied alongside it — on Kotlin 2.x the CMP plugin
-  expects the Compose compiler plugin to be applied separately.
-- **`org.jetbrains.compose.experimental.macos.enabled=true` in `gradle.properties`.** `macosArm64`
-  is in the target list and the CMP plugin refuses to configure it without this opt-in, failing at
-  configuration time with "Compose targets '[macos]' are experimental".
-- **A module with `composeResources` needs `android { androidResources { enable = true } }`**
-  inside its `kotlin { }` block — see `ui/build.gradle.kts`. The KMP Android plugin disables
-  resource processing by default, which leaves `variant.sources.assets` unavailable, and that is
-  exactly where Compose Multiplatform packages resources on Android. Without it everything
-  compiles, the APK simply has no `assets/composeResources/`, and the app dies on first use with
-  `MissingResourceException`. Nothing warns at build time.
+**Read the `dependency-bump` skill before changing any of them.** The constraints it documents fail
+silently — the 1.12 floor that keeps browser fonts working, material3 being on its own version line,
+the BOM never reaching `commonMain` — as do the three build requirements a Compose module has
+(`alias(libs.plugins.compose.multiplatform)`, the `macos` experimental opt-in, and
+`android { androidResources { enable = true } }` wherever there are `composeResources`).
 
 ### Compose Multiplatform resources
 
@@ -185,7 +121,7 @@ import io.github.solcott.countries.ui.resources.Res
 import io.github.solcott.countries.ui.resources.capital
 
 stringResource(Res.string.capital, country.capital)
-painterResource(Res.drawable.home_24px)
+painterResource(Res.drawable.globe_24px)
 ```
 
 `strings.xml` keeps the ordinary Android format, `%1$s` placeholders included. **Vector drawables
@@ -195,60 +131,20 @@ resolve either, and both fail at runtime rather than at build time. Use literal 
 
 ### Apollo and Kotlin Multiplatform
 
-The Apollo Gradle plugin detects the KMP plugin by itself. It reads operations from
-`src/commonMain/graphql/` and attaches the generated code to `commonMain` — no `srcDir`
-or output wiring is needed in `network/build.gradle.kts`. It also adds `-lsqlite3` to
-native binaries once it sees a `normalized-cache-sqlite` dependency.
+The Apollo Gradle plugin detects the KMP plugin by itself: it reads operations from
+`src/commonMain/graphql/`, attaches the generated code to `commonMain`, and needs no `srcDir` or
+output wiring. Per-platform client configuration goes through
+`ApolloClient.Builder.platformConfiguration()`, an `expect` extension in `network/src/commonMain` —
+add new per-platform concerns to that seam rather than forking the provider.
 
-`SqlNormalizedCacheFactory(name)` is an `expect` function *in Apollo*, so it compiles on
-every target. What differs is where it stores data: Android uses `cacheDir` via an
-`androidx.startup` initializer shipped in the AAR, the JVM uses `~/.apollo`, Apple uses
-Application Support, and **js/wasmJs route to SQLDelight's SQL.js web-worker driver and
-ignore the name**. The web driver needs two npm dependencies, declared on `jsMain` and
-`wasmJsMain` in `network/build.gradle.kts` — pin them to the SQLDelight version that
-`normalized-cache-sqlite` actually depends on (currently 2.1.0), not to the latest.
+Caching is Apollo's normalized cache, configured in `network`; do not add a second layer anywhere
+above it. **The web targets use a hand-written SQL.js IndexedDB worker in `network/npm/`, and
+`createDefaultWebWorkerDriver()` must not come back** — the reference worker never persists
+anything. That worker's `Worker` must not move up into `webMain`: the failure lands in
+`compileWebMainKotlinMetadata`, blocks `assemble` for `:network` and everything above it, and
+neither web target's own compile task reproduces it.
 
-A browser **application** module additionally needs a `webpack.config.d/` entry copying
-`sql.js`'s `.wasm` into the bundle — see `web/webpack.config.d/sqljs.js`. Nothing in the
-Kotlin sources references that file, so without the copy step the build is clean and the
-worker 404s at runtime. That is not required for a library module, so `:network` does not
-have one.
-
-**Web uses its own SQL.js worker, and `createDefaultWebWorkerDriver()` must not come back.**
-SQL.js has no storage of its own — the database is a block of memory you are responsible for
-saving — and the reference worker, `@cashapp/sqldelight-sqljs-worker`, does `new SQL.Database()`
-and never writes it anywhere. On that worker the SQLite tier is a second in-memory cache behind
-the first one, at the cost of a 600 KB wasm blob.
-
-`network/npm/countries-sqljs-idb-worker/` is that worker with a persistence layer: it loads the
-database from IndexedDB at startup and writes `db.export()` back, debounced, after each
-transaction. `NetworkProviders.{js,wasmJs}.kt` build the `WebWorkerDriver` around it by hand.
-
-Four things about it are easy to break:
-
-- **It is a local npm package, not a loose `.js` file.** `new Worker(new URL(…))` has to resolve
-  at bundle time, and a bare specifier out of `node_modules` is the only shape that works from a
-  library module. Both `jsMain` and `wasmJsMain` declare it.
-- **The `exec` response must stay `res[0] ?? { values: [] }`.** `db.exec` also returns `[]` for a
-  `SELECT` that matched nothing, so returning anything richer — a rows-modified count, say —
-  makes a cache miss look like a row to SQLDelight's cursor.
-- **The database name travels as the worker's own name** (`new Worker(url, { name })`), because
-  SQLDelight's message protocol has no field for it. It keys the IndexedDB snapshot.
-- **The `Worker` must not move up into `webMain`.** `WebWorkerDriver` takes SQLDelight's
-  `expect class Worker`, actualised as a typealias to `org.w3c.dom.Worker`. A typealias only
-  expands in a *platform* compilation, so js and wasmJs both accept a `Worker` there while
-  `compileWebMainKotlinMetadata` — which also compiles that source set — sees an opaque expect
-  class and fails the argument. That is why the seam is `persistentSqlJsDriver(): SqlDriver`:
-  `SqlDriver` is an ordinary common type. The failure blocks `assemble` for `:network` and
-  everything above it, and neither web target's own compile task reproduces it.
-
-**Persisting the cache is not what makes the app work offline** — see the service worker below.
-
-Per-platform Apollo client configuration goes through
-`ApolloClient.Builder.platformConfiguration()`, an `expect` extension in
-`network/src/commonMain`. Everything that does not vary — the endpoint, the in-memory cache
-tier, the Metro provider itself — stays in `commonMain`. Add new per-platform concerns
-(HTTP engines, interceptors) to that seam rather than forking the provider.
+**Read the `network-apollo` skill before editing anything under `network/`.**
 
 ## Module structure
 
