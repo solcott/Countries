@@ -7,10 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,7 +22,6 @@ import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.isNotFound
 import io.github.solcott.countries.ui.resources.Res
-import io.github.solcott.countries.ui.resources.arrow_back_24px
 import io.github.solcott.countries.ui.resources.calling_code
 import io.github.solcott.countries.ui.resources.capital
 import io.github.solcott.countries.ui.resources.continent
@@ -35,12 +31,19 @@ import io.github.solcott.countries.ui.resources.languages
 import io.github.solcott.countries.uistate.ContentState
 import io.github.solcott.countries.uistate.errorOrNull
 import io.github.solcott.countries.uistate.isLoading
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Shown where the API has no value for a field. */
 private const val ABSENT = "—"
 
+/**
+ * The detail pane. No app bar and no back button of its own: `CountriesApp` owns the app's single
+ * [androidx.compose.material3.Scaffold], because on a wide window this renders beside the list
+ * rather than over it.
+ *
+ * That leaves [CountryDetailScreen.Event.BackClicked] with no sender here — see the note on the
+ * event itself, which `:apple` still uses.
+ */
 @CircuitInject(CountryDetailScreen::class, AppScope::class)
 @Composable
 fun CountryDetailUi(
@@ -48,37 +51,21 @@ fun CountryDetailUi(
   screen: CountryDetailScreen,
   modifier: Modifier = Modifier,
 ) {
-  Scaffold(
-    modifier = modifier.fillMaxSize(),
-    topBar = {
-      CountriesTopAppBar(
-        navigationIcon = {
-          IconButton({ state.eventSink(CountryDetailScreen.Event.BackClicked) }) {
-            Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = "Back")
-          }
-        }
-      )
-    },
-  ) { innerPadding ->
-    Box(
-      modifier = Modifier.fillMaxSize().padding(innerPadding),
-      contentAlignment = Alignment.Center,
-    ) {
-      val content = state.content
-      val country = content.data
-      val error = content.errorOrNull
-      when {
-        country == null && content.isLoading -> CircularProgressIndicator()
-        country == null && error != null ->
-          ErrorContent(
-            message = error.toUserMessage(),
-            onRetry = { state.eventSink(CountryDetailScreen.Event.Retry) },
-          )
-        content.isNotFound -> {
-          Text(stringResource(Res.string.country_with_code_not_found, screen.code))
-        }
-        country != null -> CountryDetailContent(country, Modifier.fillMaxSize())
+  Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    val content = state.content
+    val country = content.data
+    val error = content.errorOrNull
+    when {
+      country == null && content.isLoading -> CircularProgressIndicator()
+      country == null && error != null ->
+        ErrorContent(
+          message = error.toUserMessage(),
+          onRetry = { state.eventSink(CountryDetailScreen.Event.Retry) },
+        )
+      content.isNotFound -> {
+        Text(stringResource(Res.string.country_with_code_not_found, screen.code))
       }
+      country != null -> CountryDetailContent(country, Modifier.fillMaxSize())
     }
   }
 }
@@ -123,9 +110,9 @@ private fun DetailPreview(content: ContentState<CountryDetail?>) {
 }
 
 /**
- * The loaded screen at every size we ship to. A single column of text against a 1920dp desktop
- * window is exactly the case the adaptive follow-up is meant to fix — this preview is what shows
- * it.
+ * The loaded pane at every size we ship to. On a wide window the real app gives this pane roughly
+ * two thirds of the width, so a full-window preview overstates how much room it gets — see the
+ * two-pane previews on `CountriesApp` for the shape it is actually laid out in.
  */
 @AppScreenPreviews
 @Composable
