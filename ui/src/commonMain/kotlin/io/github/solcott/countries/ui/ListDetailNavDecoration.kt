@@ -6,8 +6,10 @@ import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldDefaults
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
 import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldDestinationItem
+import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldValue
 import androidx.compose.material3.adaptive.layout.calculateThreePaneScaffoldValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -67,13 +69,20 @@ private val ListPaneWidth = 340.dp
  * would silently lose it.
  *
  * One `ListDetailPaneScaffold` serves both layouts on purpose. Crossing the breakpoint then changes
- * only the [androidx.compose.material3.adaptive.layout.ThreePaneScaffoldValue], so a window resized
- * past it does not tear the list's composition down and refetch; an `if (wide) Row else Box` would.
+ * only the [ThreePaneScaffoldValue], so a window resized past it does not tear the list's
+ * composition down and refetch; an `if (wide) Row else Box` would.
+ *
+ * [listCollapsed] gives the detail the whole window. It applies only where it buys something — two
+ * live panes with a country open — so it is inert in the stacked layout, and it undoes itself when
+ * the country is closed rather than leaving [NoCountrySelected] telling you to pick from a list
+ * that is not on screen.
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Stable
-internal class ListDetailNavDecoration(private val directive: PaneScaffoldDirective) :
-  NavDecoration {
+internal class ListDetailNavDecoration(
+  private val directive: PaneScaffoldDirective,
+  private val listCollapsed: Boolean,
+) : NavDecoration {
 
   @Composable
   override fun <T : NavArgument> DecoratedContent(
@@ -87,20 +96,34 @@ internal class ListDetailNavDecoration(private val directive: PaneScaffoldDirect
     val listArg = args.root
     val detailArg = args.top.takeIf { it.screen is CountryDetailScreen }
 
+    val hideList = listCollapsed && directive.maxHorizontalPartitions > 1 && detailArg != null
+
     ListDetailPaneScaffold(
       directive = directive,
       value =
-        calculateThreePaneScaffoldValue(
-          maxHorizontalPartitions = directive.maxHorizontalPartitions,
-          adaptStrategies = ListDetailPaneScaffoldDefaults.adaptStrategies(),
-          currentDestination =
-            ThreePaneScaffoldDestinationItem(
-              pane =
-                if (detailArg == null) ListDetailPaneScaffoldRole.List
-                else ListDetailPaneScaffoldRole.Detail,
-              contentKey = detailArg?.key,
-            ),
-        ),
+        if (hideList) {
+          // Built by hand because no AdaptStrategy can say "hide a pane there is room for", so
+          // calculateThreePaneScaffoldValue has no way to express this. AnimatedPane is an
+          // AnimatedVisibility over `value[role] != Hidden`, so the scaffold animates the swap
+          // itself: the list slides out left while the detail grows into the space.
+          ThreePaneScaffoldValue(
+            primary = PaneAdaptedValue.Expanded, // ListDetailPaneScaffoldRole.Detail
+            secondary = PaneAdaptedValue.Hidden, // ListDetailPaneScaffoldRole.List
+            tertiary = PaneAdaptedValue.Hidden,
+          )
+        } else {
+          calculateThreePaneScaffoldValue(
+            maxHorizontalPartitions = directive.maxHorizontalPartitions,
+            adaptStrategies = ListDetailPaneScaffoldDefaults.adaptStrategies(),
+            currentDestination =
+              ThreePaneScaffoldDestinationItem(
+                pane =
+                  if (detailArg == null) ListDetailPaneScaffoldRole.List
+                  else ListDetailPaneScaffoldRole.Detail,
+                contentKey = detailArg?.key,
+              ),
+          )
+        },
       modifier = modifier,
       listPane = {
         AnimatedPane(Modifier.preferredWidth(ListPaneWidth)) { OnScreen { content(listArg) } }

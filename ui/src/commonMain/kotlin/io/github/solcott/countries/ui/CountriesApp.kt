@@ -9,8 +9,10 @@ import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.slack.circuit.backstack.SaveableBackStack
@@ -37,8 +39,9 @@ import org.jetbrains.compose.resources.stringResource
  * It owns the app's only [Scaffold] and its only app bar. Both screens are pane content — see
  * [ListDetailNavDecoration], which puts them side by side on a window wide enough for two.
  *
- * [backStack] is hoisted because the browser app binds it to `window.history` — see `:web`. Callers
- * that do not need a handle on it can let it default.
+ * [backStack] is hoisted because the browser app binds it to `window.history` — see `:web`, and
+ * [listCollapsed] for the same reason: `:desktop` toggles it from a keyboard shortcut, outside
+ * composition. Callers that do not need a handle on either can let them default.
  *
  * [onRootPop] has no default in Circuit's common `rememberCircuitNavigator`; only the Android-only
  * overload supplies one. It stays explicit here because what "pop past the root" means is genuinely
@@ -50,6 +53,7 @@ fun CountriesApp(
   circuit: Circuit,
   modifier: Modifier = Modifier,
   backStack: SaveableBackStack = rememberSaveableBackStack(root = CountryListScreen),
+  listCollapsed: MutableState<Boolean> = rememberSaveable { mutableStateOf(false) },
   onRootPop: (PopResult?) -> Unit = {},
 ) {
   AppTheme {
@@ -62,6 +66,7 @@ fun CountriesApp(
       CountriesAppScaffold(
         navigator = navigator,
         backStack = backStack,
+        listCollapsed = listCollapsed,
         // Two panes from 600dp rather than Material's own 840dp, which is what the ...OnMediumWidth
         // variant buys. That matches the SwiftUI app, where NavigationSplitView shows both columns
         // on iPad mini portrait (744pt) and iPad Air portrait (834pt) — 840dp would leave those
@@ -87,8 +92,14 @@ internal fun CountriesAppScaffold(
   backStack: SaveableBackStack,
   directive: PaneScaffoldDirective,
   modifier: Modifier = Modifier,
+  listCollapsed: MutableState<Boolean> = remember { mutableStateOf(false) },
 ) {
   val twoPane = directive.maxHorizontalPartitions > 1
+  val hasDetail = backStack.topRecord?.screen is CountryDetailScreen
+  // Offered only where it does something. With nothing selected there is nothing to give the room
+  // to, and hiding the list would leave NoCountrySelected telling you to choose from a list that is
+  // not on screen.
+  val canCollapse = twoPane && hasDetail
   val detailTitle = remember { mutableStateOf<String?>(null) }
   // The back stack, not the published name, decides whether a country title is shown at all —
   // nothing clears [LocalAppBarTitle] on the way out, so this gate is what keeps the last country's
@@ -99,7 +110,7 @@ internal fun CountriesAppScaffold(
   // `headlineMedium`. It is the stacked layout, where the detail *is* the window, that needs the
   // bar to say what you are looking at — which is also how `NavigationSplitView` reads on iPhone
   // versus iPad.
-  val showCountryTitle = !twoPane && backStack.topRecord?.screen is CountryDetailScreen
+  val showCountryTitle = !twoPane && hasDetail
 
   CompositionLocalProvider(LocalAppBarTitle provides detailTitle) {
     Scaffold(
@@ -113,13 +124,19 @@ internal fun CountriesAppScaffold(
           // Nothing to go back to beside two live panes: closing the detail there leaves the
           // placeholder, not a previous screen.
           onBack = if (!twoPane && backStack.size > 1) ({ navigator.pop() }) else null,
+          listCollapsed = listCollapsed.value,
+          onToggleList =
+            if (canCollapse) ({ listCollapsed.value = !listCollapsed.value }) else null,
         )
       },
     ) { padding ->
       NavigableCircuitContent(
         navigator = navigator,
         backStack = backStack,
-        decoration = remember(directive) { ListDetailNavDecoration(directive) },
+        decoration =
+          remember(directive, listCollapsed.value) {
+            ListDetailNavDecoration(directive, listCollapsed.value)
+          },
         modifier = Modifier.padding(padding).fillMaxSize(),
       )
     }
@@ -136,6 +153,7 @@ internal fun CountriesAppScaffold(
 private fun AppPreview(
   directive: PaneScaffoldDirective,
   screens: List<Screen> = listOf(CountryListScreen),
+  listCollapsed: Boolean = false,
 ) {
   AppTheme {
     val backStack = rememberSaveableBackStack(screens)
@@ -145,6 +163,7 @@ private fun AppPreview(
         backStack = backStack,
         directive = directive,
         modifier = Modifier.fillMaxSize(),
+        listCollapsed = remember { mutableStateOf(listCollapsed) },
       )
     }
   }
@@ -175,6 +194,16 @@ private fun CountriesAppTwoPaneEmptyPreview() {
 @Composable
 private fun CountriesAppTwoPaneSelectedPreview() {
   AppPreview(twoPaneDirective, previewDetailRoute)
+}
+
+/**
+ * Wide with the list collapsed: the detail has the whole window and the bar's toggle points the
+ * other way. The third axis, on top of one-pane-or-two and country-open-or-not.
+ */
+@Preview(name = "Two pane - collapsed", device = "spec:width=1280dp,height=800dp,dpi=160")
+@Composable
+private fun CountriesAppTwoPaneCollapsedPreview() {
+  AppPreview(twoPaneDirective, previewDetailRoute, listCollapsed = true)
 }
 
 /**

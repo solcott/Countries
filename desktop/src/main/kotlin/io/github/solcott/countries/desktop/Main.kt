@@ -2,9 +2,12 @@ package io.github.solcott.countries.desktop
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
@@ -36,11 +39,13 @@ private val MINIMUM_SIZE = Dimension(480, 600)
  * to `CountriesApp`.
  *
  * The backstack is hoisted for the same reason `:web` hoists it — something outside `CountriesApp`
- * needs to drive it. There it is `window.history`; here it is the keyboard.
+ * needs to drive it. There it is `window.history`; here it is the keyboard, which also drives the
+ * list-pane collapse.
  */
 fun main() = application {
   val circuit = remember { createGraph<ComposeGraph>().circuit }
   val backStack = rememberSaveableBackStack(root = CountryListScreen)
+  val listCollapsed = rememberSaveable { mutableStateOf(false) }
   val windowState =
     rememberWindowState(size = INITIAL_SIZE, position = WindowPosition(Alignment.Center))
 
@@ -49,16 +54,31 @@ fun main() = application {
     state = windowState,
     title = WINDOW_TITLE,
     icon = appIcon,
+    // Returning true consumes the event; false lets it reach the focused composable — which is why
+    // each branch has to be tried in turn rather than combined.
     onKeyEvent = { event ->
-      isBackShortcut(
+      when {
+        isBackShortcut(
           key = event.key,
           type = event.type,
           isMetaPressed = event.isMetaPressed,
           isAltPressed = event.isAltPressed,
           canPop = backStack.size > 1,
-        )
-        // Returning true consumes the event; false lets it reach the focused composable.
-        .also { if (it) backStack.pop() }
+        ) -> {
+          backStack.pop()
+          true
+        }
+        isToggleListShortcut(
+          key = event.key,
+          type = event.type,
+          isMetaPressed = event.isMetaPressed,
+          isCtrlPressed = event.isCtrlPressed,
+        ) -> {
+          listCollapsed.value = !listCollapsed.value
+          true
+        }
+        else -> false
+      }
     },
   ) {
     // AWT, and not expressible through WindowState. Without it the window can be dragged narrower
@@ -68,7 +88,7 @@ fun main() = application {
     // onRootPop is left at its default no-op: on desktop the window's close button is how you
     // leave, and popping past the list should not quit the app out from under the user.
     CompositionLocalProvider(LocalFlagFontFamily provides flagFontFamily) {
-      CountriesApp(circuit = circuit, backStack = backStack)
+      CountriesApp(circuit = circuit, backStack = backStack, listCollapsed = listCollapsed)
     }
   }
 }
