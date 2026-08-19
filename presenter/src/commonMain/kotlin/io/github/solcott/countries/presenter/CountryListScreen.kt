@@ -18,6 +18,19 @@ data object CountryListScreen : Screen {
     val countriesState: ContentState<List<Country>>,
     val continentsState: ContentState<List<Continent>>,
     val selectedContinents: List<Continent>,
+    /**
+     * The country the detail screen is currently showing, or null if it is not open.
+     *
+     * The list needs this only because of the two-pane layout: on a window wide enough to show
+     * both, the list stays on screen beside the detail and has to mark which row that detail is
+     * for. Derived from the navigator rather than stored, so the back stack stays the single source
+     * of truth for what is selected.
+     *
+     * Always null on Apple: `SwiftNavigator` mirrors its stack in a plain `var` rather than
+     * snapshot state, so a presenter reading it would not recompose. Harmless — SwiftUI's
+     * `NavigationSplitView` owns its own selection and never reads this.
+     */
+    val selectedCountryCode: String? = null,
     @Redacted val eventSink: (Event) -> Unit,
   ) : CircuitUiState
 

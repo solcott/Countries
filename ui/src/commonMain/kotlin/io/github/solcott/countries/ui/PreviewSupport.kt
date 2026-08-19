@@ -2,10 +2,13 @@ package io.github.solcott.countries.ui
 
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import androidx.compose.ui.unit.dp
 import com.slack.circuit.foundation.Circuit
 import com.slack.circuit.runtime.presenter.presenterOf
 import com.slack.circuit.runtime.screen.Screen
@@ -187,3 +190,41 @@ internal fun previewCircuit(): Circuit =
 /** Root-first, the shape a `#/country/CH` deep link produces. */
 internal val previewDetailRoute: List<Screen> =
   listOf(CountryListScreen, CountryDetailScreen(previewCountryDetail.code))
+
+/**
+ * The two layouts `CountriesAppScaffold` can be in, as directives a preview can pass it directly.
+ *
+ * Built by hand rather than through `calculatePaneScaffoldDirective...`, which would read the
+ * window size out of `LocalWindowInfo` — a preview would then be at the mercy of what the renderer
+ * reports for its `device` spec, and a two-pane preview that quietly rendered one pane would look
+ * like a layout bug rather than a preview artifact. The numbers below are what that function
+ * returns for each case.
+ */
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+internal val twoPaneDirective =
+  countriesPaneDirective(
+    PaneScaffoldDirective(
+      maxHorizontalPartitions = 2,
+      horizontalPartitionSpacerSize = 24.dp,
+      maxVerticalPartitions = 1,
+      verticalPartitionSpacerSize = 0.dp,
+      defaultPanePreferredWidth = 360.dp,
+      defaultPanePreferredHeight = 420.dp,
+      excludedBounds = emptyList(),
+    )
+  )
+
+/** See [twoPaneDirective]. */
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+internal val singlePaneDirective =
+  countriesPaneDirective(
+    PaneScaffoldDirective(
+      maxHorizontalPartitions = 1,
+      horizontalPartitionSpacerSize = 0.dp,
+      maxVerticalPartitions = 1,
+      verticalPartitionSpacerSize = 0.dp,
+      defaultPanePreferredWidth = 360.dp,
+      defaultPanePreferredHeight = 420.dp,
+      excludedBounds = emptyList(),
+    )
+  )

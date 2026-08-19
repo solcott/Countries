@@ -18,4 +18,12 @@
     <string name="search_by_name">Search By Name</string>
     <string name="retry">Retry</string>
     <string name="country_with_code_not_found">Country with code %1$s not found</string>
+    <string name="back">Back</string>
+    <!-- The list-pane toggle. Both name the action the tap performs, not the current state. -->
+    <string name="hide_list">Hide list</string>
+    <string name="show_list">Show list</string>
+    <!-- The empty detail pane of the two-pane layout. Worded exactly as the SwiftUI app's
+         ContentUnavailableView, so the two read identically on the same device. -->
+    <string name="no_country_selected">No Country Selected</string>
+    <string name="no_country_selected_description">Choose a country from the list to see its details.</string>
 </resources>

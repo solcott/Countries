@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 
 private const val LIST = "#/"
 private const val DETAIL = "#/country/AD"
+private const val OTHER_DETAIL = "#/country/AE"
 
 /** Defaults describe a settled app sitting on the list, so each test states only what it varies. */
 private fun action(
@@ -91,6 +92,27 @@ class HistoryActionTest {
   @Test
   fun sameDepthWithAStaleUrlRewritesTheCurrentEntry() {
     assertEquals(HistoryAction.Replace(LIST), action(currentHash = DETAIL))
+  }
+
+  /**
+   * Selecting a different country while one is already open. The two-pane layout leaves the list on
+   * screen beside the detail, so the presenter replaces the open country rather than pushing a
+   * second one — the stack stays two deep and only the route changes. Rewriting the entry is what
+   * keeps one browser-back press return to the list rather than walking through every country the
+   * user glanced at.
+   */
+  @Test
+  fun selectingADifferentCountryAtTheSameDepthRewritesTheEntry() {
+    assertEquals(
+      HistoryAction.Replace(OTHER_DETAIL),
+      action(
+        prevDepth = 2,
+        depth = 2,
+        route = OTHER_DETAIL,
+        currentHash = DETAIL,
+        stackRoutes = listOf(LIST, OTHER_DETAIL),
+      ),
+    )
   }
 
   @Test

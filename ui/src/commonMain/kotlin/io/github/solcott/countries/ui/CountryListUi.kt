@@ -23,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.slack.circuit.codegen.annotations.CircuitInject
@@ -53,29 +53,25 @@ import io.github.solcott.countries.uistate.isLoading
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The list pane. No app bar of its own: `CountriesApp` owns the app's single
+ * [androidx.compose.material3.Scaffold], because on a wide window this renders beside the detail
+ * rather than being replaced by it.
+ */
 @CircuitInject(CountryListScreen::class, AppScope::class)
 @Composable
 fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier) {
-  Scaffold(
-    modifier = modifier,
-    topBar = { CountriesTopAppBar() },
-  ) { padding ->
-    Box(
-      modifier = Modifier.fillMaxSize().padding(padding),
-      contentAlignment = Alignment.Center,
-    ) {
-      val countriesState = state.countriesState
-      val error = countriesState.errorOrNull
-      when {
-        countriesState.data.isEmpty() && countriesState.isLoading -> CircularProgressIndicator()
-        countriesState.data.isEmpty() && error != null ->
-          ErrorContent(
-            message = error.toUserMessage(),
-            onRetry = { state.eventSink(CountryListScreen.Event.Retry) },
-          )
-        else -> CountriesList(state, countriesState, Modifier.fillMaxSize())
-      }
+  Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    val countriesState = state.countriesState
+    val error = countriesState.errorOrNull
+    when {
+      countriesState.data.isEmpty() && countriesState.isLoading -> CircularProgressIndicator()
+      countriesState.data.isEmpty() && error != null ->
+        ErrorContent(
+          message = error.toUserMessage(),
+          onRetry = { state.eventSink(CountryListScreen.Event.Retry) },
+        )
+      else -> CountriesList(state, countriesState, Modifier.fillMaxSize())
     }
   }
 }
@@ -111,6 +107,7 @@ private fun CountriesList(
         CountryRow(
           country = country,
           onClick = { state.eventSink(CountryListScreen.Event.CountryClicked(country.code)) },
+          selected = country.code == state.selectedCountryCode,
           modifier = Modifier.animateItem(),
         )
         HorizontalDivider(modifier = Modifier.animateItem())
@@ -204,10 +201,27 @@ private fun SearchAndFilterHeader(
   }
 }
 
+/**
+ * [selected] marks the row the detail pane is currently showing. It only ever shows in the two-pane
+ * layout — in the stacked one the detail covers the list — and it is what replaces the
+ * `List(selection:)` highlight SwiftUI gives the Apple app for free.
+ */
 @Composable
-private fun CountryRow(country: Country, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun CountryRow(
+  country: Country,
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  selected: Boolean = false,
+) {
   Row(
-    modifier = modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp),
+    modifier =
+      modifier
+        .fillMaxWidth()
+        .clickable(onClick = onClick)
+        .background(
+          if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+        )
+        .padding(16.dp),
     horizontalArrangement = Arrangement.spacedBy(16.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -225,6 +239,7 @@ private fun ListPreview(
   continentsState: ContentState<List<Continent>> = loadedState(previewContinents),
   nameStartsWith: String = "",
   selectedContinents: List<Continent> = emptyList(),
+  selectedCountryCode: String? = null,
 ) {
   PreviewSurface {
     CountryListUi(
@@ -233,6 +248,7 @@ private fun ListPreview(
         countriesState = countriesState,
         continentsState = continentsState,
         selectedContinents = selectedContinents,
+        selectedCountryCode = selectedCountryCode,
         eventSink = {},
       )
     )
@@ -240,8 +256,9 @@ private fun ListPreview(
 }
 
 /**
- * The loaded list at every size we ship to. Rows spanning a 1920dp desktop window is the case the
- * adaptive follow-up is meant to fix — this preview is what shows it.
+ * The loaded list at every size we ship to. On a wide window the real app gives this pane a fixed
+ * 340dp beside the detail, so a full-window preview overstates its width — see the two-pane
+ * previews on `CountriesApp` for the shape it is actually laid out in.
  */
 @AppScreenPreviews
 @Composable
@@ -309,6 +326,7 @@ private fun CountriesListPreview() {
           countriesState = loadedState(previewCountries),
           continentsState = loadedState(previewContinents),
           selectedContinents = emptyList(),
+          selectedCountryCode = previewCountries.first().code,
           eventSink = {},
         ),
       countriesState = loadedState(previewCountries),
@@ -339,6 +357,13 @@ private fun RefreshingIndicatorPreview() {
 @Composable
 private fun CountryRowPreview() {
   PreviewSurface { CountryRow(country = previewCountries.first(), onClick = {}) }
+}
+
+/** The two-pane layout's selected row, marking which country the detail pane is showing. */
+@ComponentWidthPreviews
+@Composable
+private fun CountryRowSelectedPreview() {
+  PreviewSurface { CountryRow(country = previewCountries.first(), onClick = {}, selected = true) }
 }
 
 /**
