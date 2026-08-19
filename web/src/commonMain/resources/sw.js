@@ -6,7 +6,7 @@
 //
 // Bump CACHE_VERSION to evict everything; the activate handler deletes any cache that is not the
 // current one.
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const SHELL_CACHE = `countries-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `countries-fonts-${CACHE_VERSION}`;
 const API_CACHE = `countries-api-${CACHE_VERSION}`;

@@ -212,10 +212,28 @@ Rules:
   `main()` and the desktop `main()` each do two things only — read `circuit` off the graph, and
   call it. New screen-agnostic wiring belongs in `CountriesApp`, not in an entry point.
   `rememberCircuitNavigator`'s `onRootPop` is the exception: it is genuinely per-platform
-  (Android finishes the Activity; the browser and desktop no-op) and is passed in.
+  (Android finishes the Activity; the browser and desktop no-op) and is passed in. So is `skin` —
+  see below.
 - **`:ui` has exactly one platform seam: `LocalFlagFontFamily`.** It is null everywhere but
   desktop — see the `compose-fonts` skill. Resist adding a second; the reason this one
   earns its place is that the alternative was a wrong-looking list on two of the six platforms.
+- **How a platform looks is an `AppSkin` parameter, not a seam.** `CountriesApp` takes one;
+  `MaterialSkin`, `DesktopSkin` and `WebSkin` all live in `ui/…/theme/`, and an entry point does
+  nothing but name the one it wants. Material 3 *is* Android's native look, so `MaterialSkin` is
+  the default and Android passes nothing.
+
+  The distinction from the seam above is worth keeping: a skin has no `expect`/`actual`, lives in
+  no platform source set, and can be rendered from Android Studio — which is exactly why the UI is
+  not forked per platform. Composables read tokens from `LocalAppSkin` rather than taking a dozen
+  parameters. `AppTheme` also feeds `minInteractiveSize` into
+  `LocalMinimumInteractiveComponentSize`, which is the one value that takes the whole Material
+  control set from a 48dp touch target to pointer density.
+
+  Two structural tokens matter more than the cosmetic ones: `contentMaxWidth` and `contentPanel`
+  are what make `:web` read as a page rather than an app canvas, and no amount of restyling
+  controls substitutes for them. `:web` also duplicates the page colour in `styles.css`, which
+  paints before any Kotlin runs — **change one and change the other**, or every cold load flashes
+  the wrong colour.
 - A module contributes its own providers with `@ContributesTo(AppScope::class)`, next to the
   code they construct: `NetworkProviders` in `network`, `CircuitProviders` in `ui`,
   `LoggingProviders` in `shared`.

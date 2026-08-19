@@ -1,11 +1,14 @@
 package io.github.solcott.countries.web
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import com.slack.circuit.backstack.rememberSaveableBackStack
 import dev.zacsweers.metro.createGraph
 import io.github.solcott.countries.shared.compose.ComposeGraph
 import io.github.solcott.countries.ui.CountriesApp
+import io.github.solcott.countries.ui.theme.WebSkin
+import kotlinx.browser.document
 import kotlinx.browser.window
 
 /**
@@ -27,10 +30,20 @@ fun main() {
     // backstack is hoisted out of CountriesApp because BrowserHistory binds it to window.history.
     val backStack = rememberSaveableBackStack(window.location.hash.toInitialScreens())
     BrowserHistory(backStack)
+    // The bundle is large enough that a blank page is the first thing most visitors see, so
+    // `index.html` paints a wordmark straight away. This is the first frame Compose draws, which
+    // makes it the right moment to take it down. `ComposeViewport` mounts a canvas beside the
+    // placeholder rather than replacing it, so something has to.
+    LaunchedEffect(Unit) { document.getElementById(LOADING_ID)?.remove() }
     // onRootPop stays the default no-op: there is no browser tab to close.
-    CountriesApp(circuit = circuit, backStack = backStack)
+    CountriesApp(circuit = circuit, skin = WebSkin, backStack = backStack)
   }
 }
 
 /** Matches the container in `index.html`. */
 private const val VIEWPORT_ID = "composeApp"
+
+/**
+ * Matches the placeholder in `index.html`, which this removes once Compose has something to show.
+ */
+private const val LOADING_ID = "loading"

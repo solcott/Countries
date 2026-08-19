@@ -1,13 +1,17 @@
 package io.github.solcott.countries.ui
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -22,9 +26,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.slack.circuit.codegen.annotations.CircuitInject
@@ -45,8 +51,10 @@ import io.github.solcott.countries.ui.resources.check_small_24px
 import io.github.solcott.countries.ui.resources.filter
 import io.github.solcott.countries.ui.resources.filter_list_24px
 import io.github.solcott.countries.ui.resources.no_countries_found
-import io.github.solcott.countries.ui.resources.search_by_name
 import io.github.solcott.countries.ui.resources.updating
+import io.github.solcott.countries.ui.theme.DesktopSkin
+import io.github.solcott.countries.ui.theme.LocalAppSkin
+import io.github.solcott.countries.ui.theme.SelectionStyle
 import io.github.solcott.countries.uistate.ContentState
 import io.github.solcott.countries.uistate.errorOrNull
 import io.github.solcott.countries.uistate.isLoading
@@ -61,7 +69,10 @@ import org.jetbrains.compose.resources.stringResource
 @CircuitInject(CountryListScreen::class, AppScope::class)
 @Composable
 fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier) {
-  Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+  Box(
+    modifier = modifier.fillMaxSize().background(listPaneColor()),
+    contentAlignment = Alignment.Center,
+  ) {
     val countriesState = state.countriesState
     val error = countriesState.errorOrNull
     when {
@@ -76,12 +87,25 @@ fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier)
   }
 }
 
+/**
+ * The list pane's own background.
+ *
+ * A desktop sidebar is a different surface from the content beside it; a Material list is the same
+ * one. `surface` is what the pane already inherited from the `Scaffold`, so the untinted branch
+ * paints exactly what was there before.
+ */
+@Composable
+private fun listPaneColor() =
+  if (LocalAppSkin.current.sidebarTinted) MaterialTheme.colorScheme.surfaceContainer
+  else MaterialTheme.colorScheme.surface
+
 @Composable
 private fun CountriesList(
   state: CountryListScreen.State,
   countriesState: ContentState<List<Country>>,
   modifier: Modifier = Modifier,
 ) {
+  val skin = LocalAppSkin.current
   LazyColumn(modifier = modifier.fillMaxSize().imePadding()) {
     stickyHeader {
       SearchAndFilterHeader(
@@ -110,7 +134,9 @@ private fun CountriesList(
           selected = country.code == state.selectedCountryCode,
           modifier = Modifier.animateItem(),
         )
-        HorizontalDivider(modifier = Modifier.animateItem())
+        // A rule between every row is a Material list; a sidebar separates its rows with space and
+        // a selection shape instead.
+        if (skin.listDividers) HorizontalDivider(modifier = Modifier.animateItem())
       }
     } else {
       item(key = "empty", "empty") {
@@ -128,8 +154,8 @@ private fun RefreshingIndicator(modifier: Modifier = Modifier) {
     modifier =
       modifier
         .fillMaxWidth()
-        .background(MaterialTheme.colorScheme.surface)
-        .padding(horizontal = 16.dp, vertical = 8.dp),
+        .background(listPaneColor())
+        .padding(horizontal = LocalAppSkin.current.rowHorizontalPadding, vertical = 8.dp),
     horizontalArrangement = Arrangement.spacedBy(12.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -151,16 +177,12 @@ private fun SearchAndFilterHeader(
   Row(
     modifier
       .fillMaxWidth()
-      .background(MaterialTheme.colorScheme.surface)
-      .padding(vertical = 8.dp, horizontal = 16.dp),
+      .background(listPaneColor())
+      .padding(vertical = 8.dp, horizontal = LocalAppSkin.current.rowHorizontalPadding),
     horizontalArrangement = Arrangement.spacedBy(16.dp),
+    verticalAlignment = Alignment.CenterVertically,
   ) {
-    TextField(
-      nameStartsWithText,
-      placeholder = { Text(stringResource(Res.string.search_by_name)) },
-      shape = MaterialTheme.shapes.extraSmall,
-      modifier = Modifier.weight(1f),
-    )
+    SearchField(nameStartsWithText, modifier = Modifier.weight(1f))
     val continents = continentsState.data
 
     if (continents.isNotEmpty()) {
@@ -168,7 +190,6 @@ private fun SearchAndFilterHeader(
       ExposedDropdownMenuBox(
         continentDropdownExpanded,
         onExpandedChange = { continentDropdownExpanded = it },
-        modifier = Modifier.align(Alignment.CenterVertically),
       ) {
         IconButton(onClick = { continentDropdownExpanded = !continentDropdownExpanded }) {
           Icon(
@@ -213,22 +234,54 @@ private fun CountryRow(
   modifier: Modifier = Modifier,
   selected: Boolean = false,
 ) {
+  val skin = LocalAppSkin.current
+  val colors = MaterialTheme.colorScheme
+  val interactionSource = remember { MutableInteractionSource() }
+  val hovered by interactionSource.collectIsHoveredAsState()
+  val fill =
+    when {
+      selected -> colors.secondaryContainer
+      // Weak on purpose: this follows the pointer, so anything stronger flickers down the list.
+      skin.hoverAffordances && hovered -> colors.onSurface.copy(alpha = 0.06f)
+      else -> Color.Transparent
+    }
+  // A full-bleed highlight is drawn behind the row's own padding; an inset one is a shape floating
+  // inside it, so the inset has to be applied before the background rather than after.
+  val highlight =
+    when (skin.selection) {
+      SelectionStyle.FullBleed -> Modifier.background(fill)
+      SelectionStyle.InsetRounded ->
+        Modifier.padding(horizontal = skin.selectionInset, vertical = skin.selectionInset / 2)
+          .background(fill, MaterialTheme.shapes.small)
+    }
   Row(
     modifier =
       modifier
         .fillMaxWidth()
-        .clickable(onClick = onClick)
-        .background(
-          if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+        .clickable(
+          interactionSource = interactionSource,
+          // A ripple spreading from the click point is a touch affordance. Where there is a hover
+          // highlight it is both redundant and wrong, so the two are alternatives, not additions.
+          indication = if (skin.hoverAffordances) null else LocalIndication.current,
+          onClick = onClick,
         )
-        .padding(16.dp),
-    horizontalArrangement = Arrangement.spacedBy(16.dp),
+        .then(if (skin.hoverAffordances) Modifier.pointerHoverIcon(PointerIcon.Hand) else Modifier)
+        .then(highlight)
+        .heightIn(min = skin.rowMinHeight)
+        .padding(horizontal = skin.rowHorizontalPadding, vertical = skin.rowVerticalPadding),
+    horizontalArrangement = Arrangement.spacedBy(skin.rowSpacing),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Text(country.emoji, fontFamily = LocalFlagFontFamily.current)
     Column(modifier = Modifier.weight(1f)) {
       Text(country.name)
-      Text(listOfNotNull(country.capital, country.continentName).joinToString(" · "))
+      Text(
+        listOfNotNull(country.capital, country.continentName).joinToString(" · "),
+        style =
+          if (skin.dimSupportingText) MaterialTheme.typography.bodyMedium
+          else LocalTextStyle.current,
+        color = if (skin.dimSupportingText) colors.onSurfaceVariant else Color.Unspecified,
+      )
     }
   }
 }
@@ -364,6 +417,40 @@ private fun CountryRowPreview() {
 @Composable
 private fun CountryRowSelectedPreview() {
   PreviewSurface { CountryRow(country = previewCountries.first(), onClick = {}, selected = true) }
+}
+
+/** The desktop sidebar row: dense, dimmed second line, and an inset rounded selection. */
+@ComponentWidthPreviews
+@Composable
+private fun CountryRowDesktopSkinPreview() {
+  PreviewSurface(skin = DesktopSkin) {
+    Column {
+      CountryRow(country = previewCountries.first(), onClick = {}, selected = true)
+      CountryRow(country = previewCountries[1], onClick = {})
+    }
+  }
+}
+
+/**
+ * The same list without rules between the rows, which is the other half of reading as a sidebar.
+ */
+@ComponentWidthPreviews
+@Composable
+private fun CountriesListDesktopSkinPreview() {
+  PreviewSurface(skin = DesktopSkin) {
+    CountriesList(
+      state =
+        CountryListScreen.State(
+          nameStartsWithText = TextFieldState(),
+          countriesState = loadedState(previewCountries),
+          continentsState = loadedState(previewContinents),
+          selectedContinents = emptyList(),
+          selectedCountryCode = previewCountries.first().code,
+          eventSink = {},
+        ),
+      countriesState = loadedState(previewCountries),
+    )
+  }
 }
 
 /**

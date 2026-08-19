@@ -18,6 +18,7 @@ import io.github.solcott.countries.ui.resources.Res
 import io.github.solcott.countries.ui.resources.globe_24px
 import io.github.solcott.countries.ui.resources.no_country_selected
 import io.github.solcott.countries.ui.resources.no_country_selected_description
+import io.github.solcott.countries.ui.theme.LocalAppSkin
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -31,7 +32,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun NoCountrySelected(modifier: Modifier = Modifier) {
   Column(
-    modifier = modifier.padding(24.dp),
+    modifier = modifier.padding(LocalAppSkin.current.contentPadding),
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
   ) {
