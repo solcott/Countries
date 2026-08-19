@@ -184,6 +184,65 @@ class CountryListPresenterTest {
     }
   }
 
+  /**
+   * The two-pane case: the list stays on screen beside the detail, so a second click arrives while
+   * a country is already open. It has to replace that country rather than stack a second detail on
+   * top of it.
+   */
+  @Test
+  fun clickingACountryWhileADetailIsOpenReplacesIt() = runTest {
+    val navigator = FakeNavigator(CountryListScreen, CountryDetailScreen("CA"))
+    val repository =
+      FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada, egypt))) })
+
+    val continentRepository = FakeContinentRepository()
+    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+      val loaded = awaitCountriesSettledState()
+      assertEquals("CA", loaded.selectedCountryCode)
+
+      loaded.eventSink(CountryListScreen.Event.CountryClicked("EG"))
+
+      assertEquals(CountryDetailScreen("CA"), navigator.awaitPop().poppedScreen)
+      assertEquals(CountryDetailScreen("EG"), navigator.awaitNextScreen())
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
+  /**
+   * Re-tapping the row already showing is not a navigation — it would only churn the back stack.
+   */
+  @Test
+  fun clickingTheAlreadySelectedCountryDoesNothing() = runTest {
+    val navigator = FakeNavigator(CountryListScreen, CountryDetailScreen("CA"))
+    val repository =
+      FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
+
+    val continentRepository = FakeContinentRepository()
+    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+      val loaded = awaitCountriesSettledState()
+
+      loaded.eventSink(CountryListScreen.Event.CountryClicked("CA"))
+
+      navigator.assertGoToIsEmpty()
+      navigator.assertPopIsEmpty()
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
+  /** Nothing open: the list has no row to mark. */
+  @Test
+  fun selectedCountryCodeIsNullWithNoDetailOpen() = runTest {
+    val navigator = FakeNavigator(CountryListScreen)
+    val repository =
+      FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
+
+    val continentRepository = FakeContinentRepository()
+    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+      assertEquals(null, awaitCountriesSettledState().selectedCountryCode)
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
   @Test
   fun surfacesCountryFailuresAsErrorState() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
