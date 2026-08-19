@@ -14,12 +14,13 @@ import androidx.compose.ui.unit.dp
 import io.github.solcott.countries.dataresult.DataError
 import io.github.solcott.countries.ui.resources.Res
 import io.github.solcott.countries.ui.resources.retry
+import io.github.solcott.countries.ui.theme.LocalAppSkin
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ErrorContent(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
   Column(
-    modifier = modifier.padding(24.dp),
+    modifier = modifier.padding(LocalAppSkin.current.contentPadding),
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(16.dp),
   ) {

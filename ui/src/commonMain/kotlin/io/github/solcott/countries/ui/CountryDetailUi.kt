@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.slack.circuit.codegen.annotations.CircuitInject
 import dev.zacsweers.metro.AppScope
 import io.github.solcott.countries.model.CountryDetail
@@ -28,6 +27,7 @@ import io.github.solcott.countries.ui.resources.continent
 import io.github.solcott.countries.ui.resources.country_with_code_not_found
 import io.github.solcott.countries.ui.resources.currency
 import io.github.solcott.countries.ui.resources.languages
+import io.github.solcott.countries.ui.theme.LocalAppSkin
 import io.github.solcott.countries.uistate.ContentState
 import io.github.solcott.countries.uistate.errorOrNull
 import io.github.solcott.countries.uistate.isLoading
@@ -75,8 +75,9 @@ fun CountryDetailUi(
 
 @Composable
 private fun CountryDetailContent(country: CountryDetail, modifier: Modifier = Modifier) {
-  Column(modifier = modifier.verticalScroll(rememberScrollState()).padding(24.dp)) {
-    Text(country.emoji, fontSize = 56.sp, fontFamily = LocalFlagFontFamily.current)
+  val skin = LocalAppSkin.current
+  Column(modifier = modifier.verticalScroll(rememberScrollState()).padding(skin.contentPadding)) {
+    Text(country.emoji, fontSize = skin.detailFlagSize, fontFamily = LocalFlagFontFamily.current)
     Text(
       country.name,
       style = MaterialTheme.typography.headlineMedium,

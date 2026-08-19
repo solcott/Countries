@@ -28,7 +28,9 @@ import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListScreen
 import io.github.solcott.countries.ui.resources.Res
 import io.github.solcott.countries.ui.resources.countries
+import io.github.solcott.countries.ui.theme.AppSkin
 import io.github.solcott.countries.ui.theme.AppTheme
+import io.github.solcott.countries.ui.theme.MaterialSkin
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -46,17 +48,22 @@ import org.jetbrains.compose.resources.stringResource
  * [onRootPop] has no default in Circuit's common `rememberCircuitNavigator`; only the Android-only
  * overload supplies one. It stays explicit here because what "pop past the root" means is genuinely
  * per-platform: Android finishes the Activity, a browser tab has nothing to close.
+ *
+ * [skin] is how a platform asks for its own look — see [AppSkin]. It defaults to [MaterialSkin],
+ * which is what Android wants and what every screenshot in this module's previews shows unless the
+ * preview says otherwise.
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun CountriesApp(
   circuit: Circuit,
   modifier: Modifier = Modifier,
+  skin: AppSkin = MaterialSkin,
   backStack: SaveableBackStack = rememberSaveableBackStack(root = CountryListScreen),
   listCollapsed: MutableState<Boolean> = rememberSaveable { mutableStateOf(false) },
   onRootPop: (PopResult?) -> Unit = {},
 ) {
-  AppTheme {
+  AppTheme(skin) {
     // `enableBackHandler` is passed explicitly because leaving it off does not mean "default to
     // true" — it selects a *different* overload, the two-argument one, which installs no
     // NavigationBackHandler at all. Without it Android's system back never reaches the navigator,

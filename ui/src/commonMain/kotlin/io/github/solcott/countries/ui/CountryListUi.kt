@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -47,6 +48,8 @@ import io.github.solcott.countries.ui.resources.filter_list_24px
 import io.github.solcott.countries.ui.resources.no_countries_found
 import io.github.solcott.countries.ui.resources.search_by_name
 import io.github.solcott.countries.ui.resources.updating
+import io.github.solcott.countries.ui.theme.LocalAppSkin
+import io.github.solcott.countries.ui.theme.SelectionStyle
 import io.github.solcott.countries.uistate.ContentState
 import io.github.solcott.countries.uistate.errorOrNull
 import io.github.solcott.countries.uistate.isLoading
@@ -82,6 +85,7 @@ private fun CountriesList(
   countriesState: ContentState<List<Country>>,
   modifier: Modifier = Modifier,
 ) {
+  val skin = LocalAppSkin.current
   LazyColumn(modifier = modifier.fillMaxSize().imePadding()) {
     stickyHeader {
       SearchAndFilterHeader(
@@ -110,7 +114,9 @@ private fun CountriesList(
           selected = country.code == state.selectedCountryCode,
           modifier = Modifier.animateItem(),
         )
-        HorizontalDivider(modifier = Modifier.animateItem())
+        // A rule between every row is a Material list; a sidebar separates its rows with space and
+        // a selection shape instead.
+        if (skin.listDividers) HorizontalDivider(modifier = Modifier.animateItem())
       }
     } else {
       item(key = "empty", "empty") {
@@ -129,7 +135,7 @@ private fun RefreshingIndicator(modifier: Modifier = Modifier) {
       modifier
         .fillMaxWidth()
         .background(MaterialTheme.colorScheme.surface)
-        .padding(horizontal = 16.dp, vertical = 8.dp),
+        .padding(horizontal = LocalAppSkin.current.rowHorizontalPadding, vertical = 8.dp),
     horizontalArrangement = Arrangement.spacedBy(12.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -152,7 +158,7 @@ private fun SearchAndFilterHeader(
     modifier
       .fillMaxWidth()
       .background(MaterialTheme.colorScheme.surface)
-      .padding(vertical = 8.dp, horizontal = 16.dp),
+      .padding(vertical = 8.dp, horizontal = LocalAppSkin.current.rowHorizontalPadding),
     horizontalArrangement = Arrangement.spacedBy(16.dp),
   ) {
     TextField(
@@ -213,16 +219,30 @@ private fun CountryRow(
   modifier: Modifier = Modifier,
   selected: Boolean = false,
 ) {
+  val skin = LocalAppSkin.current
+  val selectedColor =
+    if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+  // A full-bleed highlight is drawn behind the row's own padding; an inset one is a shape floating
+  // inside it, so the inset has to be applied before the background rather than after.
+  val highlight =
+    when (skin.selection) {
+      SelectionStyle.FullBleed -> Modifier.background(selectedColor)
+      SelectionStyle.InsetRounded ->
+        Modifier.padding(horizontal = skin.selectionInset, vertical = skin.selectionInset / 2)
+          .background(selectedColor, MaterialTheme.shapes.small)
+    }
   Row(
     modifier =
       modifier
         .fillMaxWidth()
         .clickable(onClick = onClick)
-        .background(
-          if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-        )
-        .padding(16.dp),
-    horizontalArrangement = Arrangement.spacedBy(16.dp),
+        .then(highlight)
+        .heightIn(min = skin.rowMinHeight)
+        .padding(
+          horizontal = skin.rowHorizontalPadding,
+          vertical = skin.rowVerticalPadding,
+        ),
+    horizontalArrangement = Arrangement.spacedBy(skin.rowSpacing),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Text(country.emoji, fontFamily = LocalFlagFontFamily.current)

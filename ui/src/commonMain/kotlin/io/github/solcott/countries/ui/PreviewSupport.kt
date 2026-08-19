@@ -21,7 +21,9 @@ import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.model.Language
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListScreen
+import io.github.solcott.countries.ui.theme.AppSkin
 import io.github.solcott.countries.ui.theme.AppTheme
+import io.github.solcott.countries.ui.theme.MaterialSkin
 import io.github.solcott.countries.uistate.ContentState
 import io.github.solcott.countries.uistate.LoadStatus
 
@@ -59,10 +61,17 @@ annotation class ComponentWidthPreviews
  * [AppTheme] resolves its own `darkTheme` from `isSystemInDarkTheme()`, which the preview renderer
  * drives from the `uiMode` parameter — that is what makes `@PreviewLightDark` work without passing
  * anything through here.
+ *
+ * [skin] defaults to [MaterialSkin], so a preview shows the Android look unless it says otherwise.
+ * A composable whose point is that it differs per platform gets one preview per skin instead.
  */
 @Composable
-internal fun PreviewSurface(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-  AppTheme { Surface(modifier = modifier, content = content) }
+internal fun PreviewSurface(
+  modifier: Modifier = Modifier,
+  skin: AppSkin = MaterialSkin,
+  content: @Composable () -> Unit,
+) {
+  AppTheme(skin) { Surface(modifier = modifier, content = content) }
 }
 
 internal val previewCountries =

@@ -14,13 +14,13 @@ import androidx.compose.material3.adaptive.layout.calculateThreePaneScaffoldValu
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.slack.circuit.foundation.NavDecoration
 import com.slack.circuit.foundation.ProvideRecordLifecycle
 import com.slack.circuit.runtime.Navigator
 import com.slack.circuit.runtime.navigation.NavArgument
 import com.slack.circuit.runtime.navigation.NavStackList
 import io.github.solcott.countries.presenter.CountryDetailScreen
+import io.github.solcott.countries.ui.theme.LocalAppSkin
 
 /**
  * [calculated] with the two Material defaults this app does not want.
@@ -47,9 +47,6 @@ internal fun countriesPaneDirective(calculated: PaneScaffoldDirective): PaneScaf
     // navigates by keyboard between panes, so there is nothing to trade away.
     shouldAutoFocusCurrentDestination = false,
   )
-
-/** Mirrors `navigationSplitViewColumnWidth(ideal: 340)` in the SwiftUI app's `RootView`. */
-private val ListPaneWidth = 340.dp
 
 /**
  * Lays the back stack out as a list pane and a detail pane, side by side when [directive] allows
@@ -95,6 +92,9 @@ internal class ListDetailNavDecoration(
     // [list, detail] and these two reads describe it completely.
     val listArg = args.root
     val detailArg = args.top.takeIf { it.screen is CountryDetailScreen }
+    // Read here rather than taken in the constructor: this is the only @Composable in the class,
+    // and a constructor parameter would mean re-creating the decoration whenever the skin changed.
+    val listPaneWidth = LocalAppSkin.current.listPaneWidth
 
     val hideList = listCollapsed && directive.maxHorizontalPartitions > 1 && detailArg != null
 
@@ -126,7 +126,7 @@ internal class ListDetailNavDecoration(
         },
       modifier = modifier,
       listPane = {
-        AnimatedPane(Modifier.preferredWidth(ListPaneWidth)) { OnScreen { content(listArg) } }
+        AnimatedPane(Modifier.preferredWidth(listPaneWidth)) { OnScreen { content(listArg) } }
       },
       detailPane = {
         AnimatedPane {
