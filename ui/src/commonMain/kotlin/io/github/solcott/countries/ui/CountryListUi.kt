@@ -180,6 +180,7 @@ private fun SearchAndFilterHeader(
       .background(listPaneColor())
       .padding(vertical = 8.dp, horizontal = LocalAppSkin.current.rowHorizontalPadding),
     horizontalArrangement = Arrangement.spacedBy(16.dp),
+    verticalAlignment = Alignment.CenterVertically,
   ) {
     SearchField(nameStartsWithText, modifier = Modifier.weight(1f))
     val continents = continentsState.data
@@ -189,7 +190,6 @@ private fun SearchAndFilterHeader(
       ExposedDropdownMenuBox(
         continentDropdownExpanded,
         onExpandedChange = { continentDropdownExpanded = it },
-        modifier = Modifier.align(Alignment.CenterVertically),
       ) {
         IconButton(onClick = { continentDropdownExpanded = !continentDropdownExpanded }) {
           Icon(

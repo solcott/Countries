@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.slack.circuit.codegen.annotations.CircuitInject
@@ -143,7 +142,6 @@ private fun InspectorRow(label: String, value: String, modifier: Modifier = Modi
       label,
       style = MaterialTheme.typography.bodyLarge,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
-      textAlign = TextAlign.End,
       modifier = Modifier.width(LocalAppSkin.current.inspectorLabelWidth),
     )
     Text(value, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
