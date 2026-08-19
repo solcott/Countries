@@ -1,8 +1,13 @@
 package io.github.solcott.countries.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
@@ -13,8 +18,11 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import com.slack.circuit.backstack.SaveableBackStack
 import com.slack.circuit.backstack.rememberSaveableBackStack
 import com.slack.circuit.foundation.Circuit
@@ -34,6 +42,7 @@ import io.github.solcott.countries.ui.theme.Chrome
 import io.github.solcott.countries.ui.theme.DesktopSkin
 import io.github.solcott.countries.ui.theme.LocalAppSkin
 import io.github.solcott.countries.ui.theme.MaterialSkin
+import io.github.solcott.countries.ui.theme.WebSkin
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -140,15 +149,17 @@ internal fun CountriesAppScaffold(
         )
       },
     ) { padding ->
-      NavigableCircuitContent(
-        navigator = navigator,
-        backStack = backStack,
-        decoration =
-          remember(directive, listCollapsed.value) {
-            ListDetailNavDecoration(directive, listCollapsed.value)
-          },
-        modifier = Modifier.padding(padding).fillMaxSize(),
-      )
+      ContentFrame(Modifier.padding(padding)) {
+        NavigableCircuitContent(
+          navigator = navigator,
+          backStack = backStack,
+          decoration =
+            remember(directive, listCollapsed.value) {
+              ListDetailNavDecoration(directive, listCollapsed.value)
+            },
+          modifier = Modifier.fillMaxSize(),
+        )
+      }
     }
   }
 }
@@ -168,10 +179,43 @@ private fun AppChrome(
   modifier: Modifier = Modifier,
 ) {
   when (LocalAppSkin.current.chrome) {
-    // `WebHeader` has no implementation yet and no skin selects it — it arrives with `WebSkin`.
-    Chrome.MaterialAppBar,
-    Chrome.WebHeader -> CountriesTopAppBar(modifier, title, onBack, listCollapsed, onToggleList)
+    Chrome.MaterialAppBar ->
+      CountriesTopAppBar(modifier, title, onBack, listCollapsed, onToggleList)
     Chrome.DesktopToolbar -> DesktopToolbar(modifier, title, onBack, listCollapsed, onToggleList)
+    Chrome.WebHeader -> WebHeader(modifier, title, onBack, listCollapsed, onToggleList)
+  }
+}
+
+/**
+ * Where the panes are allowed to be, which is the difference between an app and a page.
+ *
+ * An app fills its window, and for the two skins that say so this is a pass-through. A page stops:
+ * the content is capped at `contentMaxWidth`, centred, and — when the skin asks for it — set on a
+ * bordered panel above the page tint the `Scaffold` is already painting.
+ *
+ * `contentMaxWidth` is tested with `isSpecified` rather than `== Dp.Unspecified`: that value is a
+ * `Dp` wrapping `Float.NaN`, and NaN is not equal to itself.
+ */
+@Composable
+private fun ContentFrame(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+  val skin = LocalAppSkin.current
+  if (!skin.contentMaxWidth.isSpecified && !skin.contentPanel) {
+    Box(modifier.fillMaxSize()) { content() }
+    return
+  }
+  Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    val column = Modifier.widthIn(max = skin.contentMaxWidth).fillMaxSize()
+    if (skin.contentPanel) {
+      Surface(
+        modifier = column.padding(horizontal = WebPageGutter).padding(bottom = WebPageGutter),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        content = content,
+      )
+    } else {
+      Box(column) { content() }
+    }
   }
 }
 
@@ -221,6 +265,16 @@ private fun CountriesAppPreview() {
 @Composable
 private fun CountriesAppDesktopSkinPreview() {
   AppPreview(twoPaneDirective, previewDetailRoute, skin = DesktopSkin)
+}
+
+/**
+ * The web skin at a common browser size: the header, the centred panel, and the page tint showing
+ * around it — the three things `contentMaxWidth` and `contentPanel` exist for.
+ */
+@Preview(name = "Web skin", device = "spec:width=1440dp,height=900dp,dpi=160")
+@Composable
+private fun CountriesAppWebSkinPreview() {
+  AppPreview(twoPaneDirective, previewDetailRoute, skin = WebSkin)
 }
 
 /** Wide, nothing picked: the list beside [NoCountrySelected]. */

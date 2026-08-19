@@ -2,15 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <!-- No `maximum-scale`/`user-scalable=no`. Blocking zoom is an app habit and an accessibility
+         problem, and this is a web page. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Countries</title>
+    <meta
+      name="description"
+      content="Browse every country in the world — capital, continent, currency, calling code and languages."
+    />
+    <!-- Paints the browser's own chrome to match the page, in whichever scheme the visitor is in.
+         These have to agree with WebColors.kt's `background`. -->
+    <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0f12" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="favicon.png" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div id="composeApp"></div>
+    <!-- Shown until Compose draws its first frame, which `Main.kt` uses as the cue to remove this.
+         The wasm bundle is large; without it the first thing a visitor sees is an empty page. -->
+    <div id="loading">
+      <div class="loading-mark">Countries</div>
+      <div class="loading-bar"><span></span></div>
+    </div>
     <script src="countries.js"></script>
   </body>
 </html>

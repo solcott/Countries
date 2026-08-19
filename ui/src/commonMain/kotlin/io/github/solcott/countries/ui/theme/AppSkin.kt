@@ -66,6 +66,14 @@ data class AppSkin(
   val contentPanel: Boolean,
   /** The flag on the detail screen, which is set in points rather than through a text style. */
   val detailFlagSize: TextUnit,
+  /**
+   * The label column in [DetailLayout.Inspector].
+   *
+   * Fixed rather than measured, because right-aligning the labels is the whole point — and it has
+   * to be per-skin because the longest label, "Calling code", has to fit at that skin's body size.
+   * Too narrow and it wraps to two lines.
+   */
+  val inspectorLabelWidth: Dp,
 
   // Interaction.
   /**

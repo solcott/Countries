@@ -126,9 +126,6 @@ private fun DetailRow(text: String, modifier: Modifier = Modifier) {
   Text(text, style = MaterialTheme.typography.bodyLarge, modifier = modifier)
 }
 
-/** Wide enough for the longest of the five labels at desktop density. */
-private val InspectorLabelWidth = 96.dp
-
 /**
  * One field as a label column and a value column, the way a desktop inspector reads.
  *
@@ -147,7 +144,7 @@ private fun InspectorRow(label: String, value: String, modifier: Modifier = Modi
       style = MaterialTheme.typography.bodyLarge,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
       textAlign = TextAlign.End,
-      modifier = Modifier.width(InspectorLabelWidth),
+      modifier = Modifier.width(LocalAppSkin.current.inspectorLabelWidth),
     )
     Text(value, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
   }

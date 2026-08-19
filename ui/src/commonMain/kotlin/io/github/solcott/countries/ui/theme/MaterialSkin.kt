@@ -37,6 +37,8 @@ val MaterialSkin =
     contentMaxWidth = Dp.Unspecified,
     contentPanel = false,
     detailFlagSize = 56.sp,
+    // Unused: Material renders the fields inline, not as an inspector.
+    inspectorLabelWidth = 96.dp,
     // Material's own touch target, and what `LocalMinimumInteractiveComponentSize` already
     // defaults to — stated rather than inherited so the other skins have something to differ from.
     minInteractiveSize = 48.dp,

@@ -80,6 +80,7 @@ val DesktopSkin =
     contentMaxWidth = Dp.Unspecified,
     contentPanel = false,
     detailFlagSize = 48.sp,
+    inspectorLabelWidth = 96.dp,
     // The single most load-bearing value here. Every Material control reads
     // `LocalMinimumInteractiveComponentSize` to decide its own floor, so zero is what stops the
     // whole control set measuring for a fingertip.
