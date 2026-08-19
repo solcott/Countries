@@ -53,6 +53,8 @@ kotlin {
       implementation(libs.compose.foundation)
       implementation(libs.compose.ui)
       implementation(libs.compose.material3)
+      implementation(libs.compose.material3.adaptive)
+      implementation(libs.compose.material3.adaptive.layout)
       // Generates the Res class from src/commonMain/composeResources — the multiplatform
       // replacement for the Android res/ directory this module used to have.
       implementation(libs.compose.components.resources)

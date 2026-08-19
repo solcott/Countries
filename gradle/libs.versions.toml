@@ -57,6 +57,14 @@ composeMultiplatform = "1.12.0-rc01"
 # pull an androidx material3 several minor lines backwards; always set this explicitly.
 composeMaterial3 = "1.12.0-alpha03"
 
+# Material 3 adaptive, for ListDetailPaneScaffold. Its own version line too, and for the same
+# reason: it does not track composeMultiplatform. The androidx.compose.material3.adaptive
+# coordinates are Android-only (android plus jvmstubs/linuxx64stubs) so they cannot be used from
+# commonMain; JetBrains' repackage publishes android, jvm, iosArm64, iosSimulatorArm64, macosArm64,
+# js and wasmJs — this project's exact target set. It requires compose 1.10.0, which resolves up to
+# our rc01, and depends on no material3 at all, so it cannot drag material3 backwards.
+composeMaterial3Adaptive = "1.3.0-beta02"
+
 # AndroidX
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
@@ -100,6 +108,11 @@ compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", v
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
 # Separate version line — see the note on composeMaterial3.
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
+# The two-pane list/detail layout. Deliberately without `adaptive-navigation`: its
+# ThreePaneScaffoldNavigator would be a second navigation state competing with Circuit's back
+# stack, which is what :web's URL binding and :desktop's back shortcut both read.
+compose-material3-adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive", version.ref = "composeMaterial3Adaptive" }
+compose-material3-adaptive-layout = { module = "org.jetbrains.compose.material3.adaptive:adaptive-layout", version.ref = "composeMaterial3Adaptive" }
 # The multiplatform replacement for Android res/: strings and drawables in commonMain.
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 # @Preview and friends — annotations only, no runtime code, and published for every target we have.
