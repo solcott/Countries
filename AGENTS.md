@@ -222,9 +222,9 @@ the first one, at the cost of a 600 KB wasm blob.
 
 `network/npm/countries-sqljs-idb-worker/` is that worker with a persistence layer: it loads the
 database from IndexedDB at startup and writes `db.export()` back, debounced, after each
-transaction. `NetworkProviders.web.kt` builds the `WebWorkerDriver` around it by hand.
+transaction. `NetworkProviders.{js,wasmJs}.kt` build the `WebWorkerDriver` around it by hand.
 
-Three things about it are easy to break:
+Four things about it are easy to break:
 
 - **It is a local npm package, not a loose `.js` file.** `new Worker(new URL(…))` has to resolve
   at bundle time, and a bare specifier out of `node_modules` is the only shape that works from a
@@ -234,6 +234,13 @@ Three things about it are easy to break:
   makes a cache miss look like a row to SQLDelight's cursor.
 - **The database name travels as the worker's own name** (`new Worker(url, { name })`), because
   SQLDelight's message protocol has no field for it. It keys the IndexedDB snapshot.
+- **The `Worker` must not move up into `webMain`.** `WebWorkerDriver` takes SQLDelight's
+  `expect class Worker`, actualised as a typealias to `org.w3c.dom.Worker`. A typealias only
+  expands in a *platform* compilation, so js and wasmJs both accept a `Worker` there while
+  `compileWebMainKotlinMetadata` — which also compiles that source set — sees an opaque expect
+  class and fails the argument. That is why the seam is `persistentSqlJsDriver(): SqlDriver`:
+  `SqlDriver` is an ordinary common type. The failure blocks `assemble` for `:network` and
+  everything above it, and neither web target's own compile task reproduces it.
 
 **Persisting the cache is not what makes the app work offline** — see the service worker below.
 
