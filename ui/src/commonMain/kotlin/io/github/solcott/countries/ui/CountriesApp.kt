@@ -8,6 +8,8 @@ import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -20,8 +22,12 @@ import com.slack.circuit.foundation.rememberCircuitNavigator
 import com.slack.circuit.runtime.Navigator
 import com.slack.circuit.runtime.screen.PopResult
 import com.slack.circuit.runtime.screen.Screen
+import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListScreen
+import io.github.solcott.countries.ui.resources.Res
+import io.github.solcott.countries.ui.resources.countries
 import io.github.solcott.countries.ui.theme.AppTheme
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The whole app, from the theme down: everything a Compose platform entry point needs beyond
@@ -83,22 +89,40 @@ internal fun CountriesAppScaffold(
   modifier: Modifier = Modifier,
 ) {
   val twoPane = directive.maxHorizontalPartitions > 1
-  Scaffold(
-    modifier = modifier,
-    topBar = {
-      CountriesTopAppBar(
-        // Nothing to go back to beside two live panes: closing the detail there leaves the
-        // placeholder, not a previous screen.
-        onBack = if (!twoPane && backStack.size > 1) ({ navigator.pop() }) else null
+  val detailTitle = remember { mutableStateOf<String?>(null) }
+  // The back stack, not the published name, decides whether a country title is shown at all —
+  // nothing clears [LocalAppBarTitle] on the way out, so this gate is what keeps the last country's
+  // name from outliving it. See the note on that local.
+  //
+  // `!twoPane` because the bar spans both panes: naming the country there would drop the app's own
+  // name from the window entirely, and the detail pane is already headed by that name in
+  // `headlineMedium`. It is the stacked layout, where the detail *is* the window, that needs the
+  // bar to say what you are looking at — which is also how `NavigationSplitView` reads on iPhone
+  // versus iPad.
+  val showCountryTitle = !twoPane && backStack.topRecord?.screen is CountryDetailScreen
+
+  CompositionLocalProvider(LocalAppBarTitle provides detailTitle) {
+    Scaffold(
+      modifier = modifier,
+      topBar = {
+        CountriesTopAppBar(
+          // Null while the country loads, which leaves the app's own name up rather than flashing
+          // a placeholder for the frame or two before the data lands.
+          title =
+            detailTitle.value.takeIf { showCountryTitle } ?: stringResource(Res.string.countries),
+          // Nothing to go back to beside two live panes: closing the detail there leaves the
+          // placeholder, not a previous screen.
+          onBack = if (!twoPane && backStack.size > 1) ({ navigator.pop() }) else null,
+        )
+      },
+    ) { padding ->
+      NavigableCircuitContent(
+        navigator = navigator,
+        backStack = backStack,
+        decoration = remember(directive) { ListDetailNavDecoration(directive) },
+        modifier = Modifier.padding(padding).fillMaxSize(),
       )
-    },
-  ) { padding ->
-    NavigableCircuitContent(
-      navigator = navigator,
-      backStack = backStack,
-      decoration = remember(directive) { ListDetailNavDecoration(directive) },
-      modifier = Modifier.padding(padding).fillMaxSize(),
-    )
+    }
   }
 }
 

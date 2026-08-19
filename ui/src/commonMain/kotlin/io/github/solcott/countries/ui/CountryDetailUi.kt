@@ -54,6 +54,9 @@ fun CountryDetailUi(
   Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
     val content = state.content
     val country = content.data
+    // The one shared app bar lives up in `CountriesApp`, which can see the back stack but not this
+    // state, so the name has to travel upward rather than being rendered here.
+    ProvideAppBarTitle(country?.name)
     val error = content.errorOrNull
     when {
       country == null && content.isLoading -> CircularProgressIndicator()
