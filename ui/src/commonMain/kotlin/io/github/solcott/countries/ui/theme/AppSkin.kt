@@ -76,6 +76,15 @@ data class AppSkin(
   val minInteractiveSize: Dp,
   /** Hover highlights and a hand cursor: right with a pointer, meaningless with a finger. */
   val hoverAffordances: Boolean,
+  /**
+   * Whether a list row's second line is set smaller and dimmer than its first.
+   *
+   * Material's own two-line list item does this, but the app has never done it and turning it on
+   * for Android would be a look change this abstraction is not supposed to make. The denser skins
+   * need it: at 13sp a capital set identically to the country name gives the row no hierarchy at
+   * all.
+   */
+  val dimSupportingText: Boolean,
 )
 
 /** Which app-level chrome sits above the panes. */

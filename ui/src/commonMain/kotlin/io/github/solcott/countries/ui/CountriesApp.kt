@@ -30,6 +30,9 @@ import io.github.solcott.countries.ui.resources.Res
 import io.github.solcott.countries.ui.resources.countries
 import io.github.solcott.countries.ui.theme.AppSkin
 import io.github.solcott.countries.ui.theme.AppTheme
+import io.github.solcott.countries.ui.theme.Chrome
+import io.github.solcott.countries.ui.theme.DesktopSkin
+import io.github.solcott.countries.ui.theme.LocalAppSkin
 import io.github.solcott.countries.ui.theme.MaterialSkin
 import org.jetbrains.compose.resources.stringResource
 
@@ -123,7 +126,7 @@ internal fun CountriesAppScaffold(
     Scaffold(
       modifier = modifier,
       topBar = {
-        CountriesTopAppBar(
+        AppChrome(
           // Null while the country loads, which leaves the app's own name up rather than flashing
           // a placeholder for the frame or two before the data lands.
           title =
@@ -151,6 +154,28 @@ internal fun CountriesAppScaffold(
 }
 
 /**
+ * The chrome the skin asks for, above whichever panes are on screen.
+ *
+ * Every implementation takes the same four parameters, so the scaffold can decide *what* the bar
+ * should say and offer without knowing what it will be drawn as.
+ */
+@Composable
+private fun AppChrome(
+  title: String,
+  onBack: (() -> Unit)?,
+  listCollapsed: Boolean,
+  onToggleList: (() -> Unit)?,
+  modifier: Modifier = Modifier,
+) {
+  when (LocalAppSkin.current.chrome) {
+    // `WebHeader` has no implementation yet and no skin selects it — it arrives with `WebSkin`.
+    Chrome.MaterialAppBar,
+    Chrome.WebHeader -> CountriesTopAppBar(modifier, title, onBack, listCollapsed, onToggleList)
+    Chrome.DesktopToolbar -> DesktopToolbar(modifier, title, onBack, listCollapsed, onToggleList)
+  }
+}
+
+/**
  * Renders [CountriesAppScaffold] against a preview [Circuit], for the previews below.
  *
  * Each one fixes a layout and a back stack, since those two together are the whole state space: one
@@ -161,8 +186,9 @@ private fun AppPreview(
   directive: PaneScaffoldDirective,
   screens: List<Screen> = listOf(CountryListScreen),
   listCollapsed: Boolean = false,
+  skin: AppSkin = MaterialSkin,
 ) {
-  AppTheme {
+  AppTheme(skin) {
     val backStack = rememberSaveableBackStack(screens)
     CircuitCompositionLocals(previewCircuit()) {
       CountriesAppScaffold(
@@ -184,6 +210,17 @@ private fun AppPreview(
 @Composable
 private fun CountriesAppPreview() {
   CountriesApp(circuit = previewCircuit())
+}
+
+/**
+ * The desktop skin at the size it actually runs: two panes with a country open, which is where the
+ * sidebar tint, the inset selection, the flat toolbar and the inspector rows are all visible at
+ * once.
+ */
+@Preview(name = "Desktop skin", device = "spec:width=1280dp,height=800dp,dpi=160")
+@Composable
+private fun CountriesAppDesktopSkinPreview() {
+  AppPreview(twoPaneDirective, previewDetailRoute, skin = DesktopSkin)
 }
 
 /** Wide, nothing picked: the list beside [NoCountrySelected]. */

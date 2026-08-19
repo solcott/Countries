@@ -23,6 +23,7 @@ import io.github.solcott.countries.presenter.CountryListScreen
 import io.github.solcott.countries.shared.compose.ComposeGraph
 import io.github.solcott.countries.ui.CountriesApp
 import io.github.solcott.countries.ui.LocalFlagFontFamily
+import io.github.solcott.countries.ui.theme.DesktopSkin
 import java.awt.Dimension
 
 /**
@@ -88,7 +89,14 @@ fun main() = application {
     // onRootPop is left at its default no-op: on desktop the window's close button is how you
     // leave, and popping past the list should not quit the app out from under the user.
     CompositionLocalProvider(LocalFlagFontFamily provides flagFontFamily) {
-      CountriesApp(circuit = circuit, backStack = backStack, listCollapsed = listCollapsed)
+      // The one line that makes this a desktop app rather than an Android app in a window. Every
+      // number behind it lives in `:ui`, so it is previewable there — see `AppSkin`.
+      CountriesApp(
+        circuit = circuit,
+        skin = DesktopSkin,
+        backStack = backStack,
+        listCollapsed = listCollapsed,
+      )
     }
   }
 }

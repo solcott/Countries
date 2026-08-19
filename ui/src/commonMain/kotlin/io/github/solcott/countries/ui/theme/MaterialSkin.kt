@@ -41,4 +41,5 @@ val MaterialSkin =
     // defaults to — stated rather than inherited so the other skins have something to differ from.
     minInteractiveSize = 48.dp,
     hoverAffordances = false,
+    dimSupportingText = false,
   )
