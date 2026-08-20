@@ -22,6 +22,10 @@ plugins {
   // So createGraph<CoreGraph>() resolves, exactly as in :app, :web and :desktop. The graph itself,
   // and every contribution to it, is aggregated on :shared's compile classpath — not here.
   alias(libs.plugins.metro)
+  // For `toString()` and nothing else. @Redacted rewrites the generated toString of a data class;
+  // it does NOT touch equals or hashCode, so it is not what keeps the event sinks out of the
+  // equality that lets `StateFlow` conflate a frame — see `EventSink` in AppleUiState.kt for that.
+  alias(libs.plugins.redacted)
 }
 
 // Matches the `import CountriesKit` in the Swift sources. Changing it means changing both.
