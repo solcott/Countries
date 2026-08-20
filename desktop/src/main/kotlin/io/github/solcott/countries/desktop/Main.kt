@@ -43,7 +43,30 @@ private val MINIMUM_SIZE = Dimension(480, 600)
  * needs to drive it. There it is `window.history`; here it is the keyboard, which also drives the
  * list-pane collapse.
  */
-fun main() = application {
+fun main() {
+  // Order matters, and nothing enforces it: `apple.awt.application.name` is read once when AWT
+  // starts, and [applyTaskbarIcon] is the thing that starts it.
+  applyApplicationName()
+  applyTaskbarIcon()
+  startApplication()
+}
+
+/**
+ * Names the app for macOS.
+ *
+ * Without it the menu bar reads `MainKt`. A JVM launched outside an app bundle has no identity of
+ * its own — LaunchServices registers this process as `net.java.openjdk.java` with the `java` binary
+ * as its bundle path — so the main class name is the best macOS can do, and it is the same reason
+ * the dock icon needed [applyTaskbarIcon]. Ignored off macOS.
+ *
+ * The packaged build does not rely on this: jpackage writes a real bundle whose `Info.plist` names
+ * it.
+ */
+private fun applyApplicationName() {
+  System.setProperty("apple.awt.application.name", WINDOW_TITLE)
+}
+
+private fun startApplication() = application {
   val graph = remember { createGraph<ComposeGraph>() }
   val backStack = rememberSaveableBackStack(root = CountryListScreen)
   val listCollapsed = rememberSaveable { mutableStateOf(false) }
