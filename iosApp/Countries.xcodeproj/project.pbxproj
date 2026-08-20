@@ -365,8 +365,6 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lsqlite3",
-					"-Wl,-U,_sqlite3_enable_load_extension",
-					"-Wl,-U,_sqlite3_load_extension",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.solcott.countries;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -403,8 +401,6 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lsqlite3",
-					"-Wl,-U,_sqlite3_enable_load_extension",
-					"-Wl,-U,_sqlite3_load_extension",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.solcott.countries;
 				PRODUCT_NAME = "$(TARGET_NAME)";

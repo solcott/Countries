@@ -71,10 +71,49 @@ Five things worth knowing:
   full*. Only `:dataresult`, `:model` and `:uistate` are exported, because only they are free of
   anything the generator rejects.
 - **`-lsqlite3` moved to Xcode.** Swift export produces a static library, which records no linker
-  options, so SQLiter's symbols resolve at the app link via `OTHER_LDFLAGS`. macOS additionally
-  needs `-Wl,-U,_sqlite3_load_extension` and `-Wl,-U,_sqlite3_enable_load_extension`: Apple's system
-  libsqlite3 omits both, SQLiter references and never calls them, and the old *dynamic* framework
-  never had to resolve them.
+  options, so SQLiter's symbols resolve at the app link via `OTHER_LDFLAGS`.
+- **`sqlite3_enable_load_extension` and `sqlite3_load_extension` are defined by this project**, in
+  `iosApp/Countries/Support/SQLiteLoadExtension.c`. Apple builds libsqlite3 with extension loading
+  omitted, so **no** Apple SDK exports either — `macosx`, `iphoneos` and `iphonesimulator` all
+  export zero of them, and `sqlite3.h` does not declare them. SQLiter reaches SQLite through a
+  cinterop binding generated from a full `sqlite3.h`, which binds every function in the header, so
+  `libCountriesKit.a` references all 255 sqlite functions; nothing ever calls these two.
+
+  `OTHER_LDFLAGS` used to carry `-Wl,-U` for both instead. **That is not a fix — it is a deferred
+  crash.** `-U` only tells the static linker not to complain; the symbols stay unresolved, and dyld
+  kills the app before `main()` with `symbol not found in flat namespace`. iOS got away with it for
+  one reason: `DEAD_CODE_STRIPPING` is `YES` there, so the unused cinterop wrappers were discarded
+  along with their references. macOS defaults it to `NO`, kept all 255, and crashed on every launch.
+
+  Nothing catches this. macOS is build-and-run only — `xcodebuild test` cannot target it — so no
+  test task runs the Mac app at all, and the iOS suites are green throughout. The check that works
+  is on the linked binary, and it must be the **debug dylib**, not the executable: Debug builds set
+  `ENABLE_DEBUG_DYLIB`, so the launcher imports nothing interesting.
+
+  ```
+  dyld_info -imports .../Debug/Countries.app/Contents/MacOS/Countries.debug.dylib | grep flat-namespace
+  ```
+
+  Any `<flat-namespace>` import is a launch crash waiting for the first person to run the Mac app.
+
+  **The definitions cannot move into Kotlin.** `@CName` is the obvious way to give a Kotlin/Native
+  function a C symbol name, and it is silently useless here: `:apple` produces its library through
+  Swift export, and the annotated function is simply never emitted. Tried and measured — the
+  compile succeeds with no error and no warning, and `nm libCountriesKit.a` finds no symbol at all,
+  `internal` or `public` alike. The app link then fails with `Undefined symbols`, naming SQLiter's
+  wrappers (`_co_touchlab_sqliter_sqlite3_sqlite3_enable_load_extension_wrapper180`) as the
+  referrers.
+
+  A cinterop `.def` with the bodies in its `---` section does not work either, for an unrelated
+  reason: cinterop reads `---` function definitions as *declarations* to generate bindings from,
+  not as code to compile in. The resulting `cstubs.bc` holds only wrappers that call
+  `_sqlite3_enable_load_extension` as an external symbol, so the archive gains a second reference
+  and no definition. Making the bodies `static` would get them compiled and simultaneously give
+  them internal linkage, which cannot satisfy SQLiter's reference — there is no version of this
+  that works.
+
+  So the C file in the Xcode target is not a stylistic choice. Both Kotlin/Native routes were
+  tried and measured, and it is the only place these definitions work.
 - **The deployment floor is iOS 18, not 17.** Swift export's generated coroutine support uses
   `Synchronization.Mutex`. Nothing in the documentation mentions a minimum OS.
 - **A Kotlin class must not share the module's name.** `CountriesKit` would be silently renamed to
