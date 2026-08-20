@@ -49,7 +49,43 @@ internal constructor(
   val continentsStatus: LoadStatus,
   internal val eventSink: (CountryListScreen.Event) -> Unit,
   internal val headerEventSink: (SearchAndFilterScreen.Event) -> Unit,
-)
+) {
+
+  /**
+   * Value equality over the data, so `StateFlow` can conflate a frame that changed nothing.
+   *
+   * Molecule builds one of these per recomposition, and without this every frame is a distinct
+   * instance that `StateFlow` cannot dedupe — so `PresenterModel.state` reassigns and SwiftUI
+   * invalidates the whole list view on recompositions that produced identical state. Written out
+   * rather than `data class`, which would put `copy()` and `componentN()` into the Swift export and
+   * fold the two sinks into equality.
+   *
+   * **The sinks are deliberately excluded.** They are fresh lambdas each frame, so including them
+   * would defeat the whole point. Conflating them is safe because both close over objects that
+   * outlive the frame — the `remember`ed `TextFieldState` and `SnapshotStateList` in
+   * `SearchAndFilterPresenter`, and the `retain`ed `MutableState`s in `CountryListPresenter` — so
+   * an older sink writes to exactly the same state a newer one would.
+   */
+  override fun equals(other: Any?): Boolean =
+    this === other ||
+      (other is CountryListUiState &&
+        countries == other.countries &&
+        continents == other.continents &&
+        selectedContinents == other.selectedContinents &&
+        searchText == other.searchText &&
+        countriesStatus == other.countriesStatus &&
+        continentsStatus == other.continentsStatus)
+
+  override fun hashCode(): Int {
+    var result = countries.hashCode()
+    result = 31 * result + continents.hashCode()
+    result = 31 * result + selectedContinents.hashCode()
+    result = 31 * result + searchText.hashCode()
+    result = 31 * result + countriesStatus.hashCode()
+    result = 31 * result + continentsStatus.hashCode()
+    return result
+  }
+}
 
 /** See [CountryListUiState]. */
 class CountryDetailUiState
@@ -70,7 +106,12 @@ internal fun CountryListScreen.State.toUiState(header: SearchAndFilterScreen.Sta
   CountryListUiState(
     countries = countriesState.data,
     continents = header.continentsState.data,
-    selectedContinents = header.selectedContinents,
+    // Copied, not passed through. `header.selectedContinents` is the sub-presenter's live
+    // `SnapshotStateList`: Swift would read it on the main thread while Molecule mutates it in
+    // composition, and its `equals` is identity-based on native, which would make the value
+    // equality above never fire. `PresenterHolderTest` already had to call `.toList()` for the
+    // same reason.
+    selectedContinents = header.selectedContinents.toList(),
     searchText = header.nameStartsWithText.text.toString(),
     countriesStatus = countriesState.status,
     continentsStatus = header.continentsState.status,
