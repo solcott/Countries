@@ -1,6 +1,5 @@
 package io.github.solcott.countries.presenter
 
-import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import app.cash.turbine.ReceiveTurbine
 import com.slack.circuit.test.FakeNavigator
 import com.slack.circuit.test.presenterTestOf
@@ -10,7 +9,6 @@ import io.github.solcott.countries.dataresult.Outcome
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
-import io.github.solcott.countries.repository.ContinentRepository
 import io.github.solcott.countries.repository.CountryRepository
 import io.github.solcott.countries.uistate.ContentState
 import io.github.solcott.countries.uistate.LoadStatus
@@ -25,6 +23,12 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 
+/**
+ * The list presenter no longer owns the search text or the continent selection — `SearchAndFilter`
+ * does, and reports them through [CountryListScreen.Event.FilterChanged]. So every filtering test
+ * here drives that event, which is exactly what `CountryListUi` and the Apple holder do with the
+ * sub-circuit's outer event. `SearchAndFilterPresenterTest` covers the other side.
+ */
 class CountryListPresenterTest {
 
   private val canada =
@@ -73,7 +77,6 @@ class CountryListPresenterTest {
   val europe = Continent("EU", "Europe")
 
   val countries = listOf(canada, egypt, fiji)
-  val continents = listOf(africa, europe, oceania)
 
   @Test
   fun loadsCountriesAndEmitsLoadedState() = runTest {
@@ -81,9 +84,7 @@ class CountryListPresenterTest {
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
 
-    val continentRepository = FakeContinentRepository()
-
-    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
       assertTrue(awaitItem().countriesState.isLoading)
 
       val loaded = awaitCountriesSettled()
@@ -111,58 +112,56 @@ class CountryListPresenterTest {
         }
       )
 
-    val continentRepository =
-      FakeContinentRepository(continentsAsFlow = { flowOf(data(continents)) })
-
-    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
-      val initial = awaitFullySettled()
+    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+      val initial = awaitCountriesSettledState()
       assertEquals(countries, initial.countriesState.data)
-      assertEquals(continents, initial.continentsState.data)
 
-      initial.nameStartsWithText.setTextAndPlaceCursorAtEnd("c")
+      initial.eventSink(CountryListScreen.Event.FilterChanged("c", emptyList()))
       assertEquals(listOf(canada), awaitCountriesSettled().data)
 
-      initial.eventSink(CountryListScreen.Event.ToggleContinentSelection(europe))
+      initial.eventSink(CountryListScreen.Event.FilterChanged("c", listOf(europe)))
       assertEquals(emptyList<Country>(), awaitCountriesSettled().data)
 
-      initial.eventSink(CountryListScreen.Event.ToggleContinentSelection(europe))
+      initial.eventSink(CountryListScreen.Event.FilterChanged("c", emptyList()))
       assertEquals(listOf(canada), awaitCountriesSettled().data)
 
-      initial.nameStartsWithText.setTextAndPlaceCursorAtEnd("")
+      initial.eventSink(CountryListScreen.Event.FilterChanged("", emptyList()))
       assertEquals(countries, awaitCountriesSettled().data)
       cancelAndIgnoreRemainingEvents()
     }
   }
 
   /**
-   * The same filtering as above, driven through [CountryListScreen.Event.SearchTextChanged] rather
-   * than by mutating the [androidx.compose.foundation.text.input.TextFieldState] — the only route
-   * open to a host that is not a composition, such as the SwiftUI app.
+   * The sub-circuit re-reports its filter whenever it is composed, and a fast edit that ends back
+   * where it started collapses to the value already in flight once the debounce has had its say.
+   * Neither may restart an identical request.
    */
   @Test
-  fun searchTextChangedEventFiltersCountries() = runTest {
+  fun repeatingTheSameFilterDoesNotRequery() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
+    var queries = 0
     val repository =
       FakeCountryRepository(
-        countriesAsFlow = { name, _ ->
-          if (name.startsWith("c")) flowOf(data(listOf(canada))) else flowOf(data(countries))
+        countriesAsFlow = { _, _ ->
+          queries++
+          flowOf(data(countries))
         }
       )
 
-    val continentRepository = FakeContinentRepository()
-
-    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+    val scheduler = testScheduler
+    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
       val initial = awaitCountriesSettledState()
-      assertEquals(countries, initial.countriesState.data)
+      assertEquals(1, queries)
 
-      initial.eventSink(CountryListScreen.Event.SearchTextChanged("c"))
-      assertEquals(listOf(canada), awaitCountriesSettled().data)
-      // The event is the sole writer, so the TextFieldState has to end up holding the same text —
-      // otherwise a Compose host sharing this presenter would show a stale search box.
-      assertEquals("c", initial.nameStartsWithText.text.toString())
+      // Typed and then undone inside the debounce window, so what finally reaches the query is the
+      // filter that is already loaded.
+      initial.eventSink(CountryListScreen.Event.FilterChanged("c", emptyList()))
+      initial.eventSink(CountryListScreen.Event.FilterChanged("", emptyList()))
+      scheduler.advanceUntilIdle()
 
-      initial.eventSink(CountryListScreen.Event.SearchTextChanged(""))
-      assertEquals(countries, awaitCountriesSettled().data)
+      assertEquals(1, queries)
+      // And with no request, no state change either — the list never blinks through `reloading`.
+      expectNoEvents()
       cancelAndIgnoreRemainingEvents()
     }
   }
@@ -173,8 +172,7 @@ class CountryListPresenterTest {
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
 
-    val continentRepository = FakeContinentRepository()
-    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
       val loaded = awaitCountriesSettledState()
 
       loaded.eventSink(CountryListScreen.Event.CountryClicked("CA"))
@@ -195,8 +193,7 @@ class CountryListPresenterTest {
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada, egypt))) })
 
-    val continentRepository = FakeContinentRepository()
-    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
       val loaded = awaitCountriesSettledState()
       assertEquals("CA", loaded.selectedCountryCode)
 
@@ -217,8 +214,7 @@ class CountryListPresenterTest {
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
 
-    val continentRepository = FakeContinentRepository()
-    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
       val loaded = awaitCountriesSettledState()
 
       loaded.eventSink(CountryListScreen.Event.CountryClicked("CA"))
@@ -236,8 +232,7 @@ class CountryListPresenterTest {
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
 
-    val continentRepository = FakeContinentRepository()
-    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
       assertEquals(null, awaitCountriesSettledState().selectedCountryCode)
       cancelAndIgnoreRemainingEvents()
     }
@@ -251,9 +246,7 @@ class CountryListPresenterTest {
         countriesAsFlow = { _, _ -> flowOf(Outcome.Error(DataError.Network, Origin.Network)) }
       )
 
-    val continentRepository = FakeContinentRepository()
-
-    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
+    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
       assertTrue(awaitItem().countriesState.isLoading)
 
       val errorState = awaitCountriesSettled()
@@ -263,39 +256,34 @@ class CountryListPresenterTest {
     }
   }
 
+  /**
+   * Retry re-runs the query with whatever filter was last reported. Tested from a failure, because
+   * that is the only state the retry affordance is offered in.
+   */
   @Test
-  fun loadsContinentsAndEmitsLoadedState() = runTest {
+  fun retryReloadsTheCountriesAfterAFailure() = runTest {
     val navigator = FakeNavigator(CountryListScreen)
-    val repository = FakeCountryRepository()
+    var queries = 0
+    val repository =
+      FakeCountryRepository(
+        countriesAsFlow = { _, _ ->
+          queries++
+          if (queries == 1) {
+            flowOf(Outcome.Error(DataError.Network, Origin.Network))
+          } else {
+            flowOf(data(countries))
+          }
+        }
+      )
 
-    val continentRepository =
-      FakeContinentRepository(continentsAsFlow = { flowOf(data(listOf(europe))) })
+    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+      val failed = awaitCountriesSettledState()
+      assertTrue(failed.countriesState.status is LoadStatus.Failed)
 
-    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
-      assertTrue(awaitItem().continentsState.isLoading)
+      failed.eventSink(CountryListScreen.Event.Retry)
 
-      val loaded = awaitContinentsSettled()
-      assertEquals(listOf(europe), loaded.data)
-      cancelAndIgnoreRemainingEvents()
-    }
-  }
-
-  @Test
-  fun selectingContinentUpdatesSelectedContinents() = runTest {
-    val navigator = FakeNavigator(CountryListScreen)
-    val repository = FakeCountryRepository()
-
-    val continentRepository = FakeContinentRepository()
-
-    presenterTestOf({ CountryListPresenter(navigator, repository, continentRepository) }) {
-      val state = awaitItem()
-      state.eventSink(CountryListScreen.Event.ToggleContinentSelection(europe))
-      // .toList(): selectedContinents is a SnapshotStateList, whose equals() is structural on
-      // JVM/Android but identity-based on native and Kotlin/JS. Comparing it to a plain list
-      // passed only by accident before this module was multiplatform.
-      assertEquals(listOf(europe), state.selectedContinents.toList())
-      state.eventSink(CountryListScreen.Event.ToggleContinentSelection(europe))
-      assertTrue(state.selectedContinents.isEmpty())
+      assertEquals(countries, awaitCountriesSettled().data)
+      assertEquals(2, queries)
       cancelAndIgnoreRemainingEvents()
     }
   }
@@ -318,28 +306,6 @@ private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitCountriesSettle
 private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitCountriesSettled():
   ContentState<List<Country>> = awaitCountriesSettledState().countriesState
 
-private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitContinentsSettled():
-  ContentState<List<Continent>> {
-  while (true) {
-    val state = awaitItem()
-    if (state.continentsState.status !is LoadStatus.Loading) return state.continentsState
-  }
-}
-
-/** Drains until both the country and continent content have settled. */
-private suspend fun ReceiveTurbine<CountryListScreen.State>.awaitFullySettled():
-  CountryListScreen.State {
-  while (true) {
-    val state = awaitItem()
-    if (
-      state.countriesState.status !is LoadStatus.Loading &&
-        state.continentsState.status !is LoadStatus.Loading
-    ) {
-      return state
-    }
-  }
-}
-
 class FakeCountryRepository(
   private val countriesAsFlow:
     (nameStartsWith: String, continentCodes: List<String>) -> Flow<Outcome<List<Country>>> =
@@ -355,10 +321,4 @@ class FakeCountryRepository(
 
   override fun countryAsFlow(code: String): Flow<Outcome<CountryDetail?>> =
     countryAsFlow.invoke(code)
-}
-
-class FakeContinentRepository(
-  private val continentsAsFlow: () -> Flow<Outcome<List<Continent>>> = { emptyFlow() }
-) : ContinentRepository {
-  override fun continentsAsFlow(): Flow<Outcome<List<Continent>>> = continentsAsFlow.invoke()
 }

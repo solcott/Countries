@@ -37,6 +37,9 @@ kotlin {
       api(project(":uistate"))
       api(libs.circuit.runtime)
       api(libs.circuit.runtime.presenter)
+      // `api`: SubScreen, SubCircuitUiState and SubCircuitOuterEvent are all supertypes in
+      // SearchAndFilterScreen's public API.
+      api(libs.circuitx.subcircuit)
       implementation(project(":repository"))
       implementation(libs.circuit.codegen.annotations)
       implementation(libs.circuit.retained)
@@ -52,6 +55,7 @@ kotlin {
 
     commonTest.dependencies {
       implementation(libs.circuit.test)
+      implementation(libs.circuitx.subcircuit.test)
       implementation(libs.kotlinx.coroutines.test)
       implementation(libs.turbine)
     }

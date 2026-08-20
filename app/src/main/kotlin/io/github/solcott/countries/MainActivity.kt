@@ -9,10 +9,10 @@ class MainActivity : AppCompatActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    val circuit = (application as CountriesApplication).graph.circuit
+    val graph = (application as CountriesApplication).graph
 
     // Popping past the root screen is per-platform, and Circuit's common rememberCircuitNavigator
     // has no default for it — on Android it means leaving the app.
-    setContent { CountriesApp(circuit, onRootPop = { finish() }) }
+    setContent { CountriesApp(graph.circuit, graph.subCircuit, onRootPop = { finish() }) }
   }
 }

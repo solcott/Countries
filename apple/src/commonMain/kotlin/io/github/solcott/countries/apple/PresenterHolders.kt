@@ -1,6 +1,7 @@
 package io.github.solcott.countries.apple
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import app.cash.molecule.RecompositionMode
 import app.cash.molecule.launchMolecule
 import com.slack.circuit.runtime.Navigator
@@ -9,6 +10,8 @@ import io.github.solcott.countries.presenter.CountryDetailPresenter
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListPresenter
 import io.github.solcott.countries.presenter.CountryListScreen
+import io.github.solcott.countries.presenter.SearchAndFilterPresenter
+import io.github.solcott.countries.presenter.SearchAndFilterScreen
 import io.github.solcott.countries.repository.ContinentRepository
 import io.github.solcott.countries.repository.CountryRepository
 import kotlinx.coroutines.CoroutineScope
@@ -67,7 +70,9 @@ abstract class PresenterHolder internal constructor(private val scope: Coroutine
   }
 }
 
-/** Runs `CountryListPresenter`. See [PresenterHolder]. */
+/**
+ * Runs `CountryListPresenter` and the `SearchAndFilterScreen` sub-circuit. See [PresenterHolder].
+ */
 class CountryListPresenterHolder
 internal constructor(
   navigator: Navigator,
@@ -76,10 +81,33 @@ internal constructor(
   scope: CoroutineScope = MainScope(),
 ) : PresenterHolder(scope) {
 
-  // Molecule's Immediate mode computes the first frame synchronously, so `value` holds a real state
-  // before anything is awaited — no optional, and no empty first render.
+  /**
+   * Both presenters behind the country list, composed into one frame.
+   *
+   * The Compose apps get this wiring for free: `CountryListUi` embeds the header with
+   * `SubCircuitContent`, which composes the sub-presenter and forwards its outer events. There is
+   * no Compose UI here, so a `SubPresenter` would never run at all unless this does it — and
+   * without it the SwiftUI app would lose its search field and its continent menu.
+   *
+   * Order matters. `listState` is composed first so its `eventSink` exists to close over; the sink
+   * below is only *invoked* from the sub-presenter's `LaunchedEffect`, which runs after the
+   * composition that created it.
+   *
+   * Molecule's Immediate mode computes the first frame synchronously, so `value` holds a real state
+   * before anything is awaited — no optional, and no empty first render.
+   */
   val state: StateFlow<CountryListUiState> = moleculeState {
-    CountryListPresenter(navigator, countryRepository, continentRepository).toUiState()
+    val listState = CountryListPresenter(navigator, countryRepository)
+    val headerPresenter = remember { SearchAndFilterPresenter(continentRepository) }
+    val headerState = headerPresenter.present { outerEvent ->
+      when (outerEvent) {
+        is SearchAndFilterScreen.OuterEvent.FilterChanged ->
+          listState.eventSink(
+            CountryListScreen.Event.FilterChanged(outerEvent.name, outerEvent.continents)
+          )
+      }
+    }
+    listState.toUiState(headerState)
   }
 
   /**
@@ -88,13 +116,16 @@ internal constructor(
    * Goes through `SearchTextChanged` rather than a shared `TextFieldState`, which is what that
    * event exists for: the Compose hosts bind the `TextFieldState` directly, and a host that is not
    * a composition cannot.
+   *
+   * Lands on the header's sink, not the list's: the sub-circuit owns the filter, and the list
+   * presenter only ever hears the result of it.
    */
   fun search(text: String) {
-    state.value.eventSink(CountryListScreen.Event.SearchTextChanged(text))
+    state.value.headerEventSink(SearchAndFilterScreen.Event.SearchTextChanged(text))
   }
 
   fun toggleContinent(continent: Continent) {
-    state.value.eventSink(CountryListScreen.Event.ToggleContinentSelection(continent))
+    state.value.headerEventSink(SearchAndFilterScreen.Event.ContinentToggled(continent))
   }
 
   fun retry() {

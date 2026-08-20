@@ -5,6 +5,7 @@ import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListScreen
+import io.github.solcott.countries.presenter.SearchAndFilterScreen
 import io.github.solcott.countries.uistate.LoadStatus
 
 /**
@@ -31,6 +32,11 @@ import io.github.solcott.countries.uistate.LoadStatus
  * into Circuit, and keeping it off the public API keeps `CountryListScreen.Event` — and with it the
  * risk of pulling `CountryListScreen.State` and `TextFieldState` back in as a sibling nested type —
  * out of the export.
+ *
+ * There are **two** sinks because the list is two presenters: `CountryListScreen` owns the
+ * countries, and the `SearchAndFilterScreen` sub-circuit owns the filter. This class deliberately
+ * flattens both into one object, so SwiftUI keeps seeing the single view state it always had — see
+ * `CountryListPresenterHolder` for where the two are composed.
  */
 class CountryListUiState
 internal constructor(
@@ -42,6 +48,7 @@ internal constructor(
   val countriesStatus: LoadStatus,
   val continentsStatus: LoadStatus,
   internal val eventSink: (CountryListScreen.Event) -> Unit,
+  internal val headerEventSink: (SearchAndFilterScreen.Event) -> Unit,
 )
 
 /** See [CountryListUiState]. */
@@ -52,15 +59,23 @@ internal constructor(
   internal val eventSink: (CountryDetailScreen.Event) -> Unit,
 )
 
-internal fun CountryListScreen.State.toUiState() =
+/**
+ * Flattens the two presenters behind the country list into the one state Swift sees.
+ *
+ * The Compose apps never need this: there the sub-circuit renders itself and the list pane only
+ * learns what the filter is set to. Here nothing renders, so both halves have to be read out and
+ * merged by hand.
+ */
+internal fun CountryListScreen.State.toUiState(header: SearchAndFilterScreen.State) =
   CountryListUiState(
     countries = countriesState.data,
-    continents = continentsState.data,
-    selectedContinents = selectedContinents,
-    searchText = nameStartsWithText.text.toString(),
+    continents = header.continentsState.data,
+    selectedContinents = header.selectedContinents,
+    searchText = header.nameStartsWithText.text.toString(),
     countriesStatus = countriesState.status,
-    continentsStatus = continentsState.status,
+    continentsStatus = header.continentsState.status,
     eventSink = eventSink,
+    headerEventSink = header.eventSink,
   )
 
 internal fun CountryDetailScreen.State.toUiState() =

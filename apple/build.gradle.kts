@@ -101,6 +101,11 @@ kotlin {
       // CoreGraph, and the repositories it vends. Not exported — Swift never sees the graph, only
       // what CountriesKit hands back.
       implementation(project(":shared"))
+      // SubPresenter, because CountryListPresenterHolder composes SearchAndFilterPresenter itself
+      // — there is no SubCircuitContent here to do it. This artifact also carries `SubUi`, which
+      // references Compose `Modifier`; nothing in this module names it, so it stays out of the
+      // linked binary. `implementation`, so it never reaches the Swift export.
+      implementation(libs.circuitx.subcircuit)
       implementation(libs.molecule.runtime)
       implementation(libs.compose.runtime)
       implementation(libs.kotlinx.coroutines.core)

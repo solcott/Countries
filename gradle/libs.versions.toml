@@ -136,6 +136,11 @@ circuit-runtime-screen = { module = "com.slack.circuit:circuit-runtime-screen", 
 circuit-runtime-ui = { module = "com.slack.circuit:circuit-runtime-ui", version.ref = "circuit" }
 circuit-test = { module = "com.slack.circuit:circuit-test", version.ref = "circuit" }
 circuit-codegen-annotations = { module = "com.slack.circuit:circuit-codegen-annotations", version.ref = "circuit" }
+# SubCircuit: nested presenter/UI pairs that render themselves but hand cross-cutting concerns to
+# a host rather than owning a Navigator. Metro's own Circuit codegen has handled @SubCircuitInject
+# since Metro 1.4.0, so this needs no KSP processor and no circuit.codegen.mode.
+circuitx-subcircuit = { module = "com.slack.circuit:circuitx-subcircuit", version.ref = "circuit" }
+circuitx-subcircuit-test = { module = "com.slack.circuit:circuitx-subcircuit-test", version.ref = "circuit" }
 
 # Molecule
 molecule-runtime = { module = "app.cash.molecule:molecule-runtime", version.ref = "molecule" }

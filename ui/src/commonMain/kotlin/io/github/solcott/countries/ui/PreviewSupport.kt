@@ -1,10 +1,11 @@
 package io.github.solcott.countries.ui
 
-import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
@@ -13,6 +14,9 @@ import com.slack.circuit.foundation.Circuit
 import com.slack.circuit.runtime.presenter.presenterOf
 import com.slack.circuit.runtime.screen.Screen
 import com.slack.circuit.runtime.ui.ui
+import com.slack.circuit.subcircuit.SubCircuit
+import com.slack.circuit.subcircuit.SubPresenter
+import com.slack.circuit.subcircuit.SubUi
 import io.github.solcott.countries.dataresult.DataError
 import io.github.solcott.countries.dataresult.Origin
 import io.github.solcott.countries.model.Continent
@@ -21,6 +25,7 @@ import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.model.Language
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListScreen
+import io.github.solcott.countries.presenter.SearchAndFilterScreen
 import io.github.solcott.countries.ui.theme.AppSkin
 import io.github.solcott.countries.ui.theme.AppTheme
 import io.github.solcott.countries.ui.theme.MaterialSkin
@@ -163,13 +168,7 @@ internal fun previewCircuit(): Circuit =
   Circuit.Builder()
     .addPresenter<CountryListScreen, CountryListScreen.State>(
       presenterOf {
-        CountryListScreen.State(
-          nameStartsWithText = rememberTextFieldState(),
-          countriesState = loadedState(previewCountries),
-          continentsState = loadedState(previewContinents),
-          selectedContinents = emptyList(),
-          eventSink = {},
-        )
+        CountryListScreen.State(countriesState = loadedState(previewCountries), eventSink = {})
       }
     )
     .addUi<CountryListScreen, CountryListScreen.State> { state, modifier ->
@@ -190,6 +189,61 @@ internal fun previewCircuit(): Circuit =
         ui<CountryDetailScreen.State> { state, modifier ->
           CountryDetailUi(state, screen, modifier)
         }
+      } else {
+        null
+      }
+    }
+    .build()
+
+/** Builds a fixed header state, so the header previews read as a table of what it can look like. */
+internal fun searchAndFilterState(
+  nameStartsWith: String = "",
+  continentsState: ContentState<List<Continent>> = loadedState(previewContinents),
+  selectedContinents: List<Continent> = emptyList(),
+  continentDropdownExpanded: Boolean = false,
+) =
+  SearchAndFilterScreen.State(
+    nameStartsWithText = TextFieldState(nameStartsWith),
+    continentsState = continentsState,
+    selectedContinents = selectedContinents,
+    continentDropdownExpanded = continentDropdownExpanded,
+    eventSink = {},
+  )
+
+/**
+ * The [SubCircuit] half of [previewCircuit], for any preview that renders the country list.
+ *
+ * Not optional: `SubCircuitContent` reads `LocalSubCircuit`, which defaults to null and is behind a
+ * `requireNotNull`. A preview that forgets it throws rather than drawing a placeholder — the
+ * placeholder path is for a screen with no factory registered, not for a missing SubCircuit.
+ *
+ * Hand-built rather than injected, for the same reason [previewCircuit] is: a preview has no Metro
+ * graph. Only the presenter is faked — the real [SearchAndFilterUi] draws it, so these previews
+ * still show the header that ships.
+ */
+internal fun previewSubCircuit(
+  nameStartsWith: String = "",
+  continentsState: ContentState<List<Continent>> = loadedState(previewContinents),
+  selectedContinents: List<Continent> = emptyList(),
+): SubCircuit =
+  SubCircuit.builder()
+    .addPresenterFactory { screen ->
+      if (screen is SearchAndFilterScreen) {
+        object : SubPresenter<SearchAndFilterScreen.OuterEvent, SearchAndFilterScreen.State> {
+          @Composable
+          override fun present(
+            outerEventSink: (SearchAndFilterScreen.OuterEvent) -> Unit
+          ): SearchAndFilterScreen.State = remember {
+            searchAndFilterState(nameStartsWith, continentsState, selectedContinents)
+          }
+        }
+      } else {
+        null
+      }
+    }
+    .addUiFactory { screen ->
+      if (screen is SearchAndFilterScreen) {
+        SubUi<SearchAndFilterScreen.State> { state, modifier -> SearchAndFilterUi(state, modifier) }
       } else {
         null
       }
