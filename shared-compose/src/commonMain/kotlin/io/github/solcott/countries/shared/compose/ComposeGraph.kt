@@ -1,6 +1,7 @@
 package io.github.solcott.countries.shared.compose
 
 import com.slack.circuit.foundation.Circuit
+import com.slack.circuit.subcircuit.SubCircuit
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
 import dev.zacsweers.metro.SingleIn
@@ -20,4 +21,7 @@ import dev.zacsweers.metro.SingleIn
 @DependencyGraph(AppScope::class)
 interface ComposeGraph {
   val circuit: Circuit
+
+  /** Resolves the nested presenter/UI pairs that are not navigation destinations. */
+  val subCircuit: SubCircuit
 }

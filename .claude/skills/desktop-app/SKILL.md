@@ -32,10 +32,24 @@ need. Four things are worth knowing:
   Esc on the root screen should not quit it.
 
 Icons live in `desktop/icons/` and are the source of truth for the app icon **on every platform**:
-jpackage reads all three from disk, `icon.png` is also on the runtime classpath for the window and
-dock icon, and the Apple asset catalog is derived from `icon.icns` — see
-`.claude/skills/apple-app-icons/SKILL.md`. `build.gradle.kts` adds that directory as a resource
-root and excludes `*.icns`/`*.ico` from the jar, since only the PNG is useful at runtime.
+jpackage reads all three from disk, `icon.png` is also on the runtime classpath, and the Apple asset
+catalog is derived from `icon.icns` — see `.claude/skills/apple-app-icons/SKILL.md`.
+`build.gradle.kts` adds that directory as a resource root and excludes `*.icns`/`*.ico` from the
+jar, since only the PNG is useful at runtime.
+
+**`Window(icon = …)` is not a dock icon, and looks like one.** Compose Desktop's `icon` parameter
+resolves to `java.awt.Window.setIconImage` — a *title bar* icon, which is what Windows and Linux
+want and which macOS has no concept of. macOS takes the dock icon from the app bundle or from
+`java.awt.Taskbar`, and Compose Desktop references `Taskbar` nowhere. The consequence was that a
+packaged build looked right — jpackage writes `Countries.icns` and `CFBundleIconFile` into the
+bundle — while `:desktop:run` and the uber jar, i.e. every development launch, showed the default
+Java coffee cup. `applyTaskbarIcon()` in `AppIcon.kt` is what sets it, called from `main()` before
+the first window; it no-ops off macOS, where `Feature.ICON_IMAGE` is unsupported and `Window`
+already does the job.
+
+No build task can see a dock icon, so this is a `:desktop:run`-and-look check. Test packaging
+separately with `packageDistributionForCurrentOS` — the bundle icon and the runtime one come from
+different mechanisms and either can regress without the other.
 
 The flag font `:desktop` bundles is a separate concern — see `.claude/skills/compose-fonts/SKILL.md`.
 

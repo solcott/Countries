@@ -14,26 +14,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,14 +34,14 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.slack.circuit.codegen.annotations.CircuitInject
+import com.slack.circuit.subcircuit.LocalSubCircuit
+import com.slack.circuit.subcircuit.SubCircuitContent
 import dev.zacsweers.metro.AppScope
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.presenter.CountryListScreen
+import io.github.solcott.countries.presenter.SearchAndFilterScreen
 import io.github.solcott.countries.ui.resources.Res
-import io.github.solcott.countries.ui.resources.check_small_24px
-import io.github.solcott.countries.ui.resources.filter
-import io.github.solcott.countries.ui.resources.filter_list_24px
 import io.github.solcott.countries.ui.resources.no_countries_found
 import io.github.solcott.countries.ui.resources.updating
 import io.github.solcott.countries.ui.theme.DesktopSkin
@@ -58,7 +50,6 @@ import io.github.solcott.countries.ui.theme.SelectionStyle
 import io.github.solcott.countries.uistate.ContentState
 import io.github.solcott.countries.uistate.errorOrNull
 import io.github.solcott.countries.uistate.isLoading
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -95,7 +86,7 @@ fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier)
  * paints exactly what was there before.
  */
 @Composable
-private fun listPaneColor() =
+internal fun listPaneColor() =
   if (LocalAppSkin.current.sidebarTinted) MaterialTheme.colorScheme.surfaceContainer
   else MaterialTheme.colorScheme.surface
 
@@ -108,12 +99,15 @@ private fun CountriesList(
   val skin = LocalAppSkin.current
   LazyColumn(modifier = modifier.fillMaxSize().imePadding()) {
     stickyHeader {
-      SearchAndFilterHeader(
-        state.continentsState,
-        state.nameStartsWithText,
-        state.selectedContinents,
-        onToggleContinentSelection = { continent ->
-          state.eventSink(CountryListScreen.Event.ToggleContinentSelection(continent))
+      // The header owns the filter; this pane only learns what it is set to. Everything the
+      // sub-circuit has to say arrives as one FilterChanged, which the list presenter mirrors.
+      SubCircuitContent(
+        screen = SearchAndFilterScreen,
+        outerEventSink = { event ->
+          when (event) {
+            is SearchAndFilterScreen.OuterEvent.FilterChanged ->
+              state.eventSink(CountryListScreen.Event.FilterChanged(event.name, event.continents))
+          }
         },
         modifier = Modifier.animateItem(),
       )
@@ -161,64 +155,6 @@ private fun RefreshingIndicator(modifier: Modifier = Modifier) {
   ) {
     Text(stringResource(Res.string.updating))
     LinearProgressIndicator(modifier = Modifier.weight(1f))
-  }
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-private fun SearchAndFilterHeader(
-  continentsState: ContentState<List<Continent>>,
-  nameStartsWithText: TextFieldState,
-  selectedContinents: List<Continent>,
-  onToggleContinentSelection: (Continent) -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  var continentDropdownExpanded by remember { mutableStateOf(false) }
-  Row(
-    modifier
-      .fillMaxWidth()
-      .background(listPaneColor())
-      .padding(vertical = 8.dp, horizontal = LocalAppSkin.current.rowHorizontalPadding),
-    horizontalArrangement = Arrangement.spacedBy(16.dp),
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    SearchField(nameStartsWithText, modifier = Modifier.weight(1f))
-    val continents = continentsState.data
-
-    if (continents.isNotEmpty()) {
-
-      ExposedDropdownMenuBox(
-        continentDropdownExpanded,
-        onExpandedChange = { continentDropdownExpanded = it },
-      ) {
-        IconButton(onClick = { continentDropdownExpanded = !continentDropdownExpanded }) {
-          Icon(
-            painterResource(Res.drawable.filter_list_24px),
-            contentDescription = stringResource(Res.string.filter),
-          )
-        }
-        ExposedDropdownMenu(
-          expanded = continentDropdownExpanded,
-          onDismissRequest = { continentDropdownExpanded = false },
-          modifier = Modifier.width(200.dp),
-        ) {
-          continents.forEach { continent ->
-            DropdownMenuItem(
-              text = { Text(continent.name) },
-              onClick = {
-                continentDropdownExpanded = false
-                onToggleContinentSelection(continent)
-              },
-              trailingIcon = {
-                if (selectedContinents.contains(continent)) {
-                  Icon(painterResource(Res.drawable.check_small_24px), "Checked")
-                }
-              },
-            )
-          }
-        }
-      }
-    }
   }
 }
 
@@ -286,6 +222,12 @@ private fun CountryRow(
   }
 }
 
+/**
+ * Renders the list against a preview [com.slack.circuit.subcircuit.SubCircuit], which is not
+ * optional: `SubCircuitContent` resolves the header through `LocalSubCircuit` and that local
+ * defaults to null. The header's own fixtures therefore go to [previewSubCircuit] rather than into
+ * the state below.
+ */
 @Composable
 private fun ListPreview(
   countriesState: ContentState<List<Country>>,
@@ -295,16 +237,18 @@ private fun ListPreview(
   selectedCountryCode: String? = null,
 ) {
   PreviewSurface {
-    CountryListUi(
-      CountryListScreen.State(
-        nameStartsWithText = TextFieldState(nameStartsWith),
-        countriesState = countriesState,
-        continentsState = continentsState,
-        selectedContinents = selectedContinents,
-        selectedCountryCode = selectedCountryCode,
-        eventSink = {},
+    CompositionLocalProvider(
+      LocalSubCircuit provides
+        previewSubCircuit(nameStartsWith, continentsState, selectedContinents)
+    ) {
+      CountryListUi(
+        CountryListScreen.State(
+          countriesState = countriesState,
+          selectedCountryCode = selectedCountryCode,
+          eventSink = {},
+        )
       )
-    )
+    }
   }
 }
 
@@ -372,31 +316,17 @@ private fun CountryListUiWithoutContinentsPreview() {
 @Composable
 private fun CountriesListPreview() {
   PreviewSurface {
-    CountriesList(
-      state =
-        CountryListScreen.State(
-          nameStartsWithText = TextFieldState(),
-          countriesState = loadedState(previewCountries),
-          continentsState = loadedState(previewContinents),
-          selectedContinents = emptyList(),
-          selectedCountryCode = previewCountries.first().code,
-          eventSink = {},
-        ),
-      countriesState = loadedState(previewCountries),
-    )
-  }
-}
-
-@ComponentWidthPreviews
-@Composable
-private fun SearchAndFilterHeaderPreview() {
-  PreviewSurface {
-    SearchAndFilterHeader(
-      continentsState = loadedState(previewContinents),
-      nameStartsWithText = TextFieldState("Fra"),
-      selectedContinents = previewContinents.take(1),
-      onToggleContinentSelection = {},
-    )
+    CompositionLocalProvider(LocalSubCircuit provides previewSubCircuit()) {
+      CountriesList(
+        state =
+          CountryListScreen.State(
+            countriesState = loadedState(previewCountries),
+            selectedCountryCode = previewCountries.first().code,
+            eventSink = {},
+          ),
+        countriesState = loadedState(previewCountries),
+      )
+    }
   }
 }
 
@@ -438,18 +368,17 @@ private fun CountryRowDesktopSkinPreview() {
 @Composable
 private fun CountriesListDesktopSkinPreview() {
   PreviewSurface(skin = DesktopSkin) {
-    CountriesList(
-      state =
-        CountryListScreen.State(
-          nameStartsWithText = TextFieldState(),
-          countriesState = loadedState(previewCountries),
-          continentsState = loadedState(previewContinents),
-          selectedContinents = emptyList(),
-          selectedCountryCode = previewCountries.first().code,
-          eventSink = {},
-        ),
-      countriesState = loadedState(previewCountries),
-    )
+    CompositionLocalProvider(LocalSubCircuit provides previewSubCircuit()) {
+      CountriesList(
+        state =
+          CountryListScreen.State(
+            countriesState = loadedState(previewCountries),
+            selectedCountryCode = previewCountries.first().code,
+            eventSink = {},
+          ),
+        countriesState = loadedState(previewCountries),
+      )
+    }
   }
 }
 

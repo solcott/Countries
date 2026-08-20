@@ -44,6 +44,9 @@ kotlin {
       implementation(project(":presenter"))
       // `api`: Circuit appears in CircuitProviders.provideCircuit's signature.
       api(libs.circuit.foundation)
+      // `api` for the same reason: SubCircuit is in provideSubCircuit's signature, and
+      // CountriesApp takes one.
+      api(libs.circuitx.subcircuit)
       implementation(libs.circuit.runtime.ui)
       // presenterOf, for the fake presenters behind previewCircuit in PreviewSupport.kt.
       implementation(libs.circuit.runtime.presenter)

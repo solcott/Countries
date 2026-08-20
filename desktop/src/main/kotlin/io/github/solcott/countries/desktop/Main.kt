@@ -36,15 +36,38 @@ private val MINIMUM_SIZE = Dimension(480, 600)
 
 /**
  * The desktop entry point, and the jvm counterpart to `:app`'s `MainActivity` and `:web`'s
- * `main()`. All three do the same two things: read the `Circuit` out of [ComposeGraph], and hand it
- * to `CountriesApp`.
+ * `main()`. All three do the same two things: read the registries out of [ComposeGraph], and hand
+ * them to `CountriesApp`.
  *
  * The backstack is hoisted for the same reason `:web` hoists it — something outside `CountriesApp`
  * needs to drive it. There it is `window.history`; here it is the keyboard, which also drives the
  * list-pane collapse.
  */
-fun main() = application {
-  val circuit = remember { createGraph<ComposeGraph>().circuit }
+fun main() {
+  // Order matters, and nothing enforces it: `apple.awt.application.name` is read once when AWT
+  // starts, and [applyTaskbarIcon] is the thing that starts it.
+  applyApplicationName()
+  applyTaskbarIcon()
+  startApplication()
+}
+
+/**
+ * Names the app for macOS.
+ *
+ * Without it the menu bar reads `MainKt`. A JVM launched outside an app bundle has no identity of
+ * its own — LaunchServices registers this process as `net.java.openjdk.java` with the `java` binary
+ * as its bundle path — so the main class name is the best macOS can do, and it is the same reason
+ * the dock icon needed [applyTaskbarIcon]. Ignored off macOS.
+ *
+ * The packaged build does not rely on this: jpackage writes a real bundle whose `Info.plist` names
+ * it.
+ */
+private fun applyApplicationName() {
+  System.setProperty("apple.awt.application.name", WINDOW_TITLE)
+}
+
+private fun startApplication() = application {
+  val graph = remember { createGraph<ComposeGraph>() }
   val backStack = rememberSaveableBackStack(root = CountryListScreen)
   val listCollapsed = rememberSaveable { mutableStateOf(false) }
   val windowState =
@@ -92,7 +115,8 @@ fun main() = application {
       // The one line that makes this a desktop app rather than an Android app in a window. Every
       // number behind it lives in `:ui`, so it is previewable there — see `AppSkin`.
       CountriesApp(
-        circuit = circuit,
+        circuit = graph.circuit,
+        subCircuit = graph.subCircuit,
         skin = DesktopSkin,
         backStack = backStack,
         listCollapsed = listCollapsed,

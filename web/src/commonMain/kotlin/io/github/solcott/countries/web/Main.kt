@@ -23,7 +23,7 @@ fun main() {
   // Caches the shell so the app loads offline. Fire-and-forget — nothing below waits on it.
   registerServiceWorker()
 
-  val circuit = createGraph<ComposeGraph>().circuit
+  val graph = createGraph<ComposeGraph>()
 
   ComposeViewport(viewportContainerId = VIEWPORT_ID) {
     // Seeded from the URL so a shared `#/country/FR` link opens on the detail screen. The
@@ -36,7 +36,12 @@ fun main() {
     // placeholder rather than replacing it, so something has to.
     LaunchedEffect(Unit) { document.getElementById(LOADING_ID)?.remove() }
     // onRootPop stays the default no-op: there is no browser tab to close.
-    CountriesApp(circuit = circuit, skin = WebSkin, backStack = backStack)
+    CountriesApp(
+      circuit = graph.circuit,
+      subCircuit = graph.subCircuit,
+      skin = WebSkin,
+      backStack = backStack,
+    )
   }
 }
 

@@ -1,6 +1,5 @@
 package io.github.solcott.countries.presenter
 
-import androidx.compose.foundation.text.input.TextFieldState
 import com.slack.circuit.runtime.CircuitUiEvent
 import com.slack.circuit.runtime.CircuitUiState
 import com.slack.circuit.runtime.screen.Screen
@@ -14,10 +13,7 @@ import io.github.solcott.kmp.parcelize.Parcelize
 data object CountryListScreen : Screen {
 
   data class State(
-    val nameStartsWithText: TextFieldState,
     val countriesState: ContentState<List<Country>>,
-    val continentsState: ContentState<List<Continent>>,
-    val selectedContinents: List<Continent>,
     /**
      * The country the detail screen is currently showing, or null if it is not open.
      *
@@ -37,17 +33,15 @@ data object CountryListScreen : Screen {
   sealed interface Event : CircuitUiEvent {
     data class CountryClicked(val code: String) : Event
 
-    data class ToggleContinentSelection(val continent: Continent) : Event
-
     /**
-     * Sets the search text.
+     * Reports what the user is filtering by.
      *
-     * Compose UIs do not send this — they bind [State.nameStartsWithText] directly, which is the
-     * whole point of a [TextFieldState]. It exists for hosts that cannot: a `TextFieldState` is
-     * snapshot-backed Compose Foundation state with no meaning outside a composition, so the
-     * SwiftUI app owns a plain `String` and sends it here instead.
+     * Sent by whoever hosts [SearchAndFilterScreen] — `CountryListUi` forwards the sub-circuit's
+     * `OuterEvent.FilterChanged`, and the Apple bridge does the same from its own composition. That
+     * sub-circuit owns the search text and the continent selection outright, so this event is the
+     * only way this presenter learns about either.
      */
-    data class SearchTextChanged(val text: String) : Event
+    data class FilterChanged(val name: String, val continents: List<Continent>) : Event
 
     data object Retry : Event
   }

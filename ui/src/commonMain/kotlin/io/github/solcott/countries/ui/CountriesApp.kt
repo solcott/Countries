@@ -32,6 +32,8 @@ import com.slack.circuit.foundation.rememberCircuitNavigator
 import com.slack.circuit.runtime.Navigator
 import com.slack.circuit.runtime.screen.PopResult
 import com.slack.circuit.runtime.screen.Screen
+import com.slack.circuit.subcircuit.LocalSubCircuit
+import com.slack.circuit.subcircuit.SubCircuit
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListScreen
 import io.github.solcott.countries.ui.resources.Res
@@ -64,11 +66,16 @@ import org.jetbrains.compose.resources.stringResource
  * [skin] is how a platform asks for its own look — see [AppSkin]. It defaults to [MaterialSkin],
  * which is what Android wants and what every screenshot in this module's previews shows unless the
  * preview says otherwise.
+ *
+ * [subCircuit] is required rather than defaulted because `LocalSubCircuit` defaults to null and
+ * `SubCircuitContent` is behind a `requireNotNull` — a platform that forgot it would build cleanly
+ * and then throw the first time the country list drew its header.
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun CountriesApp(
   circuit: Circuit,
+  subCircuit: SubCircuit,
   modifier: Modifier = Modifier,
   skin: AppSkin = MaterialSkin,
   backStack: SaveableBackStack = rememberSaveableBackStack(root = CountryListScreen),
@@ -82,20 +89,22 @@ fun CountriesApp(
     // so backing out of the detail screen exited the app instead of returning to the list.
     val navigator = rememberCircuitNavigator(backStack, onRootPop, enableBackHandler = true)
     CircuitCompositionLocals(circuit) {
-      CountriesAppScaffold(
-        navigator = navigator,
-        backStack = backStack,
-        listCollapsed = listCollapsed,
-        // Two panes from 600dp rather than Material's own 840dp, which is what the ...OnMediumWidth
-        // variant buys. That matches the SwiftUI app, where NavigationSplitView shows both columns
-        // on iPad mini portrait (744pt) and iPad Air portrait (834pt) — 840dp would leave those
-        // device shapes single-pane on Compose while iOS splits them.
-        directive =
-          countriesPaneDirective(
-            calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(currentWindowAdaptiveInfoV2())
-          ),
-        modifier = modifier.fillMaxSize(),
-      )
+      CompositionLocalProvider(LocalSubCircuit provides subCircuit) {
+        CountriesAppScaffold(
+          navigator = navigator,
+          backStack = backStack,
+          listCollapsed = listCollapsed,
+          // Two panes from 600dp rather than Material's own 840dp, which is what the
+          // ...OnMediumWidth variant buys. That matches the SwiftUI app, where NavigationSplitView
+          // shows both columns on iPad mini portrait (744pt) and iPad Air portrait (834pt) — 840dp
+          // would leave those device shapes single-pane on Compose while iOS splits them.
+          directive =
+            countriesPaneDirective(
+              calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(currentWindowAdaptiveInfoV2())
+            ),
+          modifier = modifier.fillMaxSize(),
+        )
+      }
     }
   }
 }
@@ -235,13 +244,15 @@ private fun AppPreview(
   AppTheme(skin) {
     val backStack = rememberSaveableBackStack(screens)
     CircuitCompositionLocals(previewCircuit()) {
-      CountriesAppScaffold(
-        navigator = rememberCircuitNavigator(backStack) {},
-        backStack = backStack,
-        directive = directive,
-        modifier = Modifier.fillMaxSize(),
-        listCollapsed = remember { mutableStateOf(listCollapsed) },
-      )
+      CompositionLocalProvider(LocalSubCircuit provides previewSubCircuit()) {
+        CountriesAppScaffold(
+          navigator = rememberCircuitNavigator(backStack) {},
+          backStack = backStack,
+          directive = directive,
+          modifier = Modifier.fillMaxSize(),
+          listCollapsed = remember { mutableStateOf(listCollapsed) },
+        )
+      }
     }
   }
 }
@@ -253,7 +264,7 @@ private fun AppPreview(
 @AppScreenPreviews
 @Composable
 private fun CountriesAppPreview() {
-  CountriesApp(circuit = previewCircuit())
+  CountriesApp(circuit = previewCircuit(), subCircuit = previewSubCircuit())
 }
 
 /**
