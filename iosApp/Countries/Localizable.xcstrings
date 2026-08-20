@@ -193,6 +193,30 @@
         }
       }
     },
+    "countryListFilterLabelCount" : {
+      "comment" : "Toolbar filter menu once filters are active. %lld is how many are selected",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter (%lld)"
+          }
+        }
+      }
+    },
+    "countryListFilterSubtitle" : {
+      "comment" : "macOS window subtitle while filtering. %1$@ is the active filters, %2$@ the row count",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "countryListLoadFailedTitle" : {
       "comment" : "Title shown when the country list could not be loaded",
       "extractionState" : "manual",
@@ -201,6 +225,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't Load Countries"
+          }
+        }
+      }
+    },
+    "countryListRemoveFilter" : {
+      "comment" : "Accessibility label for an active-filter chip. %@ is the filter, e.g. “Europe”",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@ filter"
           }
         }
       }

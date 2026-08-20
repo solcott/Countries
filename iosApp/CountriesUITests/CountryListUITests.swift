@@ -79,4 +79,45 @@ final class CountryListUITests: XCTestCase {
     )
     waitForExpectations(timeout: UITest.interactionTimeout)
   }
+
+  /// The chip row is what says *which* filters are on without opening the menu, and tapping one is
+  /// the shortest way back out. Both halves are asserted here because a chip that appears but does
+  /// not clear is worse than no chip at all.
+  func testActiveFilterChipShowsTheFilterAndClearsIt() {
+    let app = XCUIApplication()
+    app.launchAndAwaitList()
+
+    let filter = app.element(withIdentifier: "continent-filter")
+    XCTAssertTrue(filter.waitForExistence(timeout: UITest.interactionTimeout))
+    filter.tap()
+
+    let africa = app.buttons["Africa"]
+    XCTAssertTrue(
+      africa.waitForExistence(timeout: UITest.interactionTimeout),
+      "The continent menu never listed Africa."
+    )
+    africa.tap()
+
+    // "AF" is Africa's continent code. It collides with Afghanistan's country code, which is why
+    // the chips carry their own identifier prefix rather than sharing the row namespace.
+    let chip = app.element(withIdentifier: "filter-chip-AF")
+    XCTAssertTrue(
+      chip.waitForExistence(timeout: UITest.interactionTimeout),
+      "Selecting Africa did not put a chip on screen for it."
+    )
+
+    // Andorra is in Europe, so the filter has to have dropped it before clearing means anything.
+    expectation(
+      for: NSPredicate(format: "exists == false"),
+      evaluatedWith: app.countryRow(UITest.sampleCode)
+    )
+    waitForExpectations(timeout: UITest.interactionTimeout)
+
+    chip.tap()
+
+    XCTAssertTrue(
+      app.countryRow(UITest.sampleCode).waitForExistence(timeout: UITest.interactionTimeout),
+      "Tapping the chip did not clear the filter and restore the full list."
+    )
+  }
 }
