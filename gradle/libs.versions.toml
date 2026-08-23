@@ -4,8 +4,8 @@
 agp = "9.3.1"
 kotlin = "2.4.20-RC"
 metro = "1.4.2"
-apollo = "5.0.1"
-apollo-normalized-cache = "1.0.6"
+apollo = "5.1.0"
+apollo-normalized-cache = "1.0.7"
 # What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
 sqldelight = "2.1.0"
 ktfmt = "0.27.0"
@@ -15,7 +15,7 @@ ktfmt = "0.27.0"
 kmp-parcelize = "1.0.4"
 
 # Circuit (MVI). Metro provides the @CircuitInject codegen.
-circuit = "0.36.1"
+circuit = "0.37.1"
 
 # Molecule. Runs a @Composable presenter outside Compose UI and folds it into a StateFlow, which is
 # the only way to drive Circuit's composable-function presenters from a host that is not a
