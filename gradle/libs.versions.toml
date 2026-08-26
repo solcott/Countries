@@ -1,7 +1,7 @@
 [versions]
 # Build tooling. AGP 9.x ships built-in Kotlin support pinned to an older KGP; the root
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
-agp = "9.3.1"
+agp = "9.3.2"
 kotlin = "2.4.20-RC"
 metro = "1.4.2"
 apollo = "5.1.0"
@@ -48,11 +48,11 @@ composeUi = "1.12.0"
 # On the 1.12 line specifically because that is where web gained automatic fallback-font loading:
 # Skia has no system font manager in a browser, so before 1.12 every emoji and every non-Latin
 # script rendered as tofu. See the fonts note in AGENTS.md — do not bundle fallback fonts.
-composeMultiplatform = "1.12.0-rc01"
+composeMultiplatform = "1.12.0"
 
 # Compose Multiplatform's material3 is versioned separately from the rest of CMP — this does NOT
 # track composeMultiplatform. 1.12.0-alpha03 is the newest, it wants core 1.12.0-beta01 (which
-# resolves up to our rc01), and it aliases androidx material3 1.5.0-alpha22 — older than the
+# resolves up to our 1.12.0), and it aliases androidx material3 1.5.0-alpha22 — older than the
 # `material3` above, so ours wins. The CMP plugin's own default accessor is far behind and would
 # pull an androidx material3 several minor lines backwards; always set this explicitly.
 composeMaterial3 = "1.12.0-alpha03"
@@ -62,7 +62,7 @@ composeMaterial3 = "1.12.0-alpha03"
 # coordinates are Android-only (android plus jvmstubs/linuxx64stubs) so they cannot be used from
 # commonMain; JetBrains' repackage publishes android, jvm, iosArm64, iosSimulatorArm64, macosArm64,
 # js and wasmJs — this project's exact target set. It requires compose 1.10.0, which resolves up to
-# our rc01, and depends on no material3 at all, so it cannot drag material3 backwards.
+# our 1.12.0, and depends on no material3 at all, so it cannot drag material3 backwards.
 composeMaterial3Adaptive = "1.3.0-beta02"
 
 # AndroidX
