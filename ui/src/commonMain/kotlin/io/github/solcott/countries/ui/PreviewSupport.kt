@@ -163,6 +163,12 @@ internal fun <T> failedState(data: T, error: DataError = DataError.Network) =
  *
  * Navigation between these screens does work in a running app; it does not in a preview, which is
  * why the detail preview seeds its backstack with [previewDetailRoute] instead of clicking through.
+ *
+ * No `setCircuitSaver`, deliberately — unlike the real one from `CircuitProviders`. Left off,
+ * `CircuitCompositionLocals` falls back to `rememberDefaultCircuitSaver()`, which is right here: a
+ * preview never saves, and the fallback needs no serializer registrations to exist. Any back stack
+ * a preview builds must still be built *inside* `CircuitCompositionLocals`, or there is no
+ * `LocalCircuitSaver` to fall back to and the read throws.
  */
 internal fun previewCircuit(): Circuit =
   Circuit.Builder()

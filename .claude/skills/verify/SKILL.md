@@ -30,9 +30,9 @@ Start from `git status --short` / `git diff --name-only`. Take the union of ever
 | `model/`, `dataresult/`, `uistate/` | `:<module>:assemble` and `:apple:macosArm64Test` | These three are exported to Swift **in full**. A Compose type or a generic sealed type added to any of them breaks the iOS build and nothing else warns you. |
 | `network/` | **`:network:assemble`** and `:repository:allTests` | `:network` has no tests of its own. `assemble` is the task that catches the `compileWebMainKotlinMetadata` `Worker` failure — neither web target's own compile task reproduces it. See `network-apollo`. |
 | `repository/` | `:repository:allTests` | |
-| `presenter/` | `:presenter:allTests` | |
+| `presenter/` | `:presenter:allTests` and `:shared-compose:allTests` | The second one is for `Screen` changes: a screen missing `@CircuitSerializable`, or carrying a property with no serializer, builds clean and throws only when a back stack is saved. |
 | `ui/` | `:ui:assemble` and `assembleDebug` | `:ui` has no tests; `assemble` proves it compiles on all six targets, `assembleDebug` proves the Android app still links. |
-| `shared/`, `shared-compose/` | `assembleDebug` and `:desktop:packageUberJarForCurrentOS` | Graph changes fail at the module that declares `@DependencyGraph`, so build a consumer. |
+| `shared/`, `shared-compose/` | `assembleDebug`, `:shared-compose:allTests` and `:desktop:packageUberJarForCurrentOS` | Graph changes fail at the module that declares `@DependencyGraph`, so build a consumer. `:shared-compose:allTests` builds the real graph and round-trips both `Screen`s through its `CircuitSaver` — the only check that a `@CircuitSerializable` registration actually landed. It is also the only native test binary that links the graph, so it needs `-lsqlite3`; see that module's build script. |
 | `web/` | `:web:wasmJsBrowserDistribution` and `:web:allTests` | `HistoryAction` and `Routes` are pure and tested; the distribution task is what proves the bundle still builds. |
 | `desktop/` (code) | `:desktop:test` | |
 | `desktop/` (packaging, `nativeDistributions`) | **`:desktop:packageDistributionForCurrentOS`** | `run` uses the full JDK, so a missing jlink module surfaces only in an *installed* build, as a crash on the first query. Never test packaging with `run`. |
@@ -51,7 +51,8 @@ When the diff is wide, or before opening a PR:
 ```
 
 That is the JVM and Android side. It does **not** cover js, wasmJs, or the Apple targets — add
-`:<module>:allTests` for whichever modules have tests (`apple`, `repository`, `presenter`, `web`)
+`:<module>:allTests` for whichever modules have tests (`apple`, `repository`, `presenter`,
+`shared-compose`, `web`)
 and the relevant app-module build.
 
 ## What a green build does not prove

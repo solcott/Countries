@@ -1,3 +1,7 @@
+@file:OptIn(ExperimentalWasmDsl::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
   id("kmp-library")
   id("org.jetbrains.kotlin.plugin.compose")
@@ -5,7 +9,10 @@ plugins {
   // This plugin configures skiko's npm/webpack packaging, which compose.foundation pulls in on
   // js and wasmJs.
   alias(libs.plugins.compose.multiplatform)
-  alias(libs.plugins.kmp.parcelize)
+  // Screens are annotated @CircuitSerializable, which is a @MetaSerializable — so it *implies*
+  // @Serializable, and this plugin is what actually generates each Screen's serializer. Without it
+  // the annotation compiles and the generated registration has nothing to register.
+  alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.metro)
   alias(libs.plugins.redacted)
 }
@@ -37,6 +44,8 @@ kotlin {
       api(project(":uistate"))
       api(libs.circuit.runtime)
       api(libs.circuit.runtime.presenter)
+      // `api`: @CircuitSerializable is on the Screens, so it is part of their public API.
+      api(libs.circuit.serialization)
       // `api`: SubScreen, SubCircuitUiState and SubCircuitOuterEvent are all supertypes in
       // SearchAndFilterScreen's public API.
       api(libs.circuitx.subcircuit)

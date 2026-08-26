@@ -55,9 +55,12 @@ import org.jetbrains.compose.resources.stringResource
  * It owns the app's only [Scaffold] and its only app bar. Both screens are pane content — see
  * [ListDetailNavDecoration], which puts them side by side on a window wide enough for two.
  *
- * [backStack] is hoisted because the browser app binds it to `window.history` — see `:web`, and
- * [listCollapsed] for the same reason: `:desktop` toggles it from a keyboard shortcut, outside
- * composition. Callers that do not need a handle on either can let them default.
+ * [backStack] can be hoisted because the browser app binds it to `window.history` — see `:web` —
+ * and [listCollapsed] for the same reason: `:desktop` toggles it from a keyboard shortcut, outside
+ * composition. Leave [backStack] null and one is built here, rooted at [CountryListScreen]. It is
+ * null-defaulted rather than given a real default because the default has to be constructed
+ * *inside* [CircuitCompositionLocals], which is what puts the `CircuitSaver` in scope; a hoisting
+ * caller has to name that saver itself, and `ComposeGraph` exposes it for exactly that.
  *
  * [onRootPop] has no default in Circuit's common `rememberCircuitNavigator`; only the Android-only
  * overload supplies one. It stays explicit here because what "pop past the root" means is genuinely
@@ -78,21 +81,25 @@ fun CountriesApp(
   subCircuit: SubCircuit,
   modifier: Modifier = Modifier,
   skin: AppSkin = MaterialSkin,
-  backStack: SaveableBackStack = rememberSaveableBackStack(root = CountryListScreen),
+  backStack: SaveableBackStack? = null,
   listCollapsed: MutableState<Boolean> = rememberSaveable { mutableStateOf(false) },
   onRootPop: (PopResult?) -> Unit = {},
 ) {
   AppTheme(skin) {
-    // `enableBackHandler` is passed explicitly because leaving it off does not mean "default to
-    // true" — it selects a *different* overload, the two-argument one, which installs no
-    // NavigationBackHandler at all. Without it Android's system back never reaches the navigator,
-    // so backing out of the detail screen exited the app instead of returning to the list.
-    val navigator = rememberCircuitNavigator(backStack, onRootPop, enableBackHandler = true)
+    // Everything below is inside CircuitCompositionLocals, which provides LocalCircuitSaver from
+    // the saver `circuit` was built with — so the default back stack needs no saver argument.
     CircuitCompositionLocals(circuit) {
+      val resolvedBackStack = backStack ?: rememberSaveableBackStack(root = CountryListScreen)
+      // `enableBackHandler` is passed explicitly because leaving it off does not mean "default to
+      // true" — it selects a *different* overload, the two-argument one, which installs no
+      // NavigationBackHandler at all. Without it Android's system back never reaches the navigator,
+      // so backing out of the detail screen exited the app instead of returning to the list.
+      val navigator =
+        rememberCircuitNavigator(resolvedBackStack, onRootPop, enableBackHandler = true)
       CompositionLocalProvider(LocalSubCircuit provides subCircuit) {
         CountriesAppScaffold(
           navigator = navigator,
-          backStack = backStack,
+          backStack = resolvedBackStack,
           listCollapsed = listCollapsed,
           // Two panes from 600dp rather than Material's own 840dp, which is what the
           // ...OnMediumWidth variant buys. That matches the SwiftUI app, where NavigationSplitView
@@ -242,8 +249,11 @@ private fun AppPreview(
   skin: AppSkin = MaterialSkin,
 ) {
   AppTheme(skin) {
-    val backStack = rememberSaveableBackStack(screens)
+    // Inside CircuitCompositionLocals for the same reason as CountriesApp above: that is what puts
+    // a CircuitSaver in scope. previewCircuit() deliberately carries none, so this falls back to
+    // rememberDefaultCircuitSaver() — correct here, since a preview never saves anything.
     CircuitCompositionLocals(previewCircuit()) {
+      val backStack = rememberSaveableBackStack(screens)
       CompositionLocalProvider(LocalSubCircuit provides previewSubCircuit()) {
         CountriesAppScaffold(
           navigator = rememberCircuitNavigator(backStack) {},

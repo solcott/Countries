@@ -28,7 +28,14 @@ fun main() {
   ComposeViewport(viewportContainerId = VIEWPORT_ID) {
     // Seeded from the URL so a shared `#/country/FR` link opens on the detail screen. The
     // backstack is hoisted out of CountriesApp because BrowserHistory binds it to window.history.
-    val backStack = rememberSaveableBackStack(window.location.hash.toInitialScreens())
+    //
+    // Hoisting is also why the saver has to be named: built here, the stack is outside the
+    // CircuitCompositionLocals that CountriesApp mounts, so LocalCircuitSaver is not in scope yet.
+    val backStack =
+      rememberSaveableBackStack(
+        window.location.hash.toInitialScreens(),
+        circuitSaver = graph.circuitSaver,
+      )
     BrowserHistory(backStack)
     // The bundle is large enough that a blank page is the first thing most visitors see, so
     // `index.html` paints a wordmark straight away. This is the first frame Compose draws, which

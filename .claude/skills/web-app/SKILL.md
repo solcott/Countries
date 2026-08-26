@@ -47,6 +47,11 @@ not obvious:
   (`prevDepth == UNRECONCILED`): the document has one entry however deep the URL seeded the
   backstack, so a deep link needs the list synthesised underneath it.
 
+  Binding to `window.history` is also why `main()` hoists the backstack out of `CountriesApp`, and
+  hoisting is why it has to name `circuitSaver = graph.circuitSaver`: the stack is built before
+  `CountriesApp` mounts `CircuitCompositionLocals`, so `LocalCircuitSaver` is not in scope yet.
+  `:desktop` is the only other call site that needs it.
+
 Both web targets need **Chrome** installed to run, and `devNpm("copy-webpack-plugin")` is
 declared per target because `npm()`/`devNpm()` are only available to JS-family source sets.
 The js and wasm npm stores have **separate lockfiles and separate upgrade tasks** —

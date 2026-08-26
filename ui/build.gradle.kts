@@ -1,3 +1,7 @@
+@file:OptIn(ExperimentalWasmDsl::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
   id("kmp-library")
   id("org.jetbrains.kotlin.plugin.compose")
@@ -48,6 +52,10 @@ kotlin {
       // CountriesApp takes one.
       api(libs.circuitx.subcircuit)
       implementation(libs.circuit.runtime.ui)
+      // SerializableCircuitSaver, for CircuitProviders. Reaches here transitively as an `api` of
+      // :presenter — which annotates its Screens with @CircuitSerializable — but the saver is
+      // constructed in this module, so declare it.
+      implementation(libs.circuit.serialization)
       // presenterOf, for the fake presenters behind previewCircuit in PreviewSupport.kt.
       implementation(libs.circuit.runtime.presenter)
       implementation(libs.circuit.codegen.annotations)

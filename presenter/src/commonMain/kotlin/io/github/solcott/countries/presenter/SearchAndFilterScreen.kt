@@ -18,9 +18,9 @@ import io.github.solcott.countries.uistate.ContentState
  * sub-circuit's only channel to its host is [OuterEvent] — which is why this reports the whole
  * filter upward through [OuterEvent.FilterChanged] and the list presenter keeps a mirror of it.
  *
- * No `@Parcelize`, deliberately: unlike a `Screen`, a [SubScreen] is never put on a back stack and
- * Circuit does not require it to be saveable. The state below is kept across configuration changes
- * by `rememberSaveable` inside the presenter instead.
+ * No `@CircuitSerializable`, deliberately: unlike a `Screen`, a [SubScreen] is never put on a back
+ * stack, so no `CircuitSaver` is ever handed one. The state below is kept across configuration
+ * changes by `rememberSaveable` inside the presenter instead.
  *
  * A `data object` and not a `data class`: `SubCircuitContent` keys both its presenter lookup and
  * its `key()` block on the screen instance, so a screen carrying changing data would re-resolve the

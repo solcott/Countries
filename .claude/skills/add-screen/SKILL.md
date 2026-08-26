@@ -15,7 +15,7 @@ annotations.
 One file per screen, `presenter/src/commonMain/kotlin/io/github/solcott/countries/presenter/<Name>Screen.kt`:
 
 ```kotlin
-@Parcelize
+@CircuitSerializable(AppScope::class)
 data class ThingScreen(val id: String) : Screen {
 
   data class State(
@@ -30,9 +30,27 @@ data class ThingScreen(val id: String) : Screen {
 }
 ```
 
-- `@Parcelize` and `Parcelable` come from **`io.github.solcott.kmp.parcelize`**, not from
-  `kotlinx` and not from `kotlin-parcelize` — real `android.os.Parcelable` on Android, no-ops
-  everywhere else. The module applies `alias(libs.plugins.kmp.parcelize)`; it must **not** apply
+- **`@CircuitSerializable(AppScope::class)`**, from `com.slack.circuit.serialization`, is how a
+  `Screen` survives being saved — Android process death, and `rememberSaveable` everywhere else.
+  Circuit 0.38 moved this off `Parcelable`: `SerializableCircuitSaver` in
+  `:ui`'s `CircuitProviders` is built from a `Set<CircuitSerializerRegistration>` multibinding, and
+  Metro's Circuit codegen contributes one registration per annotated screen. There is nothing to
+  register by hand — same deal as `@CircuitInject`.
+  - The annotation is a `@MetaSerializable`, so it *implies* `@Serializable`. Do not write both.
+    `:presenter` applies `alias(libs.plugins.kotlinx.serialization)`, which is what generates the
+    serializer; a new module holding screens would have to apply it too.
+  - Every property has to be serializable. Keep screens to the identifiers a presenter needs to
+    re-fetch its data — `CountryDetailScreen(val code: String)` is the shape.
+  - **Forgetting it is not a build failure.** The screen compiles, links and navigates; the
+    registration set just comes up one short, and the throw lands the first time that screen is
+    *saved* — a rotation, a process death, a desktop hot reload. `ComposeGraphSaverTest` in
+    `:shared-compose`'s `commonTest` is what catches it, so **add the new screen there**; its
+    `jvmTest` sibling `ComposeGraphSaverRoundTripTest` pins the restore half.
+- **`@Parcelize`/`Parcelable` from `io.github.solcott.kmp.parcelize` is still right for state**, as
+  opposed to screens — anything a presenter holds in `rememberSaveable` needs to be Bundle-able on
+  Android. `model`'s `Continent` is the live example, kept saveable for
+  `SearchAndFilterPresenter`'s `rememberSaveable { mutableStateListOf<Continent>() }`. That module
+  applies `alias(libs.plugins.kmp.parcelize)`; it must **not** apply
   `org.jetbrains.kotlin.plugin.parcelize`, which does not work with the KMP Android plugin.
 - **`@Redacted` on `eventSink`.** A lambda has no useful `toString()` and keeps state out of logs.
 - View state comes from `:uistate` (`ContentState`, `LoadStatus`); read outcomes from `:dataresult`
@@ -168,7 +186,10 @@ is at minimum:
 
 ```
 ./gradlew ktfmtFormat
-./gradlew :presenter:allTests :ui:assemble assembleDebug
+./gradlew :presenter:allTests :shared-compose:allTests :ui:assemble assembleDebug
 ```
+
+`:shared-compose:allTests` is the one that proves the screen's `@CircuitSerializable` registration
+actually reached the graph — nothing else in the build notices a missing one.
 
 Then look at it running on at least one platform — the `run` skill covers launching each app.
