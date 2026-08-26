@@ -3,13 +3,14 @@ package io.github.solcott.countries.presenter
 import com.slack.circuit.runtime.CircuitUiEvent
 import com.slack.circuit.runtime.CircuitUiState
 import com.slack.circuit.runtime.screen.Screen
+import com.slack.circuit.serialization.CircuitSerializable
+import dev.zacsweers.metro.AppScope
 import dev.zacsweers.redacted.annotations.Redacted
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.uistate.ContentState
-import io.github.solcott.kmp.parcelize.Parcelize
 
-@Parcelize
+@CircuitSerializable(AppScope::class)
 data object CountryListScreen : Screen {
 
   data class State(

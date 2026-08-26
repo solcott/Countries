@@ -39,6 +39,12 @@ need. Five things are worth knowing:
   backstack is hoisted out of `CountriesApp` so `Window`'s `onKeyEvent` can reach it. `onRootPop`
   is deliberately left at its default no-op — the close button is how you leave a desktop app, and
   Esc on the root screen should not quit it.
+- **Hoisting the backstack is why `Main.kt` names a `CircuitSaver`.** `rememberSaveableBackStack`
+  otherwise takes one from `LocalCircuitSaver`, which `CountriesApp` provides via
+  `CircuitCompositionLocals` — but the hoisted stack is built *before* that, so it has to be passed
+  `circuitSaver = graph.circuitSaver`. That accessor exists on `ComposeGraph` for this call site and
+  `:web`'s; every other consumer should let the local supply it. Leave the argument off and the
+  build fails at the read, not at runtime, so this one at least announces itself.
 
 Icons live in `desktop/icons/` and are the source of truth for the app icon **on every platform**:
 jpackage reads all three from disk, `icon.png` is also on the runtime classpath, and the Apple asset

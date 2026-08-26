@@ -78,7 +78,11 @@ private fun applyApplicationName() {
 @OptIn(ExperimentalComposeUiApi::class)
 private fun startApplication() = application {
   val graph = remember { createGraph<ComposeGraph>() }
-  val backStack = rememberSaveableBackStack(root = CountryListScreen)
+  // Hoisted out of CountriesApp so Window's onKeyEvent below can pop it, which is also why the
+  // saver has to be named: built here, the stack is outside the CircuitCompositionLocals that
+  // CountriesApp mounts, so LocalCircuitSaver is not in scope yet.
+  val backStack =
+    rememberSaveableBackStack(root = CountryListScreen, circuitSaver = graph.circuitSaver)
   val listCollapsed = rememberSaveable { mutableStateOf(false) }
   val windowState =
     rememberWindowState(

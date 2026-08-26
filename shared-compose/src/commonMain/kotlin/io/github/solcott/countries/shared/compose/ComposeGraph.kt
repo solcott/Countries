@@ -1,6 +1,7 @@
 package io.github.solcott.countries.shared.compose
 
 import com.slack.circuit.foundation.Circuit
+import com.slack.circuit.runtime.screen.CircuitSaver
 import com.slack.circuit.subcircuit.SubCircuit
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
@@ -24,4 +25,14 @@ interface ComposeGraph {
 
   /** Resolves the nested presenter/UI pairs that are not navigation destinations. */
   val subCircuit: SubCircuit
+
+  /**
+   * The same saver [circuit] carries, for the entry points that hoist their own back stack — `:web`
+   * binds it to `window.history`, `:desktop` reaches it from `Window.onKeyEvent`. Both build the
+   * stack before `CountriesApp` mounts `CircuitCompositionLocals`, so `LocalCircuitSaver` is not in
+   * scope yet and `rememberSaveableBackStack` has to be told which saver to use.
+   *
+   * Every other consumer should let that local supply it rather than reaching in here.
+   */
+  val circuitSaver: CircuitSaver
 }

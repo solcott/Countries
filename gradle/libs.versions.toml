@@ -2,7 +2,7 @@
 # Build tooling. AGP 9.x ships built-in Kotlin support pinned to an older KGP; the root
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
 agp = "9.3.2"
-kotlin = "2.4.20-RC"
+kotlin = "2.4.20-RC2"
 metro = "1.4.2"
 apollo = "5.1.0"
 apollo-normalized-cache = "1.0.7"
@@ -14,8 +14,11 @@ ktfmt = "0.27.0"
 # no-ops elsewhere. kotlin-parcelize itself does not support the KMP Android library plugin.
 kmp-parcelize = "1.0.4"
 
-# Circuit (MVI). Metro provides the @CircuitInject codegen.
-circuit = "0.37.1"
+# Circuit (MVI). Metro provides the @CircuitInject and @CircuitSerializable codegen, which couples
+# the two versions: 0.38 moved Screen persistence off Parcelable and onto a CircuitSaver built from
+# generated CircuitSerializerRegistrations, and it takes Metro 1.4.2 or newer to generate them.
+# Nothing warns on an older Metro — the annotation compiles and the registration set comes up short.
+circuit = "0.38.0"
 
 # Molecule. Runs a @Composable presenter outside Compose UI and folds it into a StateFlow, which is
 # the only way to drive Circuit's composable-function presenters from a host that is not a
@@ -134,6 +137,7 @@ circuit-runtime-presenter = { module = "com.slack.circuit:circuit-runtime-presen
 # `Circuit_runtime_screenScreen`.
 circuit-runtime-screen = { module = "com.slack.circuit:circuit-runtime-screen", version.ref = "circuit" }
 circuit-runtime-ui = { module = "com.slack.circuit:circuit-runtime-ui", version.ref = "circuit" }
+circuit-serialization = { module = "com.slack.circuit:circuit-serialization", version.ref = "circuit" }
 circuit-test = { module = "com.slack.circuit:circuit-test", version.ref = "circuit" }
 circuit-codegen-annotations = { module = "com.slack.circuit:circuit-codegen-annotations", version.ref = "circuit" }
 # SubCircuit: nested presenter/UI pairs that render themselves but hand cross-cutting concerns to
@@ -185,6 +189,11 @@ dependency-sorter = { id = "com.squareup.sort-dependencies", version = "0.21.0" 
 detekt = { id = "dev.detekt", version = "2.0.0-alpha.6" }
 metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }
+# Applied by :presenter only. @CircuitSerializable is a @MetaSerializable, so this is what actually
+# generates the Screens' serializers. No runtime coordinate to go with it: kotlinx-serialization-core
+# arrives transitively through circuit-serialization, and the saver encodes to androidx.savedstate
+# rather than to JSON.
+kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 kmp-parcelize = { id = "io.github.solcott.kmp.parcelize", version.ref = "kmp-parcelize" }
 # Needed even though dependencies are declared by coordinate: this plugin configures skiko's

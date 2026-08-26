@@ -39,6 +39,7 @@ They are ordinary markdown — open the path directly if the skill mechanism is 
 | Multiplatform | Kotlin Multiplatform — every library module; `app` is the Android entry point |
 | Compose (KMP) | Compose Multiplatform `foundation` + AndroidX `runtime` — see below |
 | Parcelable | [kmp-parcelize](https://github.com/solcott/kmp-parcelize) for `@Parcelize` in common code |
+| Screen persistence | `@CircuitSerializable` + a `SerializableCircuitSaver` — see the `add-screen` skill |
 | Logging | [Kermit](https://kermit.touchlab.co/) (`co.touchlab:kermit`) |
 | Formatting | ktfmt via the `com.ncorti.ktfmt.gradle` plugin |
 | Testing | JUnit + Turbine |
@@ -245,7 +246,12 @@ Rules:
   only the latter. No other module imports anything from the generated package.
 - `repository` is a thin pass-through to Apollo. Caching is Apollo's normalized
   cache, configured in `network` — do not add a second caching layer here.
-- `Screen` definitions live in `presenter`, alongside their state and events.
+- `Screen` definitions live in `presenter`, alongside their state and events. They carry
+  `@CircuitSerializable(AppScope::class)`, **not** `@Parcelize` — Circuit 0.38 persists a back
+  stack through a `CircuitSaver` built from generated registrations, and a screen that forgets the
+  annotation compiles and then throws the first time it is saved. `@Parcelize` still applies to
+  anything a presenter keeps in `rememberSaveable`, which is why `model` still uses it. Read the
+  `add-screen` skill before adding a screen.
 - `ui` depends on `presenter` (for Screens and state types). `presenter` must
   never depend on `ui`.
 - Only the graph modules (`shared`, `shared-compose`) may depend broadly across the project.
@@ -490,3 +496,19 @@ Consequences worth knowing before you add the first test to a module:
   Kotlin/JS.** Asserting `assertEquals(listOf(x), someSnapshotStateList)` passes on JVM and fails
   everywhere else. Call `.toList()` first. Expect other JVM-only accidents like this to surface
   the first time a module's tests run cross-platform.
+- **`testAndroidHostTest` links the android.jar stubs**, so anything backed by a real framework
+  class is inert there. `SavedState` is the live example: it is an `android.os.Bundle`, whose
+  `put`/`get` are no-ops on that runner, so a value "saves" into a Bundle that kept nothing and
+  restores as null. Nothing warns — you get a bare `expected:<X> but was:<null>` on one runner out
+  of six. `ComposeGraphSaverRoundTripTest` sits in `:shared-compose`'s `jvmTest` for this reason;
+  there is no intermediate source set for "every target but the Android host".
+- **The first test in a Compose module needs `js { binaries.executable() }`, `wasmJs { … }` and the
+  Compose Multiplatform plugin** — even if the module declares no Compose dependency of its own and
+  only reaches one transitively. Without them the browser test bundle cannot load skiko, and the
+  task reports *"did not discover any tests"* rather than naming the cause. `:shared-compose` is a
+  module that needed all three the moment it gained a test.
+- **The first *native* test binary to link the whole graph needs `linkerOpts("-lsqlite3")`.** The
+  Apollo plugin adds it to `:network`'s own targets and the Apple app gets it from Xcode's
+  `OTHER_LDFLAGS`, but a Kotlin/Native klib records no linker options, so a downstream test
+  executable inherits neither and fails at link with a wall of undefined `_sqlite3_*` symbols. See
+  `shared-compose/build.gradle.kts`.

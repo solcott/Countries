@@ -121,9 +121,15 @@ task existing, not off there being test sources, and there is no opt-out propert
 - **AGP 9 has built-in Kotlin support**, so Android modules must **not** apply
   `org.jetbrains.kotlin.android`; AGP fails the build if they do.
 - The root buildscript classpath **forces** the KGP and Compose compiler plugin versions Metro
-  needs. Modules apply the remaining Kotlin-family plugins (`plugin.compose`, `plugin.parcelize`)
-  by id with no version, picking up those classpath versions. Bumping `kotlin` in the catalog
-  without checking that force is how you get a Metro/KGP mismatch.
+  needs. Modules apply the remaining Kotlin-family plugins (`plugin.compose`, `plugin.parcelize`,
+  `plugin.serialization`) by id with no version, picking up those classpath versions. Bumping
+  `kotlin` in the catalog without checking that force is how you get a Metro/KGP mismatch.
+- **`circuit` and `metro` are coupled**, because Metro is what generates Circuit's codegen — not
+  just `@CircuitInject`'s factories but, since Circuit 0.38, the `CircuitSerializerRegistration` for
+  each `@CircuitSerializable` screen. Metro 1.4.2 is the floor for the latter. An older Metro
+  compiles the annotation and silently contributes nothing, which surfaces as a throw the first
+  time a back stack is saved. Bump the two together and run `./gradlew :shared-compose:allTests`,
+  which is the only task that notices.
 - All modules target **Java 17**, from `Versions` in `build-logic`. A module script can import it
   directly — `import io.github.solcott.countries.build.Versions` — because `Versions.class` rides
   in the same `build-logic.jar` as the plugin descriptors. `build-logic`'s own `jvmToolchain(25)`
