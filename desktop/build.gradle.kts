@@ -17,6 +17,15 @@ plugins {
   // So createGraph<ComposeGraph>() resolves, exactly as in :app and :web. The graph itself, and
   // every contribution to it, is aggregated on :shared-compose's compile classpath — not here.
   alias(libs.plugins.metro)
+  // Dev only: adds `hotRun` and `hotMcpServer` and no dependencies, so a packaged build is
+  // unaffected. Applied here rather than to a Compose module because Hot Reload runs an
+  // application, and this is the only Compose entry point that is a plain JVM process. It reads
+  // `mainClass` off the `compose.desktop.application` block below, so it needs no configuration.
+  //
+  // By id with no version, and no catalog alias: the Compose Multiplatform plugin above already
+  // puts hot-reload-gradle-plugin on the buildscript classpath, so naming a version here fails with
+  // "already on the classpath with an unknown version". Same rule as the Kotlin-family plugins.
+  id("org.jetbrains.compose.hot-reload")
 }
 
 // `Versions` reaches a module build script, not just the convention plugins: it ships in the same

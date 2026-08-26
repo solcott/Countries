@@ -391,6 +391,13 @@ needs, so it is easy to fix one and forget the other.
 ./gradlew :desktop:packageUberJarForCurrentOS      # → desktop/build/compose/jars
 ./gradlew :desktop:packageDistributionForCurrentOS # → desktop/build/compose/binaries
 
+# Desktop app under Compose Hot Reload. Edits anywhere in `:ui` land in the running window in
+# about a second, which is the fastest way to see a UI change on any platform here. The MCP server
+# is what lets an agent look at that window — screenshots, the semantics tree, clicks and typing.
+# It is wired up in `.mcp.json`, so an agent starts and stops it itself.
+./gradlew :desktop:hotRun --autoReload
+./gradlew :desktop:hotMcpServer
+
 # Apple bridge — the Kotlin half of the SwiftUI app
 ./gradlew :apple:macosArm64Test :apple:iosSimulatorArm64Test
 

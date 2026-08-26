@@ -1,11 +1,10 @@
 package io.github.solcott.countries.desktop
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
@@ -13,10 +12,12 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
-import androidx.compose.ui.window.rememberWindowState
+import androidx.compose.ui.window.v2.Window
+import androidx.compose.ui.window.v2.WindowBoundsProvider
+import androidx.compose.ui.window.v2.WindowPositionProvider
+import androidx.compose.ui.window.v2.WindowSizeProvider
+import androidx.compose.ui.window.v2.rememberWindowState
 import com.slack.circuit.backstack.rememberSaveableBackStack
 import dev.zacsweers.metro.createGraph
 import io.github.solcott.countries.presenter.CountryListScreen
@@ -24,7 +25,6 @@ import io.github.solcott.countries.shared.compose.ComposeGraph
 import io.github.solcott.countries.ui.CountriesApp
 import io.github.solcott.countries.ui.LocalFlagFontFamily
 import io.github.solcott.countries.ui.theme.DesktopSkin
-import java.awt.Dimension
 
 /**
  * `:ui` generates its `Res` class privately, so the window title cannot come from `strings.xml`.
@@ -32,7 +32,9 @@ import java.awt.Dimension
 private const val WINDOW_TITLE = "Countries"
 
 private val INITIAL_SIZE = DpSize(1100.dp, 800.dp)
-private val MINIMUM_SIZE = Dimension(480, 600)
+
+/** Narrower or shorter than this and the list rows start truncating. */
+private val MINIMUM_SIZE = DpSize(480.dp, 600.dp)
 
 /**
  * The desktop entry point, and the jvm counterpart to `:app`'s `MainActivity` and `:web`'s
@@ -66,18 +68,33 @@ private fun applyApplicationName() {
   System.setProperty("apple.awt.application.name", WINDOW_TITLE)
 }
 
+// `androidx.compose.ui.window.v2`, new in Compose Multiplatform 1.12, and worth the opt-in for one
+// reason: `minSize` is a parameter of [Window], so the window's floor is declared alongside its
+// initial size instead of being reached through AWT in a LaunchedEffect after the fact. The v1
+// WindowState could not express a minimum at all.
+//
+// The API's own KDoc warns it "may be moved to `androidx.compose.ui.window` before stabilization",
+// so expect the imports above to churn once. Only this file is affected.
+@OptIn(ExperimentalComposeUiApi::class)
 private fun startApplication() = application {
   val graph = remember { createGraph<ComposeGraph>() }
   val backStack = rememberSaveableBackStack(root = CountryListScreen)
   val listCollapsed = rememberSaveable { mutableStateOf(false) }
   val windowState =
-    rememberWindowState(size = INITIAL_SIZE, position = WindowPosition(Alignment.Center))
+    rememberWindowState(
+      initialBoundsProvider =
+        WindowBoundsProvider(
+          sizeProvider = WindowSizeProvider.Fixed(INITIAL_SIZE),
+          positionProvider = WindowPositionProvider.CenteredOnScreen,
+        )
+    )
 
   Window(
     onCloseRequest = ::exitApplication,
     state = windowState,
     title = WINDOW_TITLE,
     icon = appIcon,
+    minSize = MINIMUM_SIZE,
     // Returning true consumes the event; false lets it reach the focused composable — which is why
     // each branch has to be tried in turn rather than combined.
     onKeyEvent = { event ->
@@ -105,10 +122,6 @@ private fun startApplication() = application {
       }
     },
   ) {
-    // AWT, and not expressible through WindowState. Without it the window can be dragged narrower
-    // than the list rows tolerate.
-    LaunchedEffect(Unit) { window.minimumSize = MINIMUM_SIZE }
-
     // onRootPop is left at its default no-op: on desktop the window's close button is how you
     // leave, and popping past the list should not quit the app out from under the user.
     CompositionLocalProvider(LocalFlagFontFamily provides flagFontFamily) {

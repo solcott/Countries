@@ -24,6 +24,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.slack.circuit.subcircuit.SubCircuitInject
 import com.slack.circuit.subcircuit.SubUi
@@ -77,6 +80,13 @@ class SearchAndFilterSubUi : SubUi<SearchAndFilterScreen.State> {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchAndFilterUi(state: SearchAndFilterScreen.State, modifier: Modifier = Modifier) {
+  // A filter is a toggle, and a tick on a toggle is native behaviour on Android as well as in a
+  // mobile browser — which is what makes this one call correct everywhere and not an `AppSkin`
+  // token. Compose Multiplatform 1.12 is what made it real on js and wasmJs; on desktop and macOS
+  // it is a documented no-op. Country-row selection is deliberately *not* haptic: Android list rows
+  // do not vibrate on tap, and serving the browser there would cost the Android app its native
+  // feel.
+  val haptics = LocalHapticFeedback.current
   Column(
     modifier
       .fillMaxWidth()
@@ -128,14 +138,16 @@ fun SearchAndFilterUi(state: SearchAndFilterScreen.State, modifier: Modifier = M
             modifier = Modifier.width(200.dp),
           ) {
             continents.forEach { continent ->
+              val isSelected = state.selectedContinents.contains(continent)
               DropdownMenuItem(
                 text = { Text(continent.name) },
                 onClick = {
+                  haptics.toggled(nowOn = !isSelected)
                   state.eventSink(SearchAndFilterScreen.Event.DropdownExpandedChanged(false))
                   state.eventSink(SearchAndFilterScreen.Event.ContinentToggled(continent))
                 },
                 trailingIcon = {
-                  if (state.selectedContinents.contains(continent)) {
+                  if (isSelected) {
                     Icon(painterResource(Res.drawable.check_small_24px), "Checked")
                   }
                 },
@@ -191,6 +203,7 @@ private fun activeFiltersOf(state: SearchAndFilterScreen.State): List<ActiveFilt
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ActiveFilterChips(filters: List<ActiveFilter>, modifier: Modifier = Modifier) {
+  val haptics = LocalHapticFeedback.current
   FlowRow(
     modifier.fillMaxWidth(),
     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -199,7 +212,12 @@ private fun ActiveFilterChips(filters: List<ActiveFilter>, modifier: Modifier = 
     filters.forEach { filter ->
       InputChip(
         selected = true,
-        onClick = filter.onClear,
+        // A chip only ever clears, so this is always the off direction. The haptic sits here rather
+        // than inside `onClear` so [ActiveFilter] stays a plain description of a filter.
+        onClick = {
+          haptics.toggled(nowOn = false)
+          filter.onClear()
+        },
         label = { Text(filter.label) },
         trailingIcon = {
           Icon(
@@ -317,3 +335,10 @@ private fun SearchAndFilterUiFiltersDesktopSkinPreview() {
     )
   }
 }
+
+/**
+ * The one place [HapticFeedbackType]'s toggle pair is chosen, so both call sites above agree on the
+ * direction rather than each deciding for itself.
+ */
+private fun HapticFeedback.toggled(nowOn: Boolean) =
+  performHapticFeedback(if (nowOn) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)

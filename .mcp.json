@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "compose-hot-reload": {
+      "command": "./gradlew",
+      "args": ["-q", "--console=plain", ":desktop:hotMcpServer"],
+      "env": {}
+    }
+  }
+}
