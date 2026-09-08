@@ -4,12 +4,14 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.StaticConfig
 import co.touchlab.kermit.platformLogWriter
 import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.SingleIn
 
 @ContributesTo(AppScope::class)
-interface LoggingProviders {
+@BindingContainer
+object LoggingProviders {
   /**
    * The root logger. Modules inject this and re-tag it with [Logger.withTag] rather than reaching
    * for a global, so their logging is injectable and assertable in tests.

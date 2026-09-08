@@ -6,6 +6,9 @@ import com.slack.circuit.subcircuit.SubCircuit
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
 import dev.zacsweers.metro.SingleIn
+import io.github.solcott.countries.network.NetworkProviders
+import io.github.solcott.countries.shared.LoggingProviders
+import io.github.solcott.countries.ui.CircuitProviders
 
 /**
  * The graph shared by every Compose consumer — the Android app today, and the Compose Multiplatform
@@ -19,7 +22,10 @@ import dev.zacsweers.metro.SingleIn
  * consumers that must not link Compose at all.
  */
 @SingleIn(AppScope::class)
-@DependencyGraph(AppScope::class)
+@DependencyGraph(
+  AppScope::class,
+  bindingContainers = [CircuitProviders::class, LoggingProviders::class, NetworkProviders::class],
+)
 interface ComposeGraph {
   val circuit: Circuit
 

@@ -12,12 +12,14 @@ import com.slack.circuit.subcircuit.SubCircuit
 import com.slack.circuit.subcircuit.SubPresenterFactory
 import com.slack.circuit.subcircuit.SubUiFactory
 import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.SingleIn
 
 @ContributesTo(AppScope::class)
-interface CircuitProviders {
+@BindingContainer
+object CircuitProviders {
   /**
    * How a [com.slack.circuit.runtime.screen.Screen] on a back stack survives being saved — process
    * death on Android, and `rememberSaveable` everywhere else.

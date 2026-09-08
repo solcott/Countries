@@ -4,6 +4,7 @@ import com.apollographql.apollo.ApolloClient
 import com.apollographql.cache.normalized.api.NormalizedCacheFactory
 import com.apollographql.cache.normalized.memory.MemoryCacheFactory
 import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.SingleIn
@@ -15,7 +16,8 @@ private const val MEMORY_CACHE_MAX_SIZE_BYTES = 10 * 1024 * 1024
 internal const val DATABASE_NAME = "countries.db"
 
 @ContributesTo(AppScope::class)
-interface NetworkProviders {
+@BindingContainer
+object NetworkProviders {
   @Provides
   @SingleIn(AppScope::class)
   fun provideApolloClient(): ApolloClient =
