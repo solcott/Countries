@@ -3,6 +3,7 @@ package io.github.solcott.countries.shared
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
 import dev.zacsweers.metro.SingleIn
+import io.github.solcott.countries.network.NetworkProviders
 import io.github.solcott.countries.repository.ContinentRepository
 import io.github.solcott.countries.repository.CountryRepository
 
@@ -17,7 +18,10 @@ import io.github.solcott.countries.repository.CountryRepository
  * factories later, and a SwiftUI app should not link Compose at all.
  */
 @SingleIn(AppScope::class)
-@DependencyGraph(AppScope::class)
+@DependencyGraph(
+  AppScope::class,
+  bindingContainers = [LoggingProviders::class, NetworkProviders::class],
+)
 interface CoreGraph {
   val countryRepository: CountryRepository
 

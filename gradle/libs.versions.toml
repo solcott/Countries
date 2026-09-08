@@ -1,9 +1,9 @@
 [versions]
 # Build tooling. AGP 9.x ships built-in Kotlin support pinned to an older KGP; the root
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
-agp = "9.3.2"
-kotlin = "2.4.20-RC2"
-metro = "1.4.2"
+agp = "9.4.0"
+kotlin = "2.4.20"
+metro = "1.4.3"
 apollo = "5.1.0"
 apollo-normalized-cache = "1.0.7"
 # What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
@@ -38,7 +38,7 @@ composeBom = "2026.08.00"
 # `material3` is the deliberate exception to the BOM. The BOM manages material3 at 1.4.0, which is
 # older than the alpha line this project tracks; a direct dependency with an explicit version beats
 # a BOM constraint when it is higher, so this wins. Check that it still does after a BOM bump.
-material3 = "1.5.0-alpha26"
+material3 = "1.5.0-alpha27"
 
 # Still needed alongside the BOM, for the two coordinates it cannot reach from an Android-only
 # scope: `androidx-compose-ui` in :app, and `androidx-compose-runtime-retain`, which is declared in
@@ -101,7 +101,7 @@ androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-ru
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "composeUi" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
-detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.4" }
+detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.6" }
 
 # Compose Multiplatform. `runtime` is a thin alias onto androidx.compose.runtime, which is already
 # multiplatform; `foundation` is the real multiplatform build, since androidx's is Android-only.
