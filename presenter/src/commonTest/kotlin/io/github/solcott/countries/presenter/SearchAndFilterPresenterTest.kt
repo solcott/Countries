@@ -2,14 +2,14 @@ package io.github.solcott.countries.presenter
 
 import app.cash.turbine.ReceiveTurbine
 import com.slack.circuit.subcircuit.test.test
-import io.github.solcott.countries.dataresult.DataError
-import io.github.solcott.countries.dataresult.Origin
-import io.github.solcott.countries.dataresult.Outcome
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.repository.ContinentRepository
-import io.github.solcott.countries.uistate.LoadStatus
-import io.github.solcott.countries.uistate.errorOrNull
-import io.github.solcott.countries.uistate.isLoading
+import io.github.solcott.dataresult.DataError
+import io.github.solcott.dataresult.Origin
+import io.github.solcott.dataresult.Outcome
+import io.github.solcott.uistate.LoadStatus
+import io.github.solcott.uistate.errorOrNull
+import io.github.solcott.uistate.isLoading
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

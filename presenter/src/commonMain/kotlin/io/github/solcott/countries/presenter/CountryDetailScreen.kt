@@ -7,8 +7,8 @@ import com.slack.circuit.serialization.CircuitSerializable
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.redacted.annotations.Redacted
 import io.github.solcott.countries.model.CountryDetail
-import io.github.solcott.countries.uistate.ContentState
-import io.github.solcott.countries.uistate.LoadStatus
+import io.github.solcott.uistate.ContentState
+import io.github.solcott.uistate.LoadStatus
 
 @CircuitSerializable(AppScope::class)
 data class CountryDetailScreen(val code: String) : Screen {

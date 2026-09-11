@@ -3,25 +3,14 @@ package io.github.solcott.countries.repository
 import co.touchlab.kermit.Logger
 import com.apollographql.apollo.api.ApolloResponse
 import com.apollographql.apollo.api.Operation
-import com.apollographql.apollo.exception.ApolloException
-import com.apollographql.apollo.exception.ApolloHttpException
-import com.apollographql.apollo.exception.ApolloNetworkException
-import com.apollographql.apollo.exception.ApolloOfflineException
-import com.apollographql.apollo.exception.CacheMissException
-import com.apollographql.apollo.exception.HttpCacheMissException
-import com.apollographql.apollo.exception.JsonDataException
-import com.apollographql.apollo.exception.JsonEncodingException
-import com.apollographql.cache.normalized.isFromCache
-import io.github.solcott.countries.dataresult.DataError
-import io.github.solcott.countries.dataresult.Origin
-import io.github.solcott.countries.dataresult.Outcome
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.model.Language
 import io.github.solcott.countries.network.graphql.CountriesQuery
 import io.github.solcott.countries.network.graphql.CountryDetailQuery
+import io.github.solcott.dataresult.Outcome
+import io.github.solcott.dataresult.apollo.mapToOutcome as mapApolloResponseToOutcome
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.mapNotNull
 
 /**
  * Mapping from Apollo generated types to `model` types. This file is the only place generated
@@ -50,10 +39,9 @@ internal fun CountryDetailQuery.Country.toModel() =
   )
 
 /**
- * Maps each Apollo response to a transport-agnostic [Outcome], tagged with the [Origin] it was
- * served from. Cache-miss responses are dropped rather than surfaced as errors: under a
- * cache-then-network policy a network response follows, and under a cache-only lookup the empty
- * result is handled upstream.
+ * `dataresult-apollo`'s mapper with this module's logging policy attached, so the three repository
+ * call sites stay a single expression and there is one place that decides what a transport failure
+ * logs.
  *
  * [logger] is a parameter rather than a file-level singleton so callers inject their own tagged
  * instance and tests can assert on what was logged with a `TestLogWriter`.
@@ -61,28 +49,5 @@ internal fun CountryDetailQuery.Country.toModel() =
 internal fun <T : Operation.Data, R> Flow<ApolloResponse<T>>.mapToOutcome(
   logger: Logger,
   mapSuccess: T.() -> R,
-): Flow<Outcome<R>> = mapNotNull { response ->
-  val origin = if (response.isFromCache) Origin.Cache else Origin.Network
-  val exception = response.exception
-  when {
-    response.hasErrors() ->
-      Outcome.Error(DataError.Api(response.errors.orEmpty().map { it.message }), origin)
-    exception is CacheMissException || exception is HttpCacheMissException -> null
-    exception != null -> {
-      logger.e(exception) { "Data request failed" }
-      Outcome.Error(exception.toDataError(), origin)
-    }
-    else -> Outcome.Data(response.dataOrThrow().mapSuccess(), origin)
-  }
-}
-
-/** Categorizes an [ApolloException] into the transport-agnostic [DataError] vocabulary. */
-private fun ApolloException.toDataError(): DataError =
-  when (this) {
-    is ApolloOfflineException,
-    is ApolloNetworkException -> DataError.Network
-    is ApolloHttpException -> DataError.Http(statusCode)
-    is JsonDataException,
-    is JsonEncodingException -> DataError.Serialization
-    else -> DataError.Unknown(cause = this, message = message)
-  }
+): Flow<Outcome<R>> =
+  mapApolloResponseToOutcome(onException = { logger.e(it) { "Data request failed" } }, mapSuccess)

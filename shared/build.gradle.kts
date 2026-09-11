@@ -6,7 +6,7 @@ plugins {
 kotlin {
   sourceSets {
     commonMain.dependencies {
-      api(project(":dataresult"))
+      api(libs.dataresult)
       api(project(":model"))
       api(project(":repository"))
       // On the compile classpath so Metro aggregates NetworkProviders into CoreGraph:

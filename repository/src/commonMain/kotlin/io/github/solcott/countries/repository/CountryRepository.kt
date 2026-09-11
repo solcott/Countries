@@ -5,10 +5,10 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import io.github.solcott.countries.dataresult.Outcome
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.network.CountriesApi
+import io.github.solcott.dataresult.Outcome
 import kotlinx.coroutines.flow.Flow
 
 interface CountryRepository {

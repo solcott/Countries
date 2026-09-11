@@ -4,29 +4,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import com.slack.circuit.codegen.annotations.CircuitInject
-import com.slack.circuit.retained.produceRetainedState
 import com.slack.circuit.runtime.Navigator
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.repository.CountryRepository
-import io.github.solcott.countries.uistate.ContentState
-import io.github.solcott.countries.uistate.reloading
-import io.github.solcott.countries.uistate.settled
+import io.github.solcott.uistate.circuit.produceRetainedContentState
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
 
 /**
  * What the user is filtering the list by.
@@ -51,31 +45,27 @@ fun CountryListPresenter(
 ): CountryListScreen.State {
   var reloadKey by retain { mutableIntStateOf(0) }
   var filter by retain { mutableStateOf(SearchFilter()) }
-  val countriesState by
-    produceRetainedState(
-      initialValue = ContentState(data = emptyList()),
-      key1 = reloadKey,
-    ) {
-      combine(
-          snapshotFlow { filter.name }.debounce(300.milliseconds),
-          snapshotFlow { filter.continents },
-        ) { name, continents ->
-          name to continents
-        }
-        // The sub-circuit re-reports its filter whenever it is composed — including after a
-        // configuration change, where `rememberSaveable` restores it to what the mirror already
-        // holds. Without this that echo would restart an identical query.
-        .distinctUntilChanged()
-        .collectLatest { (name, continents) ->
-          // A new filter starts a fresh request: keep the current list visible but flag loading.
-          value = value.reloading()
-          repository
-            .countriesAsFlow(name, continents.map { it.code })
-            .distinctUntilChanged()
-            .onEach { value = value.applyEmission(it) }
-            .onCompletion { cause -> if (cause == null) value = value.settled() }
-            .collect()
-        }
+  // `remember`ed rather than rebuilt each recomposition: this is collected for the life of the
+  // producer, and a fresh Flow instance every pass would be wasted allocation. The debounce is
+  // here rather than in `produceRetainedContentState` because only this side knows that the name
+  // deserves it and a continent toggle does not.
+  //
+  // `produceRetainedContentState` deduplicates its receiver, which is what absorbs the sub-circuit
+  // re-reporting its filter whenever it is composed — including after a configuration change,
+  // where `rememberSaveable` restores it to what the mirror already holds. Without that, the echo
+  // would restart an identical query.
+  val filterChanges = remember {
+    combine(
+      snapshotFlow { filter.name }.debounce(300.milliseconds),
+      snapshotFlow { filter.continents },
+    ) { name, continents ->
+      name to continents
+    }
+  }
+  val countriesState =
+    filterChanges.produceRetainedContentState(initial = emptyList(), reloadKey) { (name, continents)
+      ->
+      repository.countriesAsFlow(name, continents.map { it.code }).distinctUntilChanged()
     }
 
   fun handle(event: CountryListScreen.Event) {

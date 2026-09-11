@@ -39,9 +39,11 @@ kotlin {
     }
 
     commonMain.dependencies {
-      api(project(":dataresult"))
+      api(libs.dataresult)
       api(project(":model"))
-      api(project(":uistate"))
+      api(libs.uistate)
+      // produceContentState, which brings circuit-retained with it.
+      implementation(libs.uistateCircuit)
       api(libs.circuit.runtime)
       api(libs.circuit.runtime.presenter)
       // `api`: @CircuitSerializable is on the Screens, so it is part of their public API.
@@ -51,7 +53,6 @@ kotlin {
       api(libs.circuitx.subcircuit)
       implementation(project(":repository"))
       implementation(libs.circuit.codegen.annotations)
-      implementation(libs.circuit.retained)
 
       // androidx.compose.runtime is already multiplatform, so `compose.runtime` here is a thin
       // alias onto it. foundation is not, hence the Compose Multiplatform build — it is what

@@ -160,26 +160,49 @@ shared-compose  → ComposeGraph — the Metro graph every Compose app shares
 shared          → CoreGraph for non-Compose consumers, plus the root Logger
 ui              → Compose UI (Circuit Ui implementations), CircuitProviders
 presenter       → Circuit Screens, presenters, state, and events
-uistate         → ContentState and LoadStatus — view state for content from a data source
 repository      → domain-facing data access
 network         → Apollo client, .graphql operations, generated code
 model           → Kotlin domain types: Country, CountryDetail, Language, Continent
-dataresult      → DataError, Origin, Outcome — how a read went and where it came from
 ```
 
-**`model` is domain nouns only.** `DataError`, `Origin` and `Outcome` describe not a thing in the
-domain but the result of *reading* one, so they live in `dataresult`, which sits at the bottom with
-no dependencies at all. `uistate` sits just above it and depends on nothing else.
+### The `dataresult` and `uistate` types are an external library now
 
-That split is also what makes the Apple app's Swift export work, and the two reasons reinforce each
-other — see the `apple-app` skill. `dataresult`, `model` and `uistate` are the
-three modules exported to Swift *in full*, which is only safe because none of them contains anything
-the generator chokes on. Adding a Compose type or a generic sealed type to any of the three breaks
-the iOS build, and nothing else will warn you.
+`DataError`, `Origin` and `Outcome` (how a read went and where it came from) and `ContentState`,
+`LoadStatus` and `applyEmission` (view state for content from a data source) used to be the
+`:dataresult` and `:uistate` modules at the bottom of this build. They are now
+[kmp-dataresult](https://github.com/solcott/kmp-dataresult), so `Recipes` can share them, and they
+arrive as `libs.dataresult` and `libs.uistate` from GitHub Packages. Packages dropped the
+`.countries.` segment: `io.github.solcott.dataresult` and `io.github.solcott.uistate`.
 
-`applyEmission` is the one exception to `uistate` holding all of `ContentState`'s API: it takes an
-`Outcome`, and lives in `presenter/ApplyEmission.kt` next to its only two callers so that `uistate`
-depends on `dataresult` and nothing more.
+The ApolloResponse → `Outcome` mapping went with them, as `libs.dataresultApollo`. What is left in
+`repository/Mappers.kt` is the generated-type → `model` mapping plus a thin wrapper that attaches
+this project's logging policy — see Logging below.
+
+`libs.uistateCircuit` is the fourth piece: `produceRetainedContentState` and its `Flow<P>` extension, which
+collect a repository's `Outcome`s into retained `ContentState`. All three presenters use it, and
+nothing here hand-rolls a `produceRetainedState` fold any more — see the `add-screen` skill.
+
+**`model` is domain nouns only.** Anything describing a *read* rather than a thing belongs in the
+library, not here.
+
+Three consequences worth knowing:
+
+- **Resolving them needs a token.** GitHub Packages authenticates even public reads, so a build
+  needs `gpr.user`/`gpr.key` in `~/.gradle/gradle.properties` (a classic PAT with `read:packages`).
+  `settings.gradle.kts` also lists `mavenLocal()` ahead of it, so `publishToMavenLocal` from the
+  library repo is how to try a change before releasing it.
+- **The Swift export constraints did not move with the code.** `:apple` still exports both in full,
+  now by coordinate rather than by project. They remain safe to export only because neither
+  contains a Compose type or a generic sealed *interface* — adding one breaks the iOS build with no
+  warning. That contract now lives in another repo, so `:apple:macosArm64Test` is the only thing
+  standing between a library bump and a broken iOS build. See the `apple-app` skill.
+- **`Outcome` has a `Loading` case** that this project never emits. Apollo flows do not report
+  their own request lifecycle, so the mapper only ever produces `Data` and `Error`; presenters
+  start in a loading state and settle from there. Store5, which `Recipes` uses, does emit it. A
+  `when` over `Outcome` still has to handle the case.
+
+`model` remains one of the modules exported to Swift *in full*, alongside the two library
+artifacts.
 
 There are **two graphs** because of how the platform apps differ:
 
@@ -240,7 +263,8 @@ Rules:
   `LoggingProviders` in `shared`.
 - `model` contains domain data classes and nothing else. `network`, `repository`, `presenter` and
   `ui` all depend on it. Anything describing a *read* — an error taxonomy, a cache/network origin,
-  an emission — belongs in `dataresult`; anything describing *view state* belongs in `uistate`.
+  an emission — belongs in the `dataresult` library; anything describing *view state* belongs in
+  `uistate`. Neither is a module in this build any more.
 - **Apollo generated types never cross the `network` boundary.** `network` owns
   the mapping from generated GraphQL data classes to `model` types and returns
   only the latter. No other module imports anything from the generated package.
@@ -452,7 +476,7 @@ internal class CountryRepositoryImpl(private val api: CountriesApi, logger: Logg
   private val logger = logger.withTag("CountryRepository")
 }
 
-internal fun <T, R> Flow<ApolloResponse<T>>.mapToOutcome(logger: Logger, …)
+internal fun <T, R> Flow<ApolloResponse<T>>.mapToOutcome(logger: Logger, …)   // Mappers.kt
 ```
 
 Two reasons this matters:

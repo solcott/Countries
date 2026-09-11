@@ -11,19 +11,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import com.slack.circuit.retained.produceRetainedState
 import com.slack.circuit.subcircuit.SubCircuitInject
 import com.slack.circuit.subcircuit.SubPresenter
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.repository.ContinentRepository
-import io.github.solcott.countries.uistate.ContentState
-import io.github.solcott.countries.uistate.settled
-import kotlinx.coroutines.flow.collect
+import io.github.solcott.uistate.circuit.produceRetainedContentState
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
 
 /**
  * Owns the country list's filter and the continents it can filter by.
@@ -50,14 +45,9 @@ class SearchAndFilterPresenter(private val continentRepository: ContinentReposit
     // the country list failed with nothing cached, and in that state `CountryListUi` renders an
     // error instead of the list — so this presenter is not composed at all. Retrying puts the list
     // on screen, which composes the header for the first time and runs this fresh.
-    val continentsState by
-      produceRetainedState(initialValue = ContentState(data = emptyList())) {
-        continentRepository
-          .continentsAsFlow()
-          .distinctUntilChanged()
-          .onEach { value = value.applyEmission(it) }
-          .onCompletion { cause -> if (cause == null) value = value.settled() }
-          .collect()
+    val continentsState =
+      produceRetainedContentState(initial = emptyList<Continent>()) {
+        continentRepository.continentsAsFlow().distinctUntilChanged()
       }
 
     // Read out rather than passed straight to the effect, so both are snapshot reads of *this*

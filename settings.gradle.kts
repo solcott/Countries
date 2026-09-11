@@ -18,6 +18,7 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
+//includeBuild("../kmp-dataresult")
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
     // PREFER_SETTINGS rather than FAIL_ON_PROJECT_REPOS: the Kotlin plugin unconditionally
@@ -29,6 +30,24 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+
+        // io.github.solcott:dataresult / :uistate / :dataresult-apollo, which used to be the
+        // :dataresult and :uistate modules in this build. mavenLocal() first so a locally
+        // published SNAPSHOT wins while iterating on the library.
+        mavenLocal {
+            content { includeGroup("io.github.solcott") }
+        }
+        maven("https://maven.pkg.github.com/solcott/kmp-dataresult") {
+            name = "GitHubPackages"
+            // GitHub Packages authenticates even public reads, so this needs a classic PAT with
+            // the read:packages scope in ~/.gradle/gradle.properties. See the library's README.
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+            // Nothing else may resolve here, so a credential problem can't cascade.
+            content { includeGroup("io.github.solcott") }
+        }
 
         // Toolchains the js/wasmJs targets download for themselves. Each is locked to the single
         // module it serves so it can never resolve anything else.
@@ -55,9 +74,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "Countries"
 
-include(":dataresult")
 include(":model")
-include(":uistate")
 include(":network")
 include(":repository")
 include(":presenter")
