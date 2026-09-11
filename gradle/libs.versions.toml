@@ -10,6 +10,10 @@ apollo-normalized-cache = "1.0.7"
 sqldelight = "2.1.0"
 ktfmt = "0.27.0"
 
+# Outcome/DataError/ContentState, extracted out of this project so :Recipes can share them.
+# github.com/solcott/kmp-dataresult -- see the GitHub Packages repo in settings.gradle.kts.
+dataresult = "0.1.0-SNAPSHOT"
+
 # @Parcelize/Parcelable usable from commonMain: real android.os.Parcelable on Android,
 # no-ops elsewhere. kotlin-parcelize itself does not support the KMP Android library plugin.
 kmp-parcelize = "1.0.4"
@@ -90,6 +94,18 @@ turbine = "1.2.1"
 [libraries]
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 
+# Shared result/view-state types. `dataresult-apollo` carries the ApolloResponse -> Outcome mapping
+# that used to live in :repository's Mappers.kt.
+# `dataresultApollo`, not `dataresult-apollo`: a dashed alias would make `dataresult` a group
+# accessor rather than a library, and every `libs.dataresult` would have to become
+# `libs.dataresult.asProvider()`.
+dataresult = { module = "io.github.solcott:dataresult", version.ref = "dataresult" }
+dataresultApollo = { module = "io.github.solcott:dataresult-apollo", version.ref = "dataresult" }
+uistate = { module = "io.github.solcott:uistate", version.ref = "dataresult" }
+# `uistateCircuit`, not `uistate-circuit`, for the same reason as `dataresultApollo`: a dashed
+# alias would make `uistate` a group accessor rather than a library.
+uistateCircuit = { module = "io.github.solcott:uistate-circuit", version.ref = "dataresult" }
+
 # AndroidX core
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version = "1.8.0" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -129,7 +145,6 @@ compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.r
 androidx-compose-runtime-retain = { module = "androidx.compose.runtime:runtime-retain", version.ref = "composeUi" }
 # Circuit
 circuit-foundation = { module = "com.slack.circuit:circuit-foundation", version.ref = "circuit" }
-circuit-retained = { module = "com.slack.circuit:circuit-retained", version.ref = "circuit" }
 circuit-runtime = { module = "com.slack.circuit:circuit-runtime", version.ref = "circuit" }
 circuit-runtime-presenter = { module = "com.slack.circuit:circuit-runtime-presenter", version.ref = "circuit" }
 # Separate artifact from circuit-runtime, and `Screen` appears in SwiftNavigator's public API. An
