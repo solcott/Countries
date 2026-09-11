@@ -75,7 +75,7 @@ copy-webpack-plugin@9.1.0:
 "countries-sqljs-idb-worker@file:../../network/npm/countries-sqljs-idb-worker":
   version "1.0.0"
   dependencies:
-    sql.js "1.8.0"
+    sql.js "1.14.2"
 
 dir-glob@^3.0.1:
   version "3.0.1"
@@ -254,6 +254,11 @@ slash@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/slash/-/slash-3.0.0.tgz#6539be870c165adbd5240220dbe361f1bc4d4634"
   integrity sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==
+
+sql.js@1.14.2:
+  version "1.14.2"
+  resolved "https://registry.yarnpkg.com/sql.js/-/sql.js-1.14.2.tgz#01088911d183482b6f961b3563233df69edc9ab5"
+  integrity sha512-3ZGPovObMFrdw79zrUHbfdE/DLIsy8jdNdssmMSQuRAymedU6q84asPt0kgiqrdMYlPegDItiIMfmIXzZnYFcw==
 
 sql.js@1.8.0:
   version "1.8.0"
