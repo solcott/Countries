@@ -6,6 +6,6 @@
   "main": "worker.js",
   "type": "module",
   "dependencies": {
-    "sql.js": "1.8.0"
+    "sql.js": "1.14.2"
   }
 }
