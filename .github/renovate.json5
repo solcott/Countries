@@ -10,5 +10,27 @@
       matchPackageNames: ["io.github.solcott:dataresult*", "io.github.solcott:uistate*"],
       enabled: false,
     },
+    {
+      // The `sqldelight` version.ref is deliberately pinned to whatever
+      // com.apollographql.cache:normalized-cache-sqlite depends on (2.1.0 for cache 1.0.7), not to
+      // the latest -- the web-worker-driver and the hand-written SQL.js worker's message protocol
+      // must agree with it. Renovate can't see that transitive pin, so it keeps proposing bumps
+      // that float SQLDelight ahead of Apollo's cache. Bump this by hand when apollo-normalized-cache
+      // moves. See the network-apollo skill.
+      description: "SQLDelight is pinned to what apollo-normalized-cache-sqlite requires. Bump it by hand alongside the cache.",
+      matchPackageNames: ["app.cash.sqldelight:*"],
+      enabled: false,
+    },
+    {
+      // sql.js is declared TWICE: `npm("sql.js", ...)` in network/build.gradle.kts (the copied
+      // sql-wasm.wasm) and network/npm/countries-sqljs-idb-worker/package.json (the worker's JS
+      // glue). Both must be the same version or the Emscripten glue loads a mismatched .wasm and
+      // initSqlJs() hangs forever -- a silent spinner on the web app. Renovate only sees the
+      // package.json half, so an automated bump breaks the build. Bump both by hand and verify on
+      // web. See network/build.gradle.kts and the network-apollo skill.
+      description: "sql.js is version-declared in two places (a Gradle npm() call and the worker package.json) that must match; Renovate sees only one. Bump both by hand.",
+      matchPackageNames: ["sql.js"],
+      enabled: false,
+    },
   ],
 }
