@@ -53,9 +53,9 @@ data class ThingScreen(val id: String) : Screen {
   applies `alias(libs.plugins.kmp.parcelize)`; it must **not** apply
   `org.jetbrains.kotlin.plugin.parcelize`, which does not work with the KMP Android plugin.
 - **`@Redacted` on `eventSink`.** A lambda has no useful `toString()` and keeps state out of logs.
-- View state comes from `:uistate` (`ContentState`, `LoadStatus`); read outcomes from `:dataresult`
+- View state comes from `libs.uistate` (`ContentState`, `LoadStatus`); read outcomes from `libs.dataresult`
   (`Outcome`, `DataError`, `Origin`); domain nouns from `:model`. Putting any of those in the wrong
-  module breaks the Apple Swift export — `dataresult`, `model` and `uistate` are the three exported
+  module breaks the Apple Swift export — `:model` and the two library artifacts are exported
   in full, and a Compose type or a generic sealed type in any of them fails the iOS build with
   nothing else warning you.
 - A screen-specific derived property belongs next to the state, as an extension —
@@ -75,11 +75,9 @@ fun ThingPresenter(
   repository: ThingRepository,
 ): ThingScreen.State {
   var reloadKey by retain { mutableIntStateOf(0) }
-  val content by produceRetainedState(
-    initialValue = ContentState<Thing?>(data = null),
-    key1 = screen.id,
-    reloadKey,
-  ) { /* collect the repository flow, applyEmission into state */ }
+  val content = produceRetainedContentState<Thing?>(initial = null, screen.id, reloadKey) {
+    repository.thingAsFlow(screen.id).distinctUntilChanged()
+  }
 
   return ThingScreen.State(content) { event -> /* navigate, or bump reloadKey */ }
 }
@@ -93,9 +91,26 @@ fun ThingPresenter(
   no Compose Multiplatform equivalent.
 - **Presenters own state.** Business logic and data access live here; the Ui is a pure function of
   the state and emits events.
-- `applyEmission` (in `presenter/ApplyEmission.kt`) turns an `Outcome` into a `ContentState`. It
-  lives in `:presenter` rather than `:uistate` deliberately, so `uistate` depends on `dataresult`
-  and nothing more.
+- **`produceRetainedContentState` collects the repository flow**, from `libs.uistateCircuit`
+  (`io.github.solcott.uistate.circuit`). Do not hand-roll a `produceRetainedState` fold — the
+  helper carries a `settled()` safety net guarded on `cause == null`, without which a cancelled
+  collection reports an abandoned request as finished.
+  - Its keys restart the producer, and the held value survives that — which is what keeps a retry
+    from blanking the screen. It deliberately does *not* reset the status to loading on a restart.
+  - `distinctUntilChanged()` on the repository flow stays with the caller; the helper does not
+    dedupe what it is given.
+  - For a source whose parameters change *while* it is on screen — a search term, a filter — use
+    `params.produceRetainedContentState(initial, keys) { p -> … }` instead. It cancels the in-flight
+    request per new parameter and marks the state reloading first, so content stays put under a
+    refresh indicator. `CountryListPresenter` is the worked example; note the debounce belongs on
+    the `params` flow, not in the helper.
+- `applyEmission`, which the helper calls, comes from the `uistate` library
+  (`io.github.solcott.uistate.applyEmission`) — it used to live in `presenter/ApplyEmission.kt`, and
+  moved when the two modules were extracted into their own repo.
+- **In a multi-pane layout, Circuit stops collecting for the record that is not current.**
+  `pausableState` drops the producer from composition, so the list pane silently stops re-querying
+  while a detail is open, with no error anywhere. `ui/.../ListDetailNavDecoration.kt` handles this
+  with `ProvideRecordLifecycle(isActive = true)` around each composed pane — keep it.
 
 ## 3. The Ui — `:ui`
 

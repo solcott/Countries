@@ -24,11 +24,9 @@ shared-compose  ComposeGraph — the Metro graph every Compose app shares.
 shared          CoreGraph for non-Compose consumers, plus the root Logger.
 ui              Compose UI (Circuit Ui implementations), CircuitProviders.
 presenter       Circuit Screens, presenters, state, and events.
-uistate         ContentState and LoadStatus.
 repository      Domain-facing data access.
 network         Apollo client, .graphql operations, generated code.
 model           Country, CountryDetail, Language, Continent.
-dataresult      DataError, Origin, Outcome.
 ```
 
 Library modules use `src/commonMain/kotlin`, with `src/androidMain`, `src/jvmMain`, `src/iosMain`,
@@ -44,8 +42,8 @@ Library modules use `src/commonMain/kotlin`, with `src/androidMain`, `src/jvmMai
 | A Circuit `Ui` implementation, a composable, `CountriesApp` | `ui` |
 | Strings and drawables | `ui/src/commonMain/composeResources/` — reached through the generated `Res`, never AGP's `R` |
 | A domain noun (`Country`, `Language`, `Continent`) | `model` |
-| How a *read* went (`DataError`, `Origin`, `Outcome`) | `dataresult` |
-| View state for content (`ContentState`, `LoadStatus`) | `uistate` |
+| How a *read* went (`DataError`, `Origin`, `Outcome`) | the `io.github.solcott:dataresult` library, not this repo |
+| View state for content (`ContentState`, `LoadStatus`) | the `io.github.solcott:uistate` library, not this repo |
 | A `@ContributesTo(AppScope::class)` provider | Next to the code it constructs — `NetworkProviders` in `network`, `CircuitProviders` in `ui`, `LoggingProviders` in `shared` |
 | The graph declarations | `ComposeGraph` in `shared-compose`, `CoreGraph` in `shared` |
 | Browser history and routing | `web/src/commonMain` — `Routes.kt`, `BrowserHistory.kt`, `HistoryAction.kt` |

@@ -27,7 +27,8 @@ Start from `git status --short` / `git diff --name-only`. Take the union of ever
 
 | Changed | Run | Why this and not less |
 | --- | --- | --- |
-| `model/`, `dataresult/`, `uistate/` | `:<module>:assemble` and `:apple:macosArm64Test` | These three are exported to Swift **in full**. A Compose type or a generic sealed type added to any of them breaks the iOS build and nothing else warns you. |
+| `model/` | `:model:assemble` and `:apple:macosArm64Test` | Exported to Swift **in full**. A Compose type or a generic sealed type added to it breaks the iOS build and nothing else warns you. |
+| the `dataresult` version in `libs.versions.toml` | `:apple:macosArm64Test`, then the iOS build | `io.github.solcott:dataresult` and `:uistate` are exported to Swift in full too, and their contents now live in another repo. A bump can introduce the Compose type or generic sealed interface that breaks the export, and no task in this build will mention it. |
 | `network/` | **`:network:assemble`** and `:repository:allTests` | `:network` has no tests of its own. `assemble` is the task that catches the `compileWebMainKotlinMetadata` `Worker` failure — neither web target's own compile task reproduces it. See `network-apollo`. |
 | `repository/` | `:repository:allTests` | |
 | `presenter/` | `:presenter:allTests` and `:shared-compose:allTests` | The second one is for `Screen` changes: a screen missing `@CircuitSerializable`, or carrying a property with no serializer, builds clean and throws only when a back stack is saved. |

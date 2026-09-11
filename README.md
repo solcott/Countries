@@ -152,11 +152,9 @@ shared-compose → ComposeGraph — the Metro graph every Compose app shares
 shared         → CoreGraph for non-Compose consumers, plus the root Logger
 ui             → Compose UI (Circuit Ui), and CountriesApp — the app every entry point mounts
 presenter      → Circuit Screens, presenters, state, events  (the state holders)
-uistate        → ContentState and LoadStatus — view state for content from a data source
 repository     → domain-facing data access, generated → model mapping
 network        → Apollo client, .graphql operations, generated code
 model          → plain Kotlin domain types: Country, CountryDetail, Language, Continent
-dataresult     → DataError, Origin, Outcome — how a read went and where it came from
 ```
 
 Everything from `shared-compose` down is Kotlin Multiplatform and builds for Android, JVM,

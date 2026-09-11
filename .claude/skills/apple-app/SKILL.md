@@ -68,7 +68,7 @@ Five things worth knowing:
 - **`export(project(…))` means something different here than on an Obj-C framework.** Swift export
   already emits everything reachable from the module's public API, so exporting is not what makes
   types visible — it is the only way to set `flattenPackage`, and it exports that module's API *in
-  full*. Only `:dataresult`, `:model` and `:uistate` are exported, because only they are free of
+  full*. Only `:model` and the `dataresult`/`uistate` libraries are exported, because only they are free of
   anything the generator rejects.
 - **`-lsqlite3` moved to Xcode.** Swift export produces a static library, which records no linker
   options, so SQLiter's symbols resolve at the app link via `OTHER_LDFLAGS`.
