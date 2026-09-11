@@ -10,5 +10,16 @@
       matchPackageNames: ["io.github.solcott:dataresult*", "io.github.solcott:uistate*"],
       enabled: false,
     },
+    {
+      // The `sqldelight` version.ref is deliberately pinned to whatever
+      // com.apollographql.cache:normalized-cache-sqlite depends on (2.1.0 for cache 1.0.7), not to
+      // the latest -- the web-worker-driver and the hand-written SQL.js worker's message protocol
+      // must agree with it. Renovate can't see that transitive pin, so it keeps proposing bumps
+      // that float SQLDelight ahead of Apollo's cache. Bump this by hand when apollo-normalized-cache
+      // moves. See the network-apollo skill.
+      description: "SQLDelight is pinned to what apollo-normalized-cache-sqlite requires. Bump it by hand alongside the cache.",
+      matchPackageNames: ["app.cash.sqldelight:*"],
+      enabled: false,
+    },
   ],
 }
