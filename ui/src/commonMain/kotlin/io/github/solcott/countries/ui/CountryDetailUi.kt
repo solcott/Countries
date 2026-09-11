@@ -39,9 +39,9 @@ import io.github.solcott.countries.ui.resources.languages_label
 import io.github.solcott.countries.ui.theme.DesktopSkin
 import io.github.solcott.countries.ui.theme.DetailLayout
 import io.github.solcott.countries.ui.theme.LocalAppSkin
-import io.github.solcott.countries.uistate.ContentState
-import io.github.solcott.countries.uistate.errorOrNull
-import io.github.solcott.countries.uistate.isLoading
+import io.github.solcott.uistate.ContentState
+import io.github.solcott.uistate.errorOrNull
+import io.github.solcott.uistate.isLoading
 import org.jetbrains.compose.resources.stringResource
 
 /** Shown where the API has no value for a field. */

@@ -11,10 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import io.github.solcott.countries.dataresult.DataError
 import io.github.solcott.countries.ui.resources.Res
 import io.github.solcott.countries.ui.resources.retry
 import io.github.solcott.countries.ui.theme.LocalAppSkin
+import io.github.solcott.dataresult.DataError
 import org.jetbrains.compose.resources.stringResource
 
 @Composable

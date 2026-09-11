@@ -7,7 +7,7 @@ import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.presenter.CountryDetailScreen
 import io.github.solcott.countries.presenter.CountryListScreen
 import io.github.solcott.countries.presenter.SearchAndFilterScreen
-import io.github.solcott.countries.uistate.LoadStatus
+import io.github.solcott.uistate.LoadStatus
 
 /**
  * An event sink that no `equals` can tell apart from another.

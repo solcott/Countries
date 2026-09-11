@@ -57,17 +57,17 @@ kotlin {
     // `:presenter` is deliberately absent: `CountryListScreen.State.nameStartsWithText` is a
     // Compose `TextFieldState`, and Swift export emits uncompilable Swift for Compose's `Saver`.
     // Nothing here reaches into `:presenter` anyway — the facade in `AppleUiState.kt` sees to that.
-    export(project(":dataresult")) {
+    export(libs.dataresult) {
       moduleName = "CountriesDataResult"
-      flattenPackage = "io.github.solcott.countries.dataresult"
+      flattenPackage = "io.github.solcott.dataresult"
     }
     export(project(":model")) {
       moduleName = "CountriesModel"
       flattenPackage = "io.github.solcott.countries.model"
     }
-    export(project(":uistate")) {
+    export(libs.uistate) {
       moduleName = "CountriesUiState"
-      flattenPackage = "io.github.solcott.countries.uistate"
+      flattenPackage = "io.github.solcott.uistate"
     }
   }
 
@@ -95,9 +95,9 @@ kotlin {
     commonMain.dependencies {
       // `api` because Swift export emits everything reachable from this module's public API, and
       // :model's data classes and :presenter's LoadStatus are reachable through the facade.
-      api(project(":dataresult"))
+      api(libs.dataresult)
       api(project(":model"))
-      api(project(":uistate"))
+      api(libs.uistate)
       api(project(":presenter"))
       api(libs.circuit.runtime)
       api(libs.circuit.runtime.screen)

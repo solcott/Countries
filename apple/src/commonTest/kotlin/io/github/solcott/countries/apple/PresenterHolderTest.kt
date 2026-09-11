@@ -1,15 +1,15 @@
 package io.github.solcott.countries.apple
 
 import app.cash.turbine.test
-import io.github.solcott.countries.dataresult.Origin
-import io.github.solcott.countries.dataresult.Outcome
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.presenter.CountryListScreen
 import io.github.solcott.countries.repository.ContinentRepository
 import io.github.solcott.countries.repository.CountryRepository
-import io.github.solcott.countries.uistate.LoadStatus
+import io.github.solcott.dataresult.Origin
+import io.github.solcott.dataresult.Outcome
+import io.github.solcott.uistate.LoadStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.flow.Flow
