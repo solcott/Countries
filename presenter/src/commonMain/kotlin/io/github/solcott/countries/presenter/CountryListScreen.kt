@@ -8,7 +8,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.redacted.annotations.Redacted
 import io.github.solcott.countries.model.Continent
 import io.github.solcott.countries.model.Country
-import io.github.solcott.countries.uistate.ContentState
+import io.github.solcott.uistate.ContentState
 
 @CircuitSerializable(AppScope::class)
 data object CountryListScreen : Screen {

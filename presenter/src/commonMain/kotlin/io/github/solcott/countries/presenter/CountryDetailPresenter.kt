@@ -6,18 +6,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import com.slack.circuit.codegen.annotations.CircuitInject
-import com.slack.circuit.retained.produceRetainedState
 import com.slack.circuit.runtime.Navigator
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.repository.CountryRepository
-import io.github.solcott.countries.uistate.ContentState
-import io.github.solcott.countries.uistate.settled
-import kotlinx.coroutines.flow.collect
+import io.github.solcott.uistate.circuit.produceRetainedContentState
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
 
 @CircuitInject(CountryDetailScreen::class, AppScope::class)
 @Inject
@@ -28,18 +23,9 @@ fun CountryDetailPresenter(
   repository: CountryRepository,
 ): CountryDetailScreen.State {
   var reloadKey by retain { mutableIntStateOf(0) }
-  val content by
-    produceRetainedState(
-      initialValue = ContentState<CountryDetail?>(data = null),
-      key1 = screen.code,
-      reloadKey,
-    ) {
-      repository
-        .countryAsFlow(screen.code)
-        .distinctUntilChanged()
-        .onEach { value = value.applyEmission(it) }
-        .onCompletion { cause -> if (cause == null) value = value.settled() }
-        .collect()
+  val content =
+    produceRetainedContentState<CountryDetail?>(initial = null, screen.code, reloadKey) {
+      repository.countryAsFlow(screen.code).distinctUntilChanged()
     }
 
   fun handle(event: CountryDetailScreen.Event) {

@@ -7,7 +7,7 @@ import com.slack.circuit.subcircuit.SubCircuitUiState
 import com.slack.circuit.subcircuit.SubScreen
 import dev.zacsweers.redacted.annotations.Redacted
 import io.github.solcott.countries.model.Continent
-import io.github.solcott.countries.uistate.ContentState
+import io.github.solcott.uistate.ContentState
 
 /**
  * The search box and continent filter above the country list — a [SubScreen] rather than a
