@@ -7,7 +7,7 @@ metro = "1.4.3"
 apollo = "5.1.0"
 apollo-normalized-cache = "1.0.7"
 # What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
-sqldelight = "2.1.0"
+sqldelight = "2.3.2"
 ktfmt = "0.27.0"
 
 # Outcome/DataError/ContentState, extracted out of this project so :Recipes can share them.
