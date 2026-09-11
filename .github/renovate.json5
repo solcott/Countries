@@ -1,0 +1,14 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  // Dependency Dashboard issue, monorepo grouping, changelog links. Catalog entries that share a
+  // version.ref (kotlin, circuit, apollo, compose, ...) already update together in one PR.
+  extends: ["config:recommended"],
+
+  packageRules: [
+    {
+      description: "kmp-dataresult is a -SNAPSHOT on GitHub Packages, which Renovate can't read without a token. Bump it by hand.",
+      matchPackageNames: ["io.github.solcott:dataresult*", "io.github.solcott:uistate*"],
+      enabled: false,
+    },
+  ],
+}
