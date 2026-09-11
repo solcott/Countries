@@ -531,6 +531,13 @@ Consequences worth knowing before you add the first test to a module:
   only reaches one transitively. Without them the browser test bundle cannot load skiko, and the
   task reports *"did not discover any tests"* rather than naming the cause. `:shared-compose` is a
   module that needed all three the moment it gained a test.
+- **A heavy browser test bundle blows karma's 30s `browserNoActivityTimeout` on CI**, and reports
+  the *same* *"did not discover any tests"* — the browser disconnects with "no message in 30000 ms"
+  before the first test reports, having spent the whole window just downloading skiko. It passes
+  locally, where Chrome is fast, and fails only on a CI runner. `:shared-compose:jsBrowserTest` is
+  the live case (it drags in `:ui`, so its bundle is ~15 MB); the timeout is raised in
+  `shared-compose/karma.config.d/`. `:presenter` and `:ui` load under the default today — add the
+  same snippet if they start disconnecting.
 - **The first *native* test binary to link the whole graph needs `linkerOpts("-lsqlite3")`.** The
   Apollo plugin adds it to `:network`'s own targets and the Apple app gets it from Xcode's
   `OTHER_LDFLAGS`, but a Kotlin/Native klib records no linker options, so a downstream test
