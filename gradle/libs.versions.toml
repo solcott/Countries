@@ -33,17 +33,17 @@ molecule = "2.2.0"
 # It is applied to Android configurations ONLY (`:app`, and androidMain in `:ui`/`:presenter`).
 # Never commonMain: androidx.compose.runtime is genuinely multiplatform, so a common-scoped BOM
 # would drag jvm/native/web onto the AndroidX line too.
-composeBom = "2026.08.00"
+composeBom = "2026.09.00"
 
 # `material3` is the deliberate exception to the BOM. The BOM manages material3 at 1.4.0, which is
 # older than the alpha line this project tracks; a direct dependency with an explicit version beats
 # a BOM constraint when it is higher, so this wins. Check that it still does after a BOM bump.
-material3 = "1.5.0-alpha27"
+material3 = "1.5.0-alpha28"
 
 # Still needed alongside the BOM, for the two coordinates it cannot reach from an Android-only
 # scope: `androidx-compose-ui` in :app, and `androidx-compose-runtime-retain`, which is declared in
 # :presenter's commonMain because it has no Compose Multiplatform equivalent.
-composeUi = "1.12.0"
+composeUi = "1.12.1"
 
 # Compose Multiplatform. androidx.compose.foundation is Android-only, so `foundation` (and the
 # TextFieldState in CountryListScreen.State) has to come from here.
@@ -66,7 +66,7 @@ composeMaterial3 = "1.12.0-alpha03"
 # commonMain; JetBrains' repackage publishes android, jvm, iosArm64, iosSimulatorArm64, macosArm64,
 # js and wasmJs — this project's exact target set. It requires compose 1.10.0, which resolves up to
 # our 1.12.0, and depends on no material3 at all, so it cannot drag material3 backwards.
-composeMaterial3Adaptive = "1.3.0-beta02"
+composeMaterial3Adaptive = "1.3.0-rc01"
 
 # AndroidX
 coreKtx = "1.19.0"
@@ -81,7 +81,7 @@ coroutines = "1.11.0"
 kotlinxBrowser = "0.5.0"
 
 # Multiplatform logging. Logcat on Android, NSLog on Apple, console on js/wasm — no init needed.
-kermit = "2.1.0"
+kermit = "2.2.0"
 
 # Test
 junit = "4.13.2"
