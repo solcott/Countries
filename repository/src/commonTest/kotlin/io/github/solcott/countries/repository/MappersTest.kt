@@ -8,34 +8,31 @@ import co.touchlab.kermit.TestLogWriter
 import com.apollographql.apollo.api.ApolloResponse
 import com.apollographql.apollo.api.Error as GraphQLError
 import com.apollographql.apollo.exception.ApolloException
-import com.apollographql.apollo.exception.ApolloHttpException
-import com.apollographql.apollo.exception.ApolloNetworkException
-import com.apollographql.apollo.exception.ApolloOfflineException
 import com.apollographql.apollo.exception.CacheMissException
 import com.apollographql.apollo.exception.DefaultApolloException
-import com.apollographql.apollo.exception.HttpCacheMissException
-import com.apollographql.apollo.exception.JsonDataException
-import com.apollographql.apollo.exception.JsonEncodingException
 import com.apollographql.cache.normalized.CacheInfo
 import com.benasher44.uuid.uuid4
-import io.github.solcott.countries.dataresult.DataError
-import io.github.solcott.countries.dataresult.Origin
-import io.github.solcott.countries.dataresult.Outcome
 import io.github.solcott.countries.model.Country
 import io.github.solcott.countries.model.CountryDetail
 import io.github.solcott.countries.model.Language
 import io.github.solcott.countries.network.graphql.CountriesQuery
 import io.github.solcott.countries.network.graphql.CountryDetailQuery
+import io.github.solcott.dataresult.Origin
+import io.github.solcott.dataresult.Outcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 
 /**
- * Covers `Mappers.kt` — the only real logic in this module: how an [ApolloResponse] is classified
- * into an [Outcome], and how Apollo's exception hierarchy collapses into [DataError].
+ * Covers what is left in `Mappers.kt` after the response classification moved to
+ * `io.github.solcott:dataresult-apollo`: this module's logging policy, and the mapping from
+ * generated GraphQL types to `model` types.
+ *
+ * How an [ApolloResponse] is classified into an [Outcome] — origin tagging, the exception taxonomy,
+ * cache-miss dropping — is the library's contract and is tested there, in `ApolloOutcomeTest`.
+ * Duplicating it here would only pin the same behaviour twice.
  */
 @OptIn(ExperimentalKermitApi::class)
 class MappersTest {
@@ -46,132 +43,15 @@ class MappersTest {
   private suspend fun ApolloResponse<CountriesQuery.Data>.outcomes(): List<Outcome<List<Country>>> =
     flowOf(this).mapToOutcome(logger) { countries.map { it.toModel() } }.toList()
 
-  // --- Origin tagging -------------------------------------------------------------------------
+  // --- The local wrapper actually delegates ----------------------------------------------------
 
   @Test
-  fun dataIsTaggedNetworkWhenNotFromCache() = runTest {
+  fun successfulResponsesAreMappedAndTagged() = runTest {
+    // Not a restatement of the library's origin test: this is the check that our wrapper passes
+    // `mapSuccess` through and returns what the library produced.
     val outcomes = countriesResponse(data = germanyData).outcomes()
 
     assertEquals(listOf(Outcome.Data(listOf(germanyModel), Origin.Network)), outcomes)
-  }
-
-  @Test
-  fun dataIsTaggedCacheWhenFromCache() = runTest {
-    val outcomes = countriesResponse(data = germanyData, fromCache = true).outcomes()
-
-    assertEquals(listOf(Outcome.Data(listOf(germanyModel), Origin.Cache)), outcomes)
-  }
-
-  // --- Error classification -------------------------------------------------------------------
-
-  @Test
-  fun graphQlErrorsMapToApiError() = runTest {
-    val response =
-      countriesResponse(
-        data = germanyData,
-        errors = listOf(GraphQLError.Builder("boom").build(), GraphQLError.Builder("bang").build()),
-      )
-
-    assertEquals(
-      listOf(Outcome.Error(DataError.Api(listOf("boom", "bang")), Origin.Network)),
-      response.outcomes(),
-    )
-  }
-
-  @Test
-  fun graphQlErrorsKeepTheCacheOrigin() = runTest {
-    val response =
-      countriesResponse(errors = listOf(GraphQLError.Builder("boom").build()), fromCache = true)
-
-    assertEquals(
-      listOf(Outcome.Error(DataError.Api(listOf("boom")), Origin.Cache)),
-      response.outcomes(),
-    )
-  }
-
-  @Test
-  fun networkExceptionMapsToNetworkError() = runTest {
-    val outcomes = countriesResponse(exception = ApolloNetworkException("offline")).outcomes()
-
-    assertEquals(listOf(Outcome.Error(DataError.Network, Origin.Network)), outcomes)
-  }
-
-  @Test
-  fun offlineExceptionMapsToNetworkError() = runTest {
-    val outcomes = countriesResponse(exception = ApolloOfflineException()).outcomes()
-
-    assertEquals(listOf(Outcome.Error(DataError.Network, Origin.Network)), outcomes)
-  }
-
-  @Test
-  fun httpExceptionCarriesTheStatusCode() = runTest {
-    val exception =
-      ApolloHttpException(statusCode = 503, headers = emptyList(), body = null, message = "nope")
-
-    assertEquals(
-      listOf(Outcome.Error(DataError.Http(503), Origin.Network)),
-      countriesResponse(exception = exception).outcomes(),
-    )
-  }
-
-  @Test
-  fun jsonExceptionsMapToSerializationError() = runTest {
-    assertEquals(
-      listOf(Outcome.Error(DataError.Serialization, Origin.Network)),
-      countriesResponse(exception = JsonDataException("bad shape")).outcomes(),
-    )
-    assertEquals(
-      listOf(Outcome.Error(DataError.Serialization, Origin.Network)),
-      countriesResponse(exception = JsonEncodingException("bad json")).outcomes(),
-    )
-  }
-
-  @Test
-  fun unclassifiedExceptionRetainsCauseAndMessage() = runTest {
-    val exception = DefaultApolloException("something else entirely")
-
-    val outcomes = countriesResponse(exception = exception).outcomes()
-
-    assertEquals(
-      listOf(
-        Outcome.Error(
-          DataError.Unknown(cause = exception, message = "something else entirely"),
-          Origin.Network,
-        )
-      ),
-      outcomes,
-    )
-  }
-
-  // --- Cache misses are dropped, not surfaced -------------------------------------------------
-
-  @Test
-  fun cacheMissIsDropped() = runTest {
-    val exception = CacheMissException(key = "Country:DE", fieldName = "name")
-
-    assertTrue(countriesResponse(exception = exception).outcomes().isEmpty())
-  }
-
-  @Test
-  fun httpCacheMissIsDropped() = runTest {
-    val exception = HttpCacheMissException("not cached")
-
-    assertTrue(countriesResponse(exception = exception).outcomes().isEmpty())
-  }
-
-  @Test
-  fun errorsWinOverACacheMissException() = runTest {
-    // hasErrors() is checked before the cache-miss drop, so this must surface rather than vanish.
-    val response =
-      countriesResponse(
-        errors = listOf(GraphQLError.Builder("boom").build()),
-        exception = CacheMissException(key = "Country:DE", fieldName = "name"),
-      )
-
-    assertEquals(
-      listOf(Outcome.Error(DataError.Api(listOf("boom")), Origin.Network)),
-      response.outcomes(),
-    )
   }
 
   // --- What actually reaches the logger -------------------------------------------------------
@@ -201,7 +81,7 @@ class MappersTest {
   @Test
   fun cacheMissIsNotLogged() = runTest {
     // Cache misses are an expected part of a cache-then-network policy, not a failure worth
-    // reporting — they are dropped before the logging branch.
+    // reporting — the library drops them before ever calling onException.
     countriesResponse(exception = CacheMissException(key = "Country:DE", fieldName = "name"))
       .outcomes()
 
@@ -210,7 +90,7 @@ class MappersTest {
 
   @Test
   fun graphQlErrorsAreNotLogged() = runTest {
-    // Only the exception branch logs; API-level errors are surfaced as DataError.Api instead.
+    // Only the exception branch reaches onException; API-level errors surface as DataError.Api.
     countriesResponse(errors = listOf(GraphQLError.Builder("boom").build())).outcomes()
 
     logWriter.assertCount(0)
