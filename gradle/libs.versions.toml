@@ -5,7 +5,7 @@ agp = "9.4.1"
 kotlin = "2.4.20"
 metro = "1.4.5"
 apollo = "5.2.0"
-apollo-normalized-cache = "1.0.8"
+apollo-normalized-cache = "1.0.9"
 # What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
 sqldelight = "2.1.0"
 ktfmt = "0.27.0"
