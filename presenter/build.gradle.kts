@@ -58,6 +58,7 @@ kotlin {
       // alias onto it. foundation is not, hence the Compose Multiplatform build — it is what
       // provides TextFieldState.
       implementation(libs.compose.runtime)
+      implementation(libs.compose.runtime.annotations)
       implementation(libs.compose.runtime.saveable)
       implementation(libs.compose.foundation)
       implementation(libs.androidx.compose.runtime.retain)

@@ -1,6 +1,7 @@
 package io.github.solcott.countries.presenter
 
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.runtime.Stable
 import com.slack.circuit.subcircuit.SubCircuitOuterEvent
 import com.slack.circuit.subcircuit.SubCircuitUiEvent
 import com.slack.circuit.subcircuit.SubCircuitUiState
@@ -28,6 +29,7 @@ import io.github.solcott.uistate.ContentState
  */
 data object SearchAndFilterScreen : SubScreen<SearchAndFilterScreen.OuterEvent> {
 
+  @Stable
   data class State(
     val nameStartsWithText: TextFieldState,
     val continentsState: ContentState<List<Continent>>,

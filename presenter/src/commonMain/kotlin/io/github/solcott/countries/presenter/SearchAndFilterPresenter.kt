@@ -46,7 +46,7 @@ class SearchAndFilterPresenter(private val continentRepository: ContinentReposit
     // error instead of the list — so this presenter is not composed at all. Retrying puts the list
     // on screen, which composes the header for the first time and runs this fresh.
     val continentsState =
-      produceRetainedContentState(initial = emptyList<Continent>()) {
+      produceRetainedContentState(initial = emptyList()) {
         continentRepository.continentsAsFlow().distinctUntilChanged()
       }
 
