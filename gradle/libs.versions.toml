@@ -117,7 +117,7 @@ androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-ru
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "composeUi" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
-detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.6" }
+detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.6.7" }
 
 # Compose Multiplatform. `runtime` is a thin alias onto androidx.compose.runtime, which is already
 # multiplatform; `foundation` is the real multiplatform build, since androidx's is Android-only.
