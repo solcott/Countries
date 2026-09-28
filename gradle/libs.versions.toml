@@ -213,6 +213,7 @@ apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 kmp-parcelize = { id = "io.github.solcott.kmp.parcelize", version.ref = "kmp-parcelize" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 # Needed even though dependencies are declared by coordinate: this plugin configures skiko's
 # npm/webpack packaging, which compose.foundation pulls in on js and wasmJs.
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }

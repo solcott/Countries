@@ -14,11 +14,10 @@ dependencies {
 
   compileOnly(libs.plugins.dependency.sorter.toDep())
   compileOnly(libs.plugins.detekt.toDep())
+  compileOnly(libs.plugins.kotlin.compose.toDep())
   compileOnly(libs.plugins.ktfmt.toDep())
 
-  detektPlugins(
-    libs.detekt.compose.rules
-  ) // required in order to use same detekt.yml as main project
+  detektPlugins(libs.detekt.compose.rules)
 }
 
 kotlin { jvmToolchain(25) }

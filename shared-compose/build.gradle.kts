@@ -8,13 +8,14 @@ plugins {
   id("kmp-library")
   // Required by the Compose Multiplatform plugin below, not by anything in this module — there is
   // no @Composable here. CMP fails configuration without it.
-  id("org.jetbrains.kotlin.plugin.compose")
+  alias(libs.plugins.kotlin.compose)
   // Not for the `compose.*` dependency accessors — this module declares no Compose dependency of
   // its own. It configures skiko's npm/webpack packaging, which arrives here through `:ui`, and
   // which the browser *test* bundle below cannot load without it. Same reason as in `:presenter`
   // and `:ui`.
   alias(libs.plugins.compose.multiplatform)
   alias(libs.plugins.metro)
+  id("compose.stability")
 }
 
 kotlin {

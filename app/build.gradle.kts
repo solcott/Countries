@@ -1,8 +1,9 @@
 plugins {
   id("app")
-  id("org.jetbrains.kotlin.plugin.compose")
+  alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.metro)
   id("formatting")
+  id("compose.stability")
 }
 
 android {

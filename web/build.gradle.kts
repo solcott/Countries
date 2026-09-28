@@ -10,13 +10,14 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 plugins {
   id("formatting")
   id("org.jetbrains.kotlin.multiplatform")
-  id("org.jetbrains.kotlin.plugin.compose")
+  alias(libs.plugins.kotlin.compose)
   // Required even though every dependency is declared by catalog coordinate: this is what
   // configures skiko's npm/webpack packaging, which compose.ui pulls in on js and wasmJs.
   alias(libs.plugins.compose.multiplatform)
   // So createGraph<ComposeGraph>() resolves, exactly as in :app. The graph itself, and every
   // contribution to it, is aggregated on :shared-compose's compile classpath — not here.
   alias(libs.plugins.metro)
+  id("compose.stability")
 }
 
 kotlin {
