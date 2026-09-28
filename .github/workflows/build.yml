@@ -47,5 +47,28 @@ jobs:
       - name: Check build-logic
         run: ./gradlew -p build-logic ktfmtCheck checkSortDependencies detekt
 
+      # `build` overlaps the Gradle and Kotlin daemons, Kotlin/Native, R8, webpack and karma's
+      # Chrome, and peaks above the runner's 16 GB. When it does, the runner itself is OOM-killed
+      # and the job ends as "The operation was canceled" with no Gradle error. The image ships a
+      # 4 GB swapfile; a larger one lets the peak page out instead.
+      - name: Enlarge swap
+        run: |
+          sudo swapoff -a
+          sudo rm -f /mnt/swapfile
+          sudo fallocate -l 12G /mnt/swapfile
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+          free -h
+
+      # The sampler prints into this step's own log so the numbers survive the runner being
+      # killed; a file or a later step would not.
       - name: Build
-        run: ./gradlew build
+        run: |
+          ( while sleep 30; do
+              echo "::group::resources $(date -u +%T)"
+              free -m; df -h / /mnt
+              ps -eo rss:10,args --sort=-rss | head -8 | cut -c1-160
+              echo "::endgroup::"
+            done ) &
+          ./gradlew build
