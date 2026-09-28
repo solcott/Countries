@@ -73,7 +73,7 @@ composeMaterial3 = "1.12.0-alpha03"
 composeMaterial3Adaptive = "1.3.0-rc01"
 
 # AndroidX
-coreKtx = "1.19.0"
+coreKtx = "1.19.1"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
 
