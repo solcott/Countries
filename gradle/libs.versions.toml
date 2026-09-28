@@ -55,7 +55,7 @@ composeUi = "1.12.1"
 # On the 1.12 line specifically because that is where web gained automatic fallback-font loading:
 # Skia has no system font manager in a browser, so before 1.12 every emoji and every non-Latin
 # script rendered as tofu. See the fonts note in AGENTS.md — do not bundle fallback fonts.
-composeMultiplatform = "1.12.0"
+composeMultiplatform = "1.12.1"
 
 # Compose Multiplatform's material3 is versioned separately from the rest of CMP — this does NOT
 # track composeMultiplatform. 1.12.0-alpha03 is the newest, it wants core 1.12.0-beta01 (which
