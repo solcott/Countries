@@ -73,7 +73,7 @@ fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier)
           message = error.toUserMessage(),
           onRetry = { state.eventSink(CountryListScreen.Event.Retry) },
         )
-      else -> CountriesList(state, countriesState, Modifier.fillMaxSize())
+      else -> CountriesList(state, Modifier.fillMaxSize())
     }
   }
 }
@@ -91,11 +91,8 @@ internal fun listPaneColor() =
   else MaterialTheme.colorScheme.surface
 
 @Composable
-private fun CountriesList(
-  state: CountryListScreen.State,
-  countriesState: ContentState<List<Country>>,
-  modifier: Modifier = Modifier,
-) {
+private fun CountriesList(state: CountryListScreen.State, modifier: Modifier = Modifier) {
+  val countriesState = state.countriesState
   val skin = LocalAppSkin.current
   LazyColumn(modifier = modifier.fillMaxSize().imePadding()) {
     stickyHeader {
@@ -323,8 +320,7 @@ private fun CountriesListPreview() {
             countriesState = loadedState(previewCountries),
             selectedCountryCode = previewCountries.first().code,
             eventSink = {},
-          ),
-        countriesState = loadedState(previewCountries),
+          )
       )
     }
   }
@@ -375,8 +371,7 @@ private fun CountriesListDesktopSkinPreview() {
             countriesState = loadedState(previewCountries),
             selectedCountryCode = previewCountries.first().code,
             eventSink = {},
-          ),
-        countriesState = loadedState(previewCountries),
+          )
       )
     }
   }
