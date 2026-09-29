@@ -37,8 +37,8 @@ kotlin {
     // constructs that driver itself rather than calling createDefaultWebWorkerDriver(), so it can
     // point it at a worker that persists — see NetworkProviders.web.kt and npm/ below.
     webMain.dependencies {
-      implementation(libs.sqldelight.web.worker.driver)
       implementation(libs.kotlinx.browser)
+      implementation(libs.sqldelight.web.worker.driver)
     }
 
     // npm() is only available to JS-family source sets, so these are declared per target rather
@@ -49,12 +49,18 @@ kotlin {
     // shape that works from a *library* module — it is also exactly how the reference worker
     // ships.
     jsMain.dependencies {
-      implementation(npm("countries-sqljs-idb-worker", file("npm/countries-sqljs-idb-worker")))
-      implementation(npm("sql.js", "1.8.0"))
+      val worker = npm("countries-sqljs-idb-worker", file("npm/countries-sqljs-idb-worker"))
+      val sqlJs = npm("sql.js", "1.8.0")
+
+      implementation(sqlJs)
+      implementation(worker)
     }
     wasmJsMain.dependencies {
-      implementation(npm("countries-sqljs-idb-worker", file("npm/countries-sqljs-idb-worker")))
-      implementation(npm("sql.js", "1.8.0"))
+      val worker = npm("countries-sqljs-idb-worker", file("npm/countries-sqljs-idb-worker"))
+      val sqlJs = npm("sql.js", "1.8.0")
+
+      implementation(sqlJs)
+      implementation(worker)
     }
   }
 }
