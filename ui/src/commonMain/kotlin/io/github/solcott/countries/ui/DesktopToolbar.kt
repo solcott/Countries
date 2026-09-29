@@ -123,7 +123,7 @@ private fun ToolbarNavigation(
 }
 
 /** Two live panes with a country open: the toggle, offering to hide the list. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun DesktopToolbarPreview() {
   PreviewSurface(skin = DesktopSkin) { DesktopToolbar(onToggleList = {}) }

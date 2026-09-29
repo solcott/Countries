@@ -12,7 +12,10 @@ import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldDestinationIt
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldValue
 import androidx.compose.material3.adaptive.layout.calculateThreePaneScaffoldValue
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.NonRestartableComposable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.slack.circuit.foundation.NavDecoration
 import com.slack.circuit.foundation.ProvideRecordLifecycle
@@ -87,6 +90,7 @@ internal class ListDetailNavDecoration(
     modifier: Modifier,
     content: @Composable (T) -> Unit,
   ) {
+    val movableContent = remember { movableContentOf(content) }
     // CountryListScreen is the root and is never navigated *to*, so the stack is [list] or
     // [list, detail] and these two reads describe it completely.
     val listArg = args.root
@@ -125,12 +129,14 @@ internal class ListDetailNavDecoration(
         },
       modifier = modifier,
       listPane = {
-        AnimatedPane(Modifier.preferredWidth(listPaneWidth)) { OnScreen { content(listArg) } }
+        AnimatedPane(Modifier.preferredWidth(listPaneWidth)) {
+          OnScreen { movableContent(listArg) }
+        }
       },
       detailPane = {
         AnimatedPane {
           if (detailArg == null) NoCountrySelected(Modifier.fillMaxSize())
-          else OnScreen { content(detailArg) }
+          else OnScreen { movableContent(detailArg) }
         }
       },
     )
@@ -151,6 +157,7 @@ internal class ListDetailNavDecoration(
  * screen and should be running.
  */
 @Composable
+@NonRestartableComposable
 private fun OnScreen(content: @Composable () -> Unit) {
   ProvideRecordLifecycle(isActive = true, content = content)
 }

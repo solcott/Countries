@@ -14,10 +14,12 @@ import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -55,12 +57,11 @@ import org.jetbrains.compose.resources.stringResource
  * It owns the app's only [Scaffold] and its only app bar. Both screens are pane content — see
  * [ListDetailNavDecoration], which puts them side by side on a window wide enough for two.
  *
- * [backStack] can be hoisted because the browser app binds it to `window.history` — see `:web` —
- * and [listCollapsed] for the same reason: `:desktop` toggles it from a keyboard shortcut, outside
- * composition. Leave [backStack] null and one is built here, rooted at [CountryListScreen]. It is
- * null-defaulted rather than given a real default because the default has to be constructed
- * *inside* [CircuitCompositionLocals], which is what puts the `CircuitSaver` in scope; a hoisting
- * caller has to name that saver itself, and `ComposeGraph` exposes it for exactly that.
+ * [backStack] can be hoisted because the browser app binds it to `window.history` — see `:web`.
+ * Leave [backStack] null and one is built here, rooted at [CountryListScreen]. It is null-defaulted
+ * rather than given a real default because the default has to be constructed *inside*
+ * [CircuitCompositionLocals], which is what puts the `CircuitSaver` in scope; a hoisting caller has
+ * to name that saver itself, and `ComposeGraph` exposes it for exactly that.
  *
  * [onRootPop] has no default in Circuit's common `rememberCircuitNavigator`; only the Android-only
  * overload supplies one. It stays explicit here because what "pop past the root" means is genuinely
@@ -73,8 +74,10 @@ import org.jetbrains.compose.resources.stringResource
  * [subCircuit] is required rather than defaulted because `LocalSubCircuit` defaults to null and
  * `SubCircuitContent` is behind a `requireNotNull` — a platform that forgot it would build cleanly
  * and then throw the first time the country list drew its header.
+ *
+ * This overload keeps whether the list pane is collapsed itself. A platform that needs to drive it
+ * from outside composition uses the one that takes `listCollapsed` instead.
  */
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun CountriesApp(
   circuit: Circuit,
@@ -82,7 +85,36 @@ fun CountriesApp(
   modifier: Modifier = Modifier,
   skin: AppSkin = MaterialSkin,
   backStack: SaveableBackStack? = null,
-  listCollapsed: MutableState<Boolean> = rememberSaveable { mutableStateOf(false) },
+  onRootPop: (PopResult?) -> Unit = {},
+) {
+  var listCollapsed by rememberSaveable { mutableStateOf(false) }
+  CountriesApp(
+    circuit = circuit,
+    subCircuit = subCircuit,
+    listCollapsed = listCollapsed,
+    onListCollapsedChange = { listCollapsed = it },
+    modifier = modifier,
+    skin = skin,
+    backStack = backStack,
+    onRootPop = onRootPop,
+  )
+}
+
+/**
+ * [CountriesApp] with the list-pane collapse hoisted, for `:desktop`, which toggles it from a
+ * keyboard shortcut outside composition. [listCollapsed] is the current value;
+ * [onListCollapsedChange] is called with the value the in-app toggle asks for.
+ */
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+fun CountriesApp(
+  circuit: Circuit,
+  subCircuit: SubCircuit,
+  listCollapsed: Boolean,
+  onListCollapsedChange: (Boolean) -> Unit,
+  modifier: Modifier = Modifier,
+  skin: AppSkin = MaterialSkin,
+  backStack: SaveableBackStack? = null,
   onRootPop: (PopResult?) -> Unit = {},
 ) {
   AppTheme(skin) {
@@ -101,6 +133,7 @@ fun CountriesApp(
           navigator = navigator,
           backStack = resolvedBackStack,
           listCollapsed = listCollapsed,
+          onListCollapsedChange = onListCollapsedChange,
           // Two panes from 600dp rather than Material's own 840dp, which is what the
           // ...OnMediumWidth variant buys. That matches the SwiftUI app, where NavigationSplitView
           // shows both columns on iPad mini portrait (744pt) and iPad Air portrait (834pt) — 840dp
@@ -120,14 +153,14 @@ fun CountriesApp(
  * [CountriesApp] minus the graph wiring, so previews can force a [directive] rather than hope the
  * preview renderer reports the device width the preview asked for.
  */
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 internal fun CountriesAppScaffold(
   navigator: Navigator,
   backStack: SaveableBackStack,
   directive: PaneScaffoldDirective,
+  listCollapsed: Boolean,
+  onListCollapsedChange: (Boolean) -> Unit,
   modifier: Modifier = Modifier,
-  listCollapsed: MutableState<Boolean> = remember { mutableStateOf(false) },
 ) {
   val twoPane = directive.maxHorizontalPartitions > 1
   val hasDetail = backStack.topRecord?.screen is CountryDetailScreen
@@ -159,9 +192,8 @@ internal fun CountriesAppScaffold(
           // Nothing to go back to beside two live panes: closing the detail there leaves the
           // placeholder, not a previous screen.
           onBack = if (!twoPane && backStack.size > 1) ({ navigator.pop() }) else null,
-          listCollapsed = listCollapsed.value,
-          onToggleList =
-            if (canCollapse) ({ listCollapsed.value = !listCollapsed.value }) else null,
+          listCollapsed = listCollapsed,
+          onToggleList = if (canCollapse) ({ onListCollapsedChange(!listCollapsed) }) else null,
         )
       },
     ) { padding ->
@@ -170,8 +202,8 @@ internal fun CountriesAppScaffold(
           navigator = navigator,
           backStack = backStack,
           decoration =
-            remember(directive, listCollapsed.value) {
-              ListDetailNavDecoration(directive, listCollapsed.value)
+            remember(directive, listCollapsed) {
+              ListDetailNavDecoration(directive, listCollapsed)
             },
           modifier = Modifier.fillMaxSize(),
         )
@@ -215,22 +247,23 @@ private fun AppChrome(
 @Composable
 private fun ContentFrame(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
   val skin = LocalAppSkin.current
+  val movableContent = remember { movableContentOf(content) }
   if (!skin.contentMaxWidth.isSpecified && !skin.contentPanel) {
-    Box(modifier.fillMaxSize()) { content() }
-    return
-  }
-  Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-    val column = Modifier.widthIn(max = skin.contentMaxWidth).fillMaxSize()
-    if (skin.contentPanel) {
-      Surface(
-        modifier = column.padding(horizontal = WebPageGutter).padding(bottom = WebPageGutter),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        content = content,
-      )
-    } else {
-      Box(column) { content() }
+    Box(modifier.fillMaxSize()) { movableContent() }
+  } else {
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+      val column = Modifier.widthIn(max = skin.contentMaxWidth).fillMaxSize()
+      if (skin.contentPanel) {
+        Surface(
+          modifier = column.padding(horizontal = WebPageGutter).padding(bottom = WebPageGutter),
+          shape = MaterialTheme.shapes.large,
+          color = MaterialTheme.colorScheme.surface,
+          border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+          content = movableContent,
+        )
+      } else {
+        Box(column) { movableContent() }
+      }
     }
   }
 }
@@ -254,13 +287,15 @@ private fun AppPreview(
     // rememberDefaultCircuitSaver() — correct here, since a preview never saves anything.
     CircuitCompositionLocals(previewCircuit()) {
       val backStack = rememberSaveableBackStack(screens)
+      var collapsed by remember { mutableStateOf(listCollapsed) }
       CompositionLocalProvider(LocalSubCircuit provides previewSubCircuit()) {
         CountriesAppScaffold(
           navigator = rememberCircuitNavigator(backStack) {},
           backStack = backStack,
           directive = directive,
+          listCollapsed = collapsed,
+          onListCollapsedChange = { collapsed = it },
           modifier = Modifier.fillMaxSize(),
-          listCollapsed = remember { mutableStateOf(listCollapsed) },
         )
       }
     }
@@ -269,9 +304,9 @@ private fun AppPreview(
 
 /**
  * The real thing at every size we ship to, picking its own layout — the sweep that shows the split
- * actually happening, since [AppScreenPreviews] spans phone, foldable, tablet and desktop.
+ * actually happening, since [PreviewAppScreen] spans phone, foldable, tablet and desktop.
  */
-@AppScreenPreviews
+@PreviewAppScreen
 @Composable
 private fun CountriesAppPreview() {
   CountriesApp(circuit = previewCircuit(), subCircuit = previewSubCircuit())
@@ -326,8 +361,8 @@ private fun CountriesAppTwoPaneCollapsedPreview() {
 }
 
 /**
- * Narrow with a country open: the detail fills the window and the bar grows a back button. Also the
- * shape a `#/country/CH` deep link produces on a phone.
+ * Narrow with a country open: the detail fills the window and the bar grows a back button. Also,
+ * the shape a `#/country/CH` deep link produces on a phone.
  */
 @Preview(name = "Stacked - detail", device = "spec:width=411dp,height=891dp")
 @Composable

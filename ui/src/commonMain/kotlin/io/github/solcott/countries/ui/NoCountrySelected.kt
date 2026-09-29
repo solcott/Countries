@@ -60,7 +60,7 @@ fun NoCountrySelected(modifier: Modifier = Modifier) {
 }
 
 /** 360dp is the width at which the description wraps to three lines — the case worth looking at. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun NoCountrySelectedPreview() {
   PreviewSurface { NoCountrySelected() }

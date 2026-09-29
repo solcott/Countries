@@ -113,7 +113,7 @@ fun CountriesTopAppBar(
 }
 
 /** The list on a narrow window, and two panes with nothing picked: the globe, and nothing to do. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun CountriesTopAppBarPreview() {
   PreviewSurface { CountriesTopAppBar() }
@@ -141,7 +141,7 @@ private fun CountriesTopAppBarToggleCollapsedPreview() {
 }
 
 /** The name that does not fit, which is what the ellipsis is for. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun CountriesTopAppBarLongTitlePreview() {
   PreviewSurface { CountriesTopAppBar(title = previewCountries.last().name, onBack = {}) }

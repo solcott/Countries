@@ -81,13 +81,6 @@ private fun String?.asStartsWithOperator(): Optional<StringQueryOperatorInput?> 
   return Optional.present(StringQueryOperatorInput(regex = Optional.present(pattern)))
 }
 
-/** Exact-match operator, or [Optional.absent] for a null/blank value. */
-private fun String?.asEqualsOperator(): Optional<StringQueryOperatorInput?> {
-  val value = this?.trim().orEmpty()
-  return if (value.isEmpty()) absent()
-  else Optional.present(StringQueryOperatorInput(eq = Optional.present(value)))
-}
-
 private fun List<String>.asInOperator(): Optional<StringQueryOperatorInput?> {
   return if (isEmpty()) absent()
   else Optional.present(StringQueryOperatorInput(`in` = Optional.present(this)))

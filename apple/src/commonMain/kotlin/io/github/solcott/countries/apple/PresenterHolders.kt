@@ -6,12 +6,12 @@ import app.cash.molecule.RecompositionMode
 import app.cash.molecule.launchMolecule
 import com.slack.circuit.runtime.Navigator
 import io.github.solcott.countries.model.Continent
-import io.github.solcott.countries.presenter.CountryDetailPresenter
 import io.github.solcott.countries.presenter.CountryDetailScreen
-import io.github.solcott.countries.presenter.CountryListPresenter
 import io.github.solcott.countries.presenter.CountryListScreen
 import io.github.solcott.countries.presenter.SearchAndFilterPresenter
 import io.github.solcott.countries.presenter.SearchAndFilterScreen
+import io.github.solcott.countries.presenter.countryDetailPresenter
+import io.github.solcott.countries.presenter.countryListPresenter
 import io.github.solcott.countries.repository.ContinentRepository
 import io.github.solcott.countries.repository.CountryRepository
 import kotlinx.coroutines.CoroutineScope
@@ -97,7 +97,7 @@ internal constructor(
    * before anything is awaited — no optional, and no empty first render.
    */
   val state: StateFlow<CountryListUiState> = moleculeState {
-    val listState = CountryListPresenter(navigator, countryRepository)
+    val listState = countryListPresenter(navigator, countryRepository)
     val headerPresenter = remember { SearchAndFilterPresenter(continentRepository) }
     val headerState = headerPresenter.present { outerEvent ->
       when (outerEvent) {
@@ -143,7 +143,7 @@ internal constructor(
 ) : PresenterHolder(scope) {
 
   val state: StateFlow<CountryDetailUiState> = moleculeState {
-    CountryDetailPresenter(screen, navigator, countryRepository).toUiState()
+    countryDetailPresenter(screen, navigator, countryRepository).toUiState()
   }
 
   fun back() {

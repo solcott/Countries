@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 @CircuitInject(CountryDetailScreen::class, AppScope::class)
 @Inject
 @Composable
-fun CountryDetailPresenter(
+fun countryDetailPresenter(
   screen: CountryDetailScreen,
   navigator: Navigator,
   repository: CountryRepository,

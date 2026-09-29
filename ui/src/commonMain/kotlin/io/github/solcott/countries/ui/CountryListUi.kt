@@ -256,7 +256,7 @@ private fun ListPreview(
  * 340dp beside the detail, so a full-window preview overstates its width — see the two-pane
  * previews on `CountriesApp` for the shape it is actually laid out in.
  */
-@AppScreenPreviews
+@PreviewAppScreen
 @Composable
 private fun CountryListUiPreview() {
   ListPreview(loadedState(previewCountries))
@@ -311,7 +311,7 @@ private fun CountryListUiWithoutContinentsPreview() {
   ListPreview(loadedState(previewCountries), continentsState = loadingState(emptyList()))
 }
 
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun CountriesListPreview() {
   PreviewSurface {
@@ -328,27 +328,27 @@ private fun CountriesListPreview() {
   }
 }
 
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun RefreshingIndicatorPreview() {
   PreviewSurface { RefreshingIndicator() }
 }
 
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun CountryRowPreview() {
   PreviewSurface { CountryRow(country = previewCountries.first(), onClick = {}) }
 }
 
 /** The two-pane layout's selected row, marking which country the detail pane is showing. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun CountryRowSelectedPreview() {
   PreviewSurface { CountryRow(country = previewCountries.first(), onClick = {}, selected = true) }
 }
 
 /** The desktop sidebar row: dense, dimmed second line, and an inset rounded selection. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun CountryRowDesktopSkinPreview() {
   PreviewSurface(skin = DesktopSkin) {
@@ -362,7 +362,7 @@ private fun CountryRowDesktopSkinPreview() {
 /**
  * The same list without rules between the rows, which is the other half of reading as a sidebar.
  */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun CountriesListDesktopSkinPreview() {
   PreviewSurface(skin = DesktopSkin) {
