@@ -131,7 +131,7 @@ private fun HeaderRow(
 }
 
 /** The wordmark, which is what the header shows almost all of the time. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun WebHeaderPreview() {
   PreviewSurface(skin = WebSkin) { WebHeader() }
@@ -144,7 +144,7 @@ private fun WebHeaderLightDarkPreview() {
 }
 
 /** Two live panes with a country open: the toggle, on the right where a view control belongs. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun WebHeaderWithTogglePreview() {
   PreviewSurface(skin = WebSkin) { WebHeader(onToggleList = {}) }
@@ -158,7 +158,7 @@ private fun WebHeaderWithBackPreview() {
 }
 
 /** The name that does not fit, which is what the ellipsis is for. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun WebHeaderLongTitlePreview() {
   PreviewSurface(skin = WebSkin) { WebHeader(title = previewCountries.last().name, onBack = {}) }

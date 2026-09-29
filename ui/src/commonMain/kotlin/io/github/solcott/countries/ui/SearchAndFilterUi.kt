@@ -3,7 +3,6 @@ package io.github.solcott.countries.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,28 +45,6 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Registers [SearchAndFilterUi] as the sub-circuit's UI.
- *
- * Metro also accepts `@SubCircuitInject` straight on a top-level composable, which would make this
- * class unnecessary — but the `SubUiFactory` it generates for a *function* holds a reference to
- * that function, and lowering that reference crashes the Kotlin/JS and Kotlin/Wasm back-ends
- * (`UpgradeCallableReferences`, IndexOutOfBounds). Only the two web targets are affected; JVM,
- * Android and native compile it happily, so a build that skipped them would look fine.
- *
- * A class target is generated without the reference, and it costs nothing: [SearchAndFilterUi]
- * stays a plain composable with the default `modifier` the project's conventions ask for, and stays
- * previewable, which an override of `Content` would not be.
- */
-@SubCircuitInject(SearchAndFilterScreen::class, AppScope::class)
-@Inject
-class SearchAndFilterSubUi : SubUi<SearchAndFilterScreen.State> {
-  @Composable
-  override fun Content(state: SearchAndFilterScreen.State, modifier: Modifier) {
-    SearchAndFilterUi(state, modifier)
-  }
-}
-
-/**
  * The search box and continent filter at the top of the list pane.
  *
  * A sub-circuit UI rather than a private composable in `CountryListUi`, so the filter it drives is
@@ -77,16 +54,8 @@ class SearchAndFilterSubUi : SubUi<SearchAndFilterScreen.State> {
  * rather than routing keystrokes through the event sink, which is the whole point of a
  * `TextFieldState`.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchAndFilterUi(state: SearchAndFilterScreen.State, modifier: Modifier = Modifier) {
-  // A filter is a toggle, and a tick on a toggle is native behaviour on Android as well as in a
-  // mobile browser — which is what makes this one call correct everywhere and not an `AppSkin`
-  // token. Compose Multiplatform 1.12 is what made it real on js and wasmJs; on desktop and macOS
-  // it is a documented no-op. Country-row selection is deliberately *not* haptic: Android list rows
-  // do not vibrate on tap, and serving the browser there would cost the Android app its native
-  // feel.
-  val haptics = LocalHapticFeedback.current
   Column(
     modifier
       .fillMaxWidth()
@@ -99,69 +68,92 @@ fun SearchAndFilterUi(state: SearchAndFilterScreen.State, modifier: Modifier = M
       verticalAlignment = Alignment.CenterVertically,
     ) {
       SearchField(state.nameStartsWithText, modifier = Modifier.weight(1f))
-      val continents = state.continentsState.data
+      ContinentsDropdownMenuBox(state)
+    }
+    ActiveFilterChips(state, Modifier.padding(top = 8.dp))
+  }
+}
 
-      if (continents.isNotEmpty()) {
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun ContinentsDropdownMenuBox(state: SearchAndFilterScreen.State) {
+  val continents = state.continentsState.data
+  val haptics = LocalHapticFeedback.current
 
-        ExposedDropdownMenuBox(
-          state.continentDropdownExpanded,
-          onExpandedChange = {
-            state.eventSink(SearchAndFilterScreen.Event.DropdownExpandedChanged(it))
-          },
-        ) {
-          IconButton(
+  if (continents.isNotEmpty()) {
+    ExposedDropdownMenuBox(
+      state.continentDropdownExpanded,
+      onExpandedChange = {
+        state.eventSink(SearchAndFilterScreen.Event.DropdownExpandedChanged(it))
+      },
+    ) {
+      IconButton(
+        onClick = {
+          state.eventSink(
+            SearchAndFilterScreen.Event.DropdownExpandedChanged(!state.continentDropdownExpanded)
+          )
+        }
+      ) {
+        val selectedCount = state.selectedContinents.size
+        // The badge is inside the button rather than around it: the button is the
+        // ExposedDropdownMenuBox's anchor, and wrapping it would put a layout between the two.
+        BadgedBox(badge = { if (selectedCount > 0) Badge { Text(selectedCount.toString()) } }) {
+          Icon(
+            painterResource(Res.drawable.filter_list_24px),
+            contentDescription =
+              if (selectedCount == 0) stringResource(Res.string.filter)
+              else stringResource(Res.string.filter_count, selectedCount),
+          )
+        }
+      }
+      ExposedDropdownMenu(
+        expanded = state.continentDropdownExpanded,
+        onDismissRequest = {
+          state.eventSink(SearchAndFilterScreen.Event.DropdownExpandedChanged(false))
+        },
+        modifier = Modifier.width(200.dp),
+      ) {
+        continents.forEach { continent ->
+          val isSelected = state.selectedContinents.contains(continent)
+          DropdownMenuItem(
+            text = { Text(continent.name) },
             onClick = {
-              state.eventSink(
-                SearchAndFilterScreen.Event.DropdownExpandedChanged(
-                  !state.continentDropdownExpanded
-                )
-              )
-            }
-          ) {
-            val selectedCount = state.selectedContinents.size
-            // The badge is inside the button rather than around it: the button is the
-            // ExposedDropdownMenuBox's anchor, and wrapping it would put a layout between the two.
-            BadgedBox(badge = { if (selectedCount > 0) Badge { Text(selectedCount.toString()) } }) {
-              Icon(
-                painterResource(Res.drawable.filter_list_24px),
-                contentDescription =
-                  if (selectedCount == 0) stringResource(Res.string.filter)
-                  else stringResource(Res.string.filter_count, selectedCount),
-              )
-            }
-          }
-          ExposedDropdownMenu(
-            expanded = state.continentDropdownExpanded,
-            onDismissRequest = {
+              haptics.toggled(nowOn = !isSelected)
               state.eventSink(SearchAndFilterScreen.Event.DropdownExpandedChanged(false))
+              state.eventSink(SearchAndFilterScreen.Event.ContinentToggled(continent))
             },
-            modifier = Modifier.width(200.dp),
-          ) {
-            continents.forEach { continent ->
-              val isSelected = state.selectedContinents.contains(continent)
-              DropdownMenuItem(
-                text = { Text(continent.name) },
-                onClick = {
-                  haptics.toggled(nowOn = !isSelected)
-                  state.eventSink(SearchAndFilterScreen.Event.DropdownExpandedChanged(false))
-                  state.eventSink(SearchAndFilterScreen.Event.ContinentToggled(continent))
-                },
-                trailingIcon = {
-                  if (isSelected) {
-                    Icon(painterResource(Res.drawable.check_small_24px), "Checked")
-                  }
-                },
-              )
-            }
-          }
+            trailingIcon = {
+              if (isSelected) {
+                Icon(painterResource(Res.drawable.check_small_24px), "Checked")
+              }
+            },
+          )
         }
       }
     }
+  }
+}
 
-    val activeFilters = activeFiltersOf(state)
-    if (activeFilters.isNotEmpty()) {
-      ActiveFilterChips(activeFilters, Modifier.padding(top = 8.dp))
-    }
+/**
+ * Registers [SearchAndFilterUi] as the sub-circuit's UI.
+ *
+ * Metro also accepts `@SubCircuitInject` straight on a top-level composable, which would make this
+ * class unnecessary — but the `SubUiFactory` it generates for a *function* holds a reference to
+ * that function, and lowering that reference crashes the Kotlin/JS and Kotlin/Wasm back-ends
+ * (`UpgradeCallableReferences`, IndexOutOfBounds). Only the two web targets are affected; JVM,
+ * Android and native compile it happily, so a build that skipped them would look fine.
+ *
+ * A class target is generated without the reference, and it costs nothing: [SearchAndFilterUi]
+ * stays a plain composable with the default `modifier` the project's conventions ask for, and stays
+ * previewable, which an override of `Content` would not be.
+ */
+@Suppress("unused")
+@SubCircuitInject(SearchAndFilterScreen::class, AppScope::class)
+@Inject
+class SearchAndFilterSubUi : SubUi<SearchAndFilterScreen.State> {
+  @Composable
+  override fun Content(state: SearchAndFilterScreen.State, modifier: Modifier) {
+    SearchAndFilterUi(state, modifier)
   }
 }
 
@@ -200,38 +192,41 @@ private fun activeFiltersOf(state: SearchAndFilterScreen.State): List<ActiveFilt
  * `WebSkin`'s content column, and chips that wrap read better than chips clipped off the edge.
  * Adding a second filter dimension makes wrapping the normal case rather than the exception.
  */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-private fun ActiveFilterChips(filters: List<ActiveFilter>, modifier: Modifier = Modifier) {
+private fun ActiveFilterChips(state: SearchAndFilterScreen.State, modifier: Modifier = Modifier) {
   val haptics = LocalHapticFeedback.current
-  FlowRow(
-    modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.spacedBy(8.dp),
-    verticalArrangement = Arrangement.spacedBy(4.dp),
-  ) {
-    filters.forEach { filter ->
-      InputChip(
-        selected = true,
-        // A chip only ever clears, so this is always the off direction. The haptic sits here rather
-        // than inside `onClear` so [ActiveFilter] stays a plain description of a filter.
-        onClick = {
-          haptics.toggled(nowOn = false)
-          filter.onClear()
-        },
-        label = { Text(filter.label) },
-        trailingIcon = {
-          Icon(
-            painterResource(Res.drawable.close_24px),
-            contentDescription = filter.removeDescription,
-            modifier = Modifier.size(InputChipDefaults.IconSize),
-          )
-        },
-      )
+  val activeFilters = activeFiltersOf(state)
+  if (activeFilters.isNotEmpty()) {
+    FlowRow(
+      modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+      activeFilters.forEach { filter ->
+        InputChip(
+          selected = true,
+          // A chip only ever clears, so this is always the off direction. The haptic sits here
+          // rather
+          // than inside `onClear` so [ActiveFilter] stays a plain description of a filter.
+          onClick = {
+            haptics.toggled(nowOn = false)
+            filter.onClear()
+          },
+          label = { Text(filter.label) },
+          trailingIcon = {
+            Icon(
+              painterResource(Res.drawable.close_24px),
+              contentDescription = filter.removeDescription,
+              modifier = Modifier.size(InputChipDefaults.IconSize),
+            )
+          },
+        )
+      }
     }
   }
 }
 
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun SearchAndFilterUiPreview() {
   PreviewSurface {
@@ -242,7 +237,7 @@ private fun SearchAndFilterUiPreview() {
 }
 
 /** Empty, which is what the list opens on. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun SearchAndFilterUiEmptyPreview() {
   PreviewSurface { SearchAndFilterUi(searchAndFilterState()) }
@@ -252,7 +247,7 @@ private fun SearchAndFilterUiEmptyPreview() {
  * Continents still loading — the case that removes the filter control entirely, leaving the search
  * field the full width.
  */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun SearchAndFilterUiWithoutContinentsPreview() {
   PreviewSurface {
@@ -261,7 +256,7 @@ private fun SearchAndFilterUiWithoutContinentsPreview() {
 }
 
 /** The menu open with two continents ticked, which is the only way to see the check marks. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun SearchAndFilterUiExpandedPreview() {
   PreviewSurface {
@@ -275,7 +270,7 @@ private fun SearchAndFilterUiExpandedPreview() {
 }
 
 /** The desktop skin, where the search field is a compact bordered row rather than a filled one. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun SearchAndFilterUiDesktopSkinPreview() {
   PreviewSurface(skin = DesktopSkin) {
@@ -288,20 +283,14 @@ private fun SearchAndFilterUiDesktopSkinPreview() {
  * where the wrap is actually visible — inside [SearchAndFilterUi] the search field takes the width
  * first.
  */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun ActiveFilterChipsPreview() {
   PreviewSurface {
     ActiveFilterChips(
-      previewContinents
-        .filter { it.code in setOf("EU", "AS", "NA", "SA") }
-        .map { continent ->
-          ActiveFilter(
-            label = continent.name,
-            removeDescription = "Remove ${continent.name} filter",
-            onClear = {},
-          )
-        }
+      searchAndFilterState(
+        selectedContinents = previewContinents.filter { it.code in setOf("EU", "AS", "NA", "SA") }
+      )
     )
   }
 }
@@ -310,7 +299,7 @@ private fun ActiveFilterChipsPreview() {
  * Several filters at once, which is the case the chip row wraps for. The two longest continent
  * names are picked deliberately — they are what overflows one line in the list pane's width.
  */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun SearchAndFilterUiManyFiltersPreview() {
   PreviewSurface {
@@ -323,7 +312,7 @@ private fun SearchAndFilterUiManyFiltersPreview() {
 }
 
 /** The chip row under the desktop skin, whose denser metrics it has to survive. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun SearchAndFilterUiFiltersDesktopSkinPreview() {
   PreviewSurface(skin = DesktopSkin) {

@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 // which is what turns a klib into a webpack bundle.
 plugins {
   id("formatting")
-  id("org.jetbrains.kotlin.multiplatform")
+  alias(libs.plugins.kotlin.multiplatform)
   alias(libs.plugins.kotlin.compose)
   // Required even though every dependency is declared by catalog coordinate: this is what
   // configures skiko's npm/webpack packaging, which compose.ui pulls in on js and wasmJs.
@@ -18,6 +18,8 @@ plugins {
   // contribution to it, is aggregated on :shared-compose's compile classpath — not here.
   alias(libs.plugins.metro)
   id("compose.stability")
+  alias(libs.plugins.dependency.sorter)
+  id("detekt")
 }
 
 kotlin {
@@ -39,9 +41,9 @@ kotlin {
     // Multiplatform writes its own ComposeViewport in a shared webMain. No expect/actual needed
     // for the history binding.
     commonMain.dependencies {
+      implementation(project(":presenter"))
       implementation(project(":shared-compose"))
       implementation(project(":ui"))
-      implementation(project(":presenter"))
       implementation(libs.circuit.foundation)
       implementation(libs.compose.runtime)
       implementation(libs.compose.ui)

@@ -36,7 +36,7 @@ private fun ErrorContentPreview() {
 }
 
 /** The longest message in the set — the one that decides whether the column wraps sensibly. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun ErrorContentWidthsPreview() {
   PreviewSurface { ErrorContent(message = DataError.Serialization.toUserMessage(), onRetry = {}) }

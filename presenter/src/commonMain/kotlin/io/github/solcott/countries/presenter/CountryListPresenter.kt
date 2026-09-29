@@ -39,7 +39,7 @@ private data class SearchFilter(
 @CircuitInject(CountryListScreen::class, AppScope::class)
 @Inject
 @Composable
-fun CountryListPresenter(
+fun countryListPresenter(
   navigator: Navigator,
   repository: CountryRepository,
 ): CountryListScreen.State {

@@ -46,7 +46,7 @@ import io.github.solcott.uistate.LoadStatus
 @Target(AnnotationTarget.ANNOTATION_CLASS, AnnotationTarget.FUNCTION)
 @PreviewScreenSizes
 @Preview(name = "Browser - compact", device = "spec:width=800dp,height=600dp,dpi=160")
-annotation class AppScreenPreviews
+annotation class PreviewAppScreen
 
 /**
  * Widths for a composable that is a strip inside a screen rather than a screen: a small phone, a
@@ -57,7 +57,7 @@ annotation class AppScreenPreviews
 @Preview(name = "Compact 360dp", widthDp = 360, showBackground = true)
 @Preview(name = "Medium 700dp", widthDp = 700, showBackground = true)
 @Preview(name = "Expanded 1280dp", widthDp = 1280, showBackground = true)
-annotation class ComponentWidthPreviews
+annotation class PreviewComponentWidth
 
 /**
  * Wrapper every preview renders through, so previews use the real color scheme and typography

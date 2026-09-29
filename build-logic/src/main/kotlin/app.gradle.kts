@@ -1,7 +1,11 @@
 import io.github.solcott.countries.build.Versions
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-plugins { id("com.android.application") }
+plugins {
+  id("com.android.application")
+  id("detekt")
+  id("com.squareup.sort-dependencies")
+}
 
 android {
   compileSdk = Versions.compileSdk

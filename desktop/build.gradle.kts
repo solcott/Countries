@@ -10,7 +10,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 // this shape. `:web` is multiplatform only because it has to serve js and wasmJs from one module.
 plugins {
   id("formatting")
-  id("org.jetbrains.kotlin.jvm")
+  alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.kotlin.compose)
   // Brings the `compose.desktop` extension — the packaging tasks and the OS-classified runtime.
   alias(libs.plugins.compose.multiplatform)
@@ -27,6 +27,8 @@ plugins {
   // "already on the classpath with an unknown version". Same rule as the Kotlin-family plugins.
   id("org.jetbrains.compose.hot-reload")
   id("compose.stability")
+  alias(libs.plugins.dependency.sorter)
+  id("detekt")
 }
 
 // `Versions` reaches a module build script, not just the convention plugins: it ships in the same
@@ -42,19 +44,17 @@ sourceSets.main {
 }
 
 dependencies {
+  implementation(project(":presenter"))
   implementation(project(":shared-compose"))
   implementation(project(":ui"))
-  implementation(project(":presenter"))
-
-  implementation(libs.circuit.foundation)
-  implementation(libs.compose.runtime)
-  implementation(libs.compose.ui)
-
   // The one place this project reaches for a `compose.*` accessor instead of a catalog coordinate.
   // It has to: skiko's runtime artifact is classified by OS *and* architecture
   // (skiko-awt-runtime-macos-arm64, …) and only this accessor picks the right one. The consequence
   // is that anything built here — including the uber jar — runs on the build host's OS only.
   implementation(compose.desktop.currentOs)
+  implementation(libs.circuit.foundation)
+  implementation(libs.compose.runtime)
+  implementation(libs.compose.ui)
 
   testImplementation(kotlin("test"))
 }

@@ -165,7 +165,7 @@ private fun DetailPreview(content: ContentState<CountryDetail?>) {
  * two thirds of the width, so a full-window preview overstates how much room it gets — see the
  * two-pane previews on `CountriesApp` for the shape it is actually laid out in.
  */
-@AppScreenPreviews
+@PreviewAppScreen
 @Composable
 private fun CountryDetailUiPreview() {
   DetailPreview(loadedState(previewCountryDetail))
@@ -190,20 +190,20 @@ private fun CountryDetailUiNotFoundPreview() {
   DetailPreview(loadedState(null))
 }
 
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun CountryDetailContentPreview() {
   PreviewSurface { CountryDetailContent(previewCountryDetail) }
 }
 
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun DetailRowPreview() {
   PreviewSurface { DetailRow("Capital: Bern") }
 }
 
 /** The desktop skin's detail pane: compact type and the five fields as an inspector. */
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun CountryDetailContentDesktopSkinPreview() {
   PreviewSurface(skin = DesktopSkin) { CountryDetailContent(previewCountryDetail) }

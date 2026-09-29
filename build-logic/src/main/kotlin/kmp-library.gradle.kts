@@ -9,6 +9,8 @@ plugins {
   id("formatting")
   id("org.jetbrains.kotlin.multiplatform")
   id("com.android.kotlin.multiplatform.library")
+  id("com.squareup.sort-dependencies")
+  id("detekt")
 }
 
 // Captured here rather than inline: inside `kotlin { android { } }`, `name` resolves to the

@@ -1,9 +1,11 @@
 package io.github.solcott.countries.desktop
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
@@ -83,7 +85,7 @@ private fun startApplication() = application {
   // CountriesApp mounts, so LocalCircuitSaver is not in scope yet.
   val backStack =
     rememberSaveableBackStack(root = CountryListScreen, circuitSaver = graph.circuitSaver)
-  val listCollapsed = rememberSaveable { mutableStateOf(false) }
+  var listCollapsed by rememberSaveable { mutableStateOf(false) }
   val windowState =
     rememberWindowState(
       initialBoundsProvider =
@@ -119,7 +121,7 @@ private fun startApplication() = application {
           isMetaPressed = event.isMetaPressed,
           isCtrlPressed = event.isCtrlPressed,
         ) -> {
-          listCollapsed.value = !listCollapsed.value
+          listCollapsed = !listCollapsed
           true
         }
         else -> false
@@ -134,9 +136,10 @@ private fun startApplication() = application {
       CountriesApp(
         circuit = graph.circuit,
         subCircuit = graph.subCircuit,
+        listCollapsed = listCollapsed,
+        onListCollapsedChange = { listCollapsed = it },
         skin = DesktopSkin,
         backStack = backStack,
-        listCollapsed = listCollapsed,
       )
     }
   }

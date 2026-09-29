@@ -3,7 +3,7 @@ package io.github.solcott.countries.presenter
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,7 +60,7 @@ class SearchAndFilterPresenter(private val continentRepository: ContinentReposit
     // first query the host used to make for itself — and once per change after that. Debouncing
     // stays with the host, so typing is still smoothed while a continent toggle still lands
     // immediately.
-    LaunchedEffect(name, continents) {
+    SideEffect(name, continents) {
       outerEventSink(SearchAndFilterScreen.OuterEvent.FilterChanged(name, continents))
     }
 

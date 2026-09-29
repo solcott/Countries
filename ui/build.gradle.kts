@@ -42,35 +42,35 @@ kotlin {
     }
 
     commonMain.dependencies {
-      implementation(libs.dataresult)
-      implementation(project(":model"))
-      implementation(libs.uistate)
-      // Screens, state, and events live in :presenter. UI depends on presenter, never the reverse.
-      implementation(project(":presenter"))
       // `api`: Circuit appears in CircuitProviders.provideCircuit's signature.
       api(libs.circuit.foundation)
       // `api` for the same reason: SubCircuit is in provideSubCircuit's signature, and
       // CountriesApp takes one.
       api(libs.circuitx.subcircuit)
+
+      implementation(project(":model"))
+      // Screens, state, and events live in :presenter. UI depends on presenter, never the reverse.
+      implementation(project(":presenter"))
+      implementation(libs.circuit.codegen.annotations)
+      // presenterOf, for the fake presenters behind previewCircuit in PreviewSupport.kt.
+      implementation(libs.circuit.runtime.presenter)
       implementation(libs.circuit.runtime.ui)
       // SerializableCircuitSaver, for CircuitProviders. Reaches here transitively as an `api` of
       // :presenter — which annotates its Screens with @CircuitSerializable — but the saver is
       // constructed in this module, so declare it.
       implementation(libs.circuit.serialization)
-      // presenterOf, for the fake presenters behind previewCircuit in PreviewSupport.kt.
-      implementation(libs.circuit.runtime.presenter)
-      implementation(libs.circuit.codegen.annotations)
-
-      implementation(libs.compose.runtime)
-      implementation(libs.compose.foundation)
-      implementation(libs.compose.ui)
-      implementation(libs.compose.material3)
-      implementation(libs.compose.material3.adaptive)
-      implementation(libs.compose.material3.adaptive.layout)
       // Generates the Res class from src/commonMain/composeResources — the multiplatform
       // replacement for the Android res/ directory this module used to have.
       implementation(libs.compose.components.resources)
+      implementation(libs.compose.foundation)
+      implementation(libs.compose.material3)
+      implementation(libs.compose.material3.adaptive)
+      implementation(libs.compose.material3.adaptive.layout)
+      implementation(libs.compose.runtime)
+      implementation(libs.compose.ui)
       implementation(libs.compose.ui.tooling.preview)
+      implementation(libs.dataresult)
+      implementation(libs.uistate)
     }
   }
 }

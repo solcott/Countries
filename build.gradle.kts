@@ -5,12 +5,17 @@ import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpack
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.metro) apply false
     alias(libs.plugins.apollo) apply false
     alias(libs.plugins.ktfmt) apply false
     alias(libs.plugins.kmp.parcelize) apply false
+    alias(libs.plugins.compose.hot.reload) apply false
     alias(libs.plugins.compose.multiplatform) apply false
     alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.dependency.sorter) apply false
 }
 
 // Pins the Gradle daemon's JVM. `./gradlew updateDaemonJvm` writes the criteria to

@@ -93,7 +93,7 @@ private fun CompactSearchField(state: TextFieldState, modifier: Modifier = Modif
   }
 }
 
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun SearchFieldPreview() {
   PreviewSurface { SearchField(TextFieldState("Fra")) }
@@ -106,7 +106,7 @@ private fun SearchFieldEmptyPreview() {
   PreviewSurface { SearchField(TextFieldState()) }
 }
 
-@ComponentWidthPreviews
+@PreviewComponentWidth
 @Composable
 private fun CompactSearchFieldPreview() {
   PreviewSurface(skin = DesktopSkin) { SearchField(TextFieldState("Fra")) }

@@ -84,7 +84,7 @@ class CountryListPresenterTest {
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
 
-    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+    presenterTestOf({ countryListPresenter(navigator, repository) }) {
       assertTrue(awaitItem().countriesState.isLoading)
 
       val loaded = awaitCountriesSettled()
@@ -112,7 +112,7 @@ class CountryListPresenterTest {
         }
       )
 
-    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+    presenterTestOf({ countryListPresenter(navigator, repository) }) {
       val initial = awaitCountriesSettledState()
       assertEquals(countries, initial.countriesState.data)
 
@@ -149,7 +149,7 @@ class CountryListPresenterTest {
       )
 
     val scheduler = testScheduler
-    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+    presenterTestOf({ countryListPresenter(navigator, repository) }) {
       val initial = awaitCountriesSettledState()
       assertEquals(1, queries)
 
@@ -172,7 +172,7 @@ class CountryListPresenterTest {
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
 
-    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+    presenterTestOf({ countryListPresenter(navigator, repository) }) {
       val loaded = awaitCountriesSettledState()
 
       loaded.eventSink(CountryListScreen.Event.CountryClicked("CA"))
@@ -193,7 +193,7 @@ class CountryListPresenterTest {
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada, egypt))) })
 
-    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+    presenterTestOf({ countryListPresenter(navigator, repository) }) {
       val loaded = awaitCountriesSettledState()
       assertEquals("CA", loaded.selectedCountryCode)
 
@@ -214,7 +214,7 @@ class CountryListPresenterTest {
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
 
-    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+    presenterTestOf({ countryListPresenter(navigator, repository) }) {
       val loaded = awaitCountriesSettledState()
 
       loaded.eventSink(CountryListScreen.Event.CountryClicked("CA"))
@@ -232,7 +232,7 @@ class CountryListPresenterTest {
     val repository =
       FakeCountryRepository(countriesAsFlow = { _, _ -> flowOf(data(listOf(canada))) })
 
-    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+    presenterTestOf({ countryListPresenter(navigator, repository) }) {
       assertEquals(null, awaitCountriesSettledState().selectedCountryCode)
       cancelAndIgnoreRemainingEvents()
     }
@@ -246,7 +246,7 @@ class CountryListPresenterTest {
         countriesAsFlow = { _, _ -> flowOf(Outcome.Error(DataError.Network, Origin.Network)) }
       )
 
-    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+    presenterTestOf({ countryListPresenter(navigator, repository) }) {
       assertTrue(awaitItem().countriesState.isLoading)
 
       val errorState = awaitCountriesSettled()
@@ -276,7 +276,7 @@ class CountryListPresenterTest {
         }
       )
 
-    presenterTestOf({ CountryListPresenter(navigator, repository) }) {
+    presenterTestOf({ countryListPresenter(navigator, repository) }) {
       val failed = awaitCountriesSettledState()
       assertTrue(failed.countriesState.status is LoadStatus.Failed)
 

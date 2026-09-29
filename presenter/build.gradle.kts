@@ -40,11 +40,7 @@ kotlin {
     }
 
     commonMain.dependencies {
-      api(libs.dataresult)
       api(project(":model"))
-      api(libs.uistate)
-      // produceContentState, which brings circuit-retained with it.
-      implementation(libs.uistateCircuit)
       api(libs.circuit.runtime)
       api(libs.circuit.runtime.presenter)
       // `api`: @CircuitSerializable is on the Screens, so it is part of their public API.
@@ -52,17 +48,21 @@ kotlin {
       // `api`: SubScreen, SubCircuitUiState and SubCircuitOuterEvent are all supertypes in
       // SearchAndFilterScreen's public API.
       api(libs.circuitx.subcircuit)
-      implementation(project(":repository"))
-      implementation(libs.circuit.codegen.annotations)
+      api(libs.dataresult)
+      api(libs.uistate)
 
+      implementation(project(":repository"))
+      implementation(libs.androidx.compose.runtime.retain)
+      implementation(libs.circuit.codegen.annotations)
+      implementation(libs.compose.foundation)
       // androidx.compose.runtime is already multiplatform, so `compose.runtime` here is a thin
       // alias onto it. foundation is not, hence the Compose Multiplatform build — it is what
       // provides TextFieldState.
       implementation(libs.compose.runtime)
       implementation(libs.compose.runtime.annotations)
       implementation(libs.compose.runtime.saveable)
-      implementation(libs.compose.foundation)
-      implementation(libs.androidx.compose.runtime.retain)
+      // produceContentState, which brings circuit-retained with it.
+      implementation(libs.uistateCircuit)
     }
 
     commonTest.dependencies {
