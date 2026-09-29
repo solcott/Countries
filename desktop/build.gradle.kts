@@ -42,19 +42,17 @@ sourceSets.main {
 }
 
 dependencies {
+  implementation(project(":presenter"))
   implementation(project(":shared-compose"))
   implementation(project(":ui"))
-  implementation(project(":presenter"))
-
-  implementation(libs.circuit.foundation)
-  implementation(libs.compose.runtime)
-  implementation(libs.compose.ui)
-
   // The one place this project reaches for a `compose.*` accessor instead of a catalog coordinate.
   // It has to: skiko's runtime artifact is classified by OS *and* architecture
   // (skiko-awt-runtime-macos-arm64, …) and only this accessor picks the right one. The consequence
   // is that anything built here — including the uber jar — runs on the build host's OS only.
   implementation(compose.desktop.currentOs)
+  implementation(libs.circuit.foundation)
+  implementation(libs.compose.runtime)
+  implementation(libs.compose.ui)
 
   testImplementation(kotlin("test"))
 }

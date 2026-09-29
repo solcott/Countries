@@ -39,9 +39,9 @@ kotlin {
     // Multiplatform writes its own ComposeViewport in a shared webMain. No expect/actual needed
     // for the history binding.
     commonMain.dependencies {
+      implementation(project(":presenter"))
       implementation(project(":shared-compose"))
       implementation(project(":ui"))
-      implementation(project(":presenter"))
       implementation(libs.circuit.foundation)
       implementation(libs.compose.runtime)
       implementation(libs.compose.ui)

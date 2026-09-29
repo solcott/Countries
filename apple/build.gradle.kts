@@ -94,14 +94,14 @@ kotlin {
     // makes commonMain the web source set in `:web`. A src/appleMain would hold everything and
     // distinguish nothing.
     commonMain.dependencies {
-      // `api` because Swift export emits everything reachable from this module's public API, and
-      // :model's data classes and :presenter's LoadStatus are reachable through the facade.
-      api(libs.dataresult)
       api(project(":model"))
-      api(libs.uistate)
       api(project(":presenter"))
       api(libs.circuit.runtime)
       api(libs.circuit.runtime.screen)
+      // `api` because Swift export emits everything reachable from this module's public API, and
+      // :model's data classes and :presenter's LoadStatus are reachable through the facade.
+      api(libs.dataresult)
+      api(libs.uistate)
 
       // CoreGraph, and the repositories it vends. Not exported — Swift never sees the graph, only
       // what CountriesKit hands back.
@@ -111,9 +111,9 @@ kotlin {
       // references Compose `Modifier`; nothing in this module names it, so it stays out of the
       // linked binary. `implementation`, so it never reaches the Swift export.
       implementation(libs.circuitx.subcircuit)
-      implementation(libs.molecule.runtime)
       implementation(libs.compose.runtime)
       implementation(libs.kotlinx.coroutines.core)
+      implementation(libs.molecule.runtime)
     }
 
     // Wired up by hand rather than by `kmp-library`, which this module deliberately does not
