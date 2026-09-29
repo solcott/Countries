@@ -10,7 +10,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 // this shape. `:web` is multiplatform only because it has to serve js and wasmJs from one module.
 plugins {
   id("formatting")
-  id("org.jetbrains.kotlin.jvm")
+  alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.kotlin.compose)
   // Brings the `compose.desktop` extension — the packaging tasks and the OS-classified runtime.
   alias(libs.plugins.compose.multiplatform)

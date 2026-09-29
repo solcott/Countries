@@ -15,7 +15,7 @@ import io.github.solcott.countries.build.Versions
 // here, not in the Xcode project, so Swift never constructs a Kotlin object graph by hand.
 plugins {
   id("formatting")
-  id("org.jetbrains.kotlin.multiplatform")
+  alias(libs.plugins.kotlin.multiplatform)
   // Molecule recomposes `presenter.present()`, which is a @Composable call, so this module needs
   // the Compose compiler even though it renders nothing.
   alias(libs.plugins.kotlin.compose)

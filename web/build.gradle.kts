@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 // which is what turns a klib into a webpack bundle.
 plugins {
   id("formatting")
-  id("org.jetbrains.kotlin.multiplatform")
+  alias(libs.plugins.kotlin.multiplatform)
   alias(libs.plugins.kotlin.compose)
   // Required even though every dependency is declared by catalog coordinate: this is what
   // configures skiko's npm/webpack packaging, which compose.ui pulls in on js and wasmJs.
