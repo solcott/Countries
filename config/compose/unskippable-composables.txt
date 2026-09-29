@@ -1,0 +1,9 @@
+# Composables reported as `restartable` but not `skippable` that we accept anyway.
+#
+# One `<module>:<name>` per line; `#` starts a comment. The compiler reports fully qualified names,
+# so copy them verbatim from the failure message. The module prefix scopes the entry to that
+# project's `composeStabilityCheck`.
+#
+# Strong skipping has been on by default since Kotlin 2.4, so an unskippable composable is no
+# longer just "has an unstable parameter" -- what lands here is genuinely unskippable: a non-`Unit`
+# return, an inline function, or `@NonSkippableComposable`. Each entry needs a comment saying which.

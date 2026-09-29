@@ -11,7 +11,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 plugins {
   id("formatting")
   id("org.jetbrains.kotlin.jvm")
-  id("org.jetbrains.kotlin.plugin.compose")
+  alias(libs.plugins.kotlin.compose)
   // Brings the `compose.desktop` extension — the packaging tasks and the OS-classified runtime.
   alias(libs.plugins.compose.multiplatform)
   // So createGraph<ComposeGraph>() resolves, exactly as in :app and :web. The graph itself, and
@@ -26,6 +26,7 @@ plugins {
   // puts hot-reload-gradle-plugin on the buildscript classpath, so naming a version here fails with
   // "already on the classpath with an unknown version". Same rule as the Kotlin-family plugins.
   id("org.jetbrains.compose.hot-reload")
+  id("compose.stability")
 }
 
 // `Versions` reaches a module build script, not just the convention plugins: it ships in the same

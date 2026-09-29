@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -73,7 +74,7 @@ fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier)
           message = error.toUserMessage(),
           onRetry = { state.eventSink(CountryListScreen.Event.Retry) },
         )
-      else -> CountriesList(state, countriesState, Modifier.fillMaxSize())
+      else -> CountriesList(state, Modifier.fillMaxSize())
     }
   }
 }
@@ -86,16 +87,14 @@ fun CountryListUi(state: CountryListScreen.State, modifier: Modifier = Modifier)
  * paints exactly what was there before.
  */
 @Composable
+@ReadOnlyComposable
 internal fun listPaneColor() =
   if (LocalAppSkin.current.sidebarTinted) MaterialTheme.colorScheme.surfaceContainer
   else MaterialTheme.colorScheme.surface
 
 @Composable
-private fun CountriesList(
-  state: CountryListScreen.State,
-  countriesState: ContentState<List<Country>>,
-  modifier: Modifier = Modifier,
-) {
+private fun CountriesList(state: CountryListScreen.State, modifier: Modifier = Modifier) {
+  val countriesState = state.countriesState
   val skin = LocalAppSkin.current
   LazyColumn(modifier = modifier.fillMaxSize().imePadding()) {
     stickyHeader {
@@ -323,8 +322,7 @@ private fun CountriesListPreview() {
             countriesState = loadedState(previewCountries),
             selectedCountryCode = previewCountries.first().code,
             eventSink = {},
-          ),
-        countriesState = loadedState(previewCountries),
+          )
       )
     }
   }
@@ -375,8 +373,7 @@ private fun CountriesListDesktopSkinPreview() {
             countriesState = loadedState(previewCountries),
             selectedCountryCode = previewCountries.first().code,
             eventSink = {},
-          ),
-        countriesState = loadedState(previewCountries),
+          )
       )
     }
   }

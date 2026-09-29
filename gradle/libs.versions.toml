@@ -7,6 +7,7 @@ metro = "1.4.5"
 apollo = "5.2.0"
 apollo-normalized-cache = "1.0.9"
 # What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
+#noinspection NewerVersionAvailable
 sqldelight = "2.1.0"
 ktfmt = "0.27.0"
 
@@ -122,6 +123,7 @@ detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0
 # Compose Multiplatform. `runtime` is a thin alias onto androidx.compose.runtime, which is already
 # multiplatform; `foundation` is the real multiplatform build, since androidx's is Android-only.
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-runtime-annotations = { module = "androidx.compose.runtime:runtime-annotation", version.ref = "composeUi" }
 compose-runtime-saveable = { module = "org.jetbrains.compose.runtime:runtime-saveable", version.ref = "composeMultiplatform" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
@@ -211,6 +213,7 @@ apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 kmp-parcelize = { id = "io.github.solcott.kmp.parcelize", version.ref = "kmp-parcelize" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 # Needed even though dependencies are declared by coordinate: this plugin configures skiko's
 # npm/webpack packaging, which compose.foundation pulls in on js and wasmJs.
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }

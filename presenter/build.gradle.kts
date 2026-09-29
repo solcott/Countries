@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
   id("kmp-library")
-  id("org.jetbrains.kotlin.plugin.compose")
+  alias(libs.plugins.kotlin.compose)
   // Not for the `compose.*` dependency accessors — dependencies are declared by coordinate below.
   // This plugin configures skiko's npm/webpack packaging, which compose.foundation pulls in on
   // js and wasmJs.
@@ -15,6 +15,7 @@ plugins {
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.metro)
   alias(libs.plugins.redacted)
+  id("compose.stability")
 }
 
 kotlin {
@@ -58,6 +59,7 @@ kotlin {
       // alias onto it. foundation is not, hence the Compose Multiplatform build — it is what
       // provides TextFieldState.
       implementation(libs.compose.runtime)
+      implementation(libs.compose.runtime.annotations)
       implementation(libs.compose.runtime.saveable)
       implementation(libs.compose.foundation)
       implementation(libs.androidx.compose.runtime.retain)

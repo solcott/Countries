@@ -1,6 +1,9 @@
 package io.github.solcott.countries.model
 
+import androidx.compose.runtime.Immutable
+
 /** Summary of a country, as shown in the list screen. */
+@Immutable
 data class Country(
   val code: String,
   val name: String,
@@ -10,6 +13,7 @@ data class Country(
 )
 
 /** Full detail for a single country, as shown in the detail screen. */
+@Immutable
 data class CountryDetail(
   val code: String,
   val name: String,
@@ -22,4 +26,4 @@ data class CountryDetail(
   val languages: List<Language>,
 )
 
-data class Language(val code: String, val name: String)
+@Immutable data class Language(val code: String, val name: String)

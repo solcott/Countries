@@ -18,7 +18,7 @@ plugins {
   id("org.jetbrains.kotlin.multiplatform")
   // Molecule recomposes `presenter.present()`, which is a @Composable call, so this module needs
   // the Compose compiler even though it renders nothing.
-  id("org.jetbrains.kotlin.plugin.compose")
+  alias(libs.plugins.kotlin.compose)
   // So createGraph<CoreGraph>() resolves, exactly as in :app, :web and :desktop. The graph itself,
   // and every contribution to it, is aggregated on :shared's compile classpath — not here.
   alias(libs.plugins.metro)
@@ -26,6 +26,7 @@ plugins {
   // it does NOT touch equals or hashCode, so it is not what keeps the event sinks out of the
   // equality that lets `StateFlow` conflate a frame — see `EventSink` in AppleUiState.kt for that.
   alias(libs.plugins.redacted)
+  id("compose.stability")
 }
 
 // Matches the `import CountriesKit` in the Swift sources. Changing it means changing both.

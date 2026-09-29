@@ -29,7 +29,6 @@ import io.github.solcott.countries.ui.theme.LocalAppSkin
  * exposes neither — and which quietly resets `shouldAutoFocusCurrentDestination` to true on the way
  * through, so a `copy()` anywhere after this would undo it.
  */
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 internal fun countriesPaneDirective(calculated: PaneScaffoldDirective): PaneScaffoldDirective =
   PaneScaffoldDirective(
     maxHorizontalPartitions = calculated.maxHorizontalPartitions,

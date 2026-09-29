@@ -1,5 +1,6 @@
 package io.github.solcott.countries.presenter
 
+import androidx.compose.runtime.Immutable
 import com.slack.circuit.runtime.CircuitUiEvent
 import com.slack.circuit.runtime.CircuitUiState
 import com.slack.circuit.runtime.screen.Screen
@@ -13,6 +14,7 @@ import io.github.solcott.uistate.ContentState
 @CircuitSerializable(AppScope::class)
 data object CountryListScreen : Screen {
 
+  @Immutable
   data class State(
     val countriesState: ContentState<List<Country>>,
     /**
