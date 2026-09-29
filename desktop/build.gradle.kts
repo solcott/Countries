@@ -27,6 +27,8 @@ plugins {
   // "already on the classpath with an unknown version". Same rule as the Kotlin-family plugins.
   id("org.jetbrains.compose.hot-reload")
   id("compose.stability")
+  alias(libs.plugins.dependency.sorter)
+  id("detekt")
 }
 
 // `Versions` reaches a module build script, not just the convention plugins: it ships in the same

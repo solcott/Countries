@@ -18,6 +18,8 @@ plugins {
   // contribution to it, is aggregated on :shared-compose's compile classpath — not here.
   alias(libs.plugins.metro)
   id("compose.stability")
+  alias(libs.plugins.dependency.sorter)
+  id("detekt")
 }
 
 kotlin {

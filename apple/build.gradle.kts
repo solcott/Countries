@@ -27,6 +27,8 @@ plugins {
   // equality that lets `StateFlow` conflate a frame — see `EventSink` in AppleUiState.kt for that.
   alias(libs.plugins.redacted)
   id("compose.stability")
+  id("detekt")
+  alias(libs.plugins.dependency.sorter)
 }
 
 // Matches the `import CountriesKit` in the Swift sources. Changing it means changing both.
