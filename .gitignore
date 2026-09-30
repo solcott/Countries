@@ -18,11 +18,13 @@ xcuserdata/
 *.xcscmblueprint
 .swiftpm/
 
-# Claude Code. `skills/`, `agents/` and `settings.json` are project documentation and configuration
-# and are committed — AGENTS.md routes to the skills by path, the agents encode this build's traps
-# and output contracts, and all three are reviewable in a PR like any other doc. Everything else
+# Claude Code. `rules/`, `skills/`, `agents/` and `settings.json` are project documentation and
+# configuration and are committed — the rules load by path and hold the invariants that fail
+# silently, AGENTS.md routes to the skills by task, the agents encode this build's traps and output
+# contracts, and all four are reviewable in a PR like any other doc. Everything else
 # here — `settings.local.json` above all — is per-user state.
 .claude/*
+!.claude/rules/
 !.claude/skills/
 !.claude/agents/
 !.claude/settings.json

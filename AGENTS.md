@@ -5,25 +5,40 @@ https://countries.trevorblades.com/ and displays them.
 
 ## Read first
 
-Per-platform detail lives in skills rather than here, so this file stays the part that applies to
-every task. **Read the matching skill before editing, not after** — most of what they document
-fails silently, so the cost of skipping one is a broken build you do not notice.
+Most of what is easy to break here fails **silently** — a clean build and a broken app. That
+material is kept next to the code it governs, in two places:
 
-| Touching | Read |
+**Path rules, `.claude/rules/*.md`.** Each one declares the paths it covers in `paths:` frontmatter,
+and Claude Code loads it automatically when a matching file is read. Other agents: open the rule for
+the directory you are editing *before* editing it.
+
+| Touching | Rule |
 | --- | --- |
-| `iosApp/`, `apple/`, or anything Swift export | `.claude/skills/apple-app/SKILL.md` |
-| the app icon, `desktop/icons/`, `Assets.xcassets` | `.claude/skills/apple-app-icons/SKILL.md` |
-| `web/`, browser history, the service worker | `.claude/skills/web-app/SKILL.md` |
-| `desktop/`, jpackage, the uber jar | `.claude/skills/desktop-app/SKILL.md` |
-| flags, emoji, or non-Latin text rendering | `.claude/skills/compose-fonts/SKILL.md` |
-| adding or changing a `@Preview` | `.claude/skills/compose-previews/SKILL.md` |
-| `network/`, a `.graphql` operation, the SQL.js worker | `.claude/skills/network-apollo/SKILL.md` |
-| `gradle/libs.versions.toml`, the Compose BOM, an npm dependency | `.claude/skills/dependency-bump/SKILL.md` |
-| adding a Circuit screen | `.claude/skills/add-screen/SKILL.md` |
-| deciding what to build or test before committing | `.claude/skills/verify/SKILL.md` |
-| GitHub PR review comments, rebasing the stack | `.claude/skills/pr-review/SKILL.md` |
+| `apple/`, `iosApp/`, `model/` (exported to Swift in full) | `swift-export.md` |
+| `desktop/icons/`, `AppIcon.appiconset` | `app-icons.md` |
+| `web/` | `web.md` |
+| `desktop/` | `desktop.md` |
+| `network/` | `network.md` |
+| `ui/**/*.kt` — modifiers, previews, the one platform seam | `compose-ui.md` |
+| `composeResources/` | `compose-resources.md` |
+| `presenter/` | `screens.md` |
+| `shared/`, `shared-compose/` — the Metro graphs | `metro-graph.md` |
+| `libs.versions.toml`, any build script, `build-logic/`, lockfiles | `build-scripts.md` |
+| any test source set | `kmp-tests.md` |
 
-They are ordinary markdown — open the path directly if the skill mechanism is not available.
+**Skills, `.claude/skills/*/SKILL.md`**, for tasks rather than paths:
+
+| Doing | Skill |
+| --- | --- |
+| adding a Circuit screen | `add-screen` |
+| deciding what to build or test before committing | `verify` |
+| bumping Compose, Kotlin or the BOM | `dependency-bump` |
+| flags, emoji, or non-Latin text rendering wrong | `compose-fonts` |
+| the reasoning behind the Swift export rules, the Apple test suites | `apple-app` |
+| looking at the UI under Compose Hot Reload | `desktop-app` |
+| GitHub PR review comments, rebasing the stack | `pr-review` |
+
+Both are ordinary markdown — open the path directly if neither mechanism is available.
 
 ## Tech stack
 
@@ -42,15 +57,12 @@ They are ordinary markdown — open the path directly if the skill mechanism is 
 | Screen persistence | `@CircuitSerializable` + a `SerializableCircuitSaver` — see the `add-screen` skill |
 | Logging | [Kermit](https://kermit.touchlab.co/) (`co.touchlab:kermit`) |
 | Formatting | ktfmt via the `com.ncorti.ktfmt.gradle` plugin |
-| Testing | JUnit + Turbine |
+| Testing | `kotlin.test` + Turbine (JUnit in `:app` only) |
 | Build | Gradle with a version catalog (`gradle/libs.versions.toml`) |
-
-SDK levels: `minSdk 28`, `targetSdk 37`, `compileSdk 37`.
 
 ## Kotlin Multiplatform
 
-The project **is Kotlin Multiplatform**. The migration ran one module at a time, bottom-up:
-`model` → `network` → `repository` → `presenter` → `ui` → `shared` → `shared-compose`.
+The project **is Kotlin Multiplatform**.
 
 **Every library module is migrated.** The only Android-specific module left is `app`, which stays
 an Android application module — it is the Android entry point. `web` and `desktop` are its
@@ -64,7 +76,7 @@ Supported targets, declared once in the `kmp-library` convention plugin:
 | Desktop | `jvm` |
 | iOS | `iosArm64`, `iosSimulatorArm64` |
 | macOS | `macosArm64` |
-| Web | `js`, `wasmJs` (both `browser()` only — see Testing below) |
+| Web | `js`, `wasmJs` (both `browser()` only — see Testing KMP modules below) |
 
 Rules for library modules:
 
@@ -90,9 +102,6 @@ Rules for library modules:
 - **Log through Kermit, never `android.util.Log`** — it does not exist in `commonMain`. Take
   Kermit as an `implementation` dependency; a `Logger` should not appear in a module's public API.
 
-The old Android-only `library.gradle.kts` convention is gone — `kmp-library` and `app` are the
-only two module conventions left.
-
 ### Compose and Kotlin Multiplatform
 
 Compose here comes from **two** places, and the split is not arbitrary: `org.jetbrains.compose.*`
@@ -105,51 +114,20 @@ Compose Multiplatform equivalent. Strings and drawables come from
 never `commonMain`; Compose Multiplatform owns everything else.** Every version pin carries its
 reasoning inline in `gradle/libs.versions.toml`, next to the pin.
 
-**Read the `dependency-bump` skill before changing any of them.** The constraints it documents fail
+**`.claude/rules/build-scripts.md` loads with the catalog and every build script.** Its constraints fail
 silently — the 1.12 floor that keeps browser fonts working, material3 being on its own version line,
 the BOM never reaching `commonMain` — as do the three build requirements a Compose module has
 (`alias(libs.plugins.compose.multiplatform)`, the `macos` experimental opt-in, and
 `android { androidResources { enable = true } }` wherever there are `composeResources`).
 
-### Compose Multiplatform resources
-
-Strings and drawables live in `src/commonMain/composeResources/` (`values/strings.xml`,
-`drawable/*.xml`) and are reached through the generated `Res` class, not AGP's `R`:
-
-```kotlin
-import org.jetbrains.compose.resources.stringResource
-import io.github.solcott.countries.ui.resources.Res
-import io.github.solcott.countries.ui.resources.capital
-
-stringResource(Res.string.capital, country.capital)
-painterResource(Res.drawable.globe_24px)
-```
-
-`strings.xml` keeps the ordinary Android format, `%1$s` placeholders included. **Vector drawables
-must contain no `?attr/…` theme attributes and no `@android:…` references** — CMP's parser cannot
-resolve either, and both fail at runtime rather than at build time. Use literal colours
-(`#FFFFFFFF`) and let `Icon` supply the real colour from `LocalContentColor`.
-
-### Apollo and Kotlin Multiplatform
-
-The Apollo Gradle plugin detects the KMP plugin by itself: it reads operations from
-`src/commonMain/graphql/`, attaches the generated code to `commonMain`, and needs no `srcDir` or
-output wiring. Per-platform client configuration goes through
-`ApolloClient.Builder.platformConfiguration()`, an `expect` extension in `network/src/commonMain` —
-add new per-platform concerns to that seam rather than forking the provider.
-
-Caching is Apollo's normalized cache, configured in `network`; do not add a second layer anywhere
-above it. **The web targets use a hand-written SQL.js IndexedDB worker in `network/npm/`, and
-`createDefaultWebWorkerDriver()` must not come back** — the reference worker never persists
-anything. That worker's `Worker` must not move up into `webMain`: the failure lands in
-`compileWebMainKotlinMetadata`, blocks `assemble` for `:network` and everything above it, and
-neither web target's own compile task reproduces it.
-
-**Read the `network-apollo` skill before editing anything under `network/`.**
+Compose resources (`Res`, not `R`; vector drawables that fail at runtime) are in
+`.claude/rules/compose-resources.md`. Apollo, the normalized cache and the SQL.js worker are in
+`.claude/rules/network.md`. Caching is Apollo's normalized cache, configured in `network` — do not
+add a second layer anywhere above it.
 
 ## Module structure
 
-Thirteen modules, with dependencies flowing strictly downward:
+Eleven modules, with dependencies flowing strictly downward:
 
 ```
 app             → Android entry point: Activity, theme, manifest. Nothing else.
@@ -216,14 +194,6 @@ There are **two graphs** because of how the platform apps differ:
   what running a `@Composable` presenter under Molecule requires — see
   the `apple-app` skill.
 
-All packages live under `io.github.solcott.countries`, with each module using its
-own name as the suffix — `…countries.model`, `…countries.network`,
-`…countries.repository`, `…countries.presenter`, `…countries.ui`,
-`…countries.shared`, `…countries.shared.compose`, `…countries.web`,
-`…countries.desktop`, `…countries.apple`. The `app`
-module uses the root `io.github.solcott.countries`, which is also the
-`applicationId`. Each module's Gradle `namespace` matches its package.
-
 Rules:
 
 - **An app module holds no dependency wiring.** `app`, `web` and `desktop` depend on
@@ -246,18 +216,8 @@ Rules:
   nothing but name the one it wants. Material 3 *is* Android's native look, so `MaterialSkin` is
   the default and Android passes nothing.
 
-  The distinction from the seam above is worth keeping: a skin has no `expect`/`actual`, lives in
-  no platform source set, and can be rendered from Android Studio — which is exactly why the UI is
-  not forked per platform. Composables read tokens from `LocalAppSkin` rather than taking a dozen
-  parameters. `AppTheme` also feeds `minInteractiveSize` into
-  `LocalMinimumInteractiveComponentSize`, which is the one value that takes the whole Material
-  control set from a 48dp touch target to pointer density.
-
-  Two structural tokens matter more than the cosmetic ones: `contentMaxWidth` and `contentPanel`
-  are what make `:web` read as a page rather than an app canvas, and no amount of restyling
-  controls substitutes for them. `:web` also duplicates the page colour in `styles.css`, which
-  paints before any Kotlin runs — **change one and change the other**, or every cold load flashes
-  the wrong colour.
+  The detail — `LocalAppSkin`, `minInteractiveSize`, the structural tokens — is in
+  `.claude/rules/compose-ui.md`.
 - A module contributes its own providers with `@ContributesTo(AppScope::class)`, next to the
   code they construct: `NetworkProviders` in `network`, `CircuitProviders` in `ui`,
   `LoggingProviders` in `shared`.
@@ -280,48 +240,12 @@ Rules:
   never depend on `ui`.
 - Only the graph modules (`shared`, `shared-compose`) may depend broadly across the project.
 
-### The three non-Android entry points
+### The non-Android entry points and the graphs
 
-`web`, `desktop` and `apple` each have a skill; the routing table at the top says which. What
-follows is only the part you need to know without opening one — every item is something that
-**fails with no warning**, so it is repeated here deliberately rather than left to a skill load.
-
-- **None of the three applies `kmp-library`.** That convention is for libraries: it adds targets
-  they have no use for and never calls `binaries.executable()`.
-- **`:desktop`'s `nativeDistributions { modules(...) }` is load-bearing.** jpackage jlinks a
-  trimmed JDK and the default set omits what sqlite-jdbc and OkHttp's TLS need. `run` uses the full
-  JDK, so a missing module surfaces only in an *installed* build, as a crash on the first query.
-  Test packaging changes with `packageDistributionForCurrentOS`, never `run`.
-- **`:apple` — a Kotlin class must not share the exported module's name.** `CountriesKit` is
-  silently renamed `CountriesKit_` in the generated Swift; the entry point is `CountriesCore` for
-  that reason.
-- **`:apple` — sealed types that cross to Swift are `sealed class`, not `sealed interface`.**
-  Generic sealed interfaces generate Swift that does not compile, and their members are unreachable
-  from another module. Nothing warns; the skill has the full table.
-- **`:apple` — the deployment floor is iOS 18**, because Swift export's generated coroutine support
-  uses `Synchronization.Mutex`. No documentation mentions a minimum OS.
-- **The Apple app icon is generated, and an empty catalog is invisible.** An `.appiconset` whose
-  `Contents.json` lists sizes but no `filename` keys builds clean, emits no warning, and produces
-  an app with no icon. Verify in the built bundle, never from the build log.
-- **`:web`'s offline behaviour comes from the service worker, not the Apollo cache.** The
-  persistent cache only helps once the page is running; without `sw.js` an offline reload never
-  fetches the bundle at all.
-
-### Metro graph aggregation — two rules that are easy to get wrong
-
-Both of these produce confusing errors rather than obvious ones, so they are worth knowing up
-front when adding a module or a new graph:
-
-1. **Contributions are resolved on the compile classpath of the module that declares
-   `@DependencyGraph`** — Metro generates hints into `metro.hints` and locates them during graph
-   supertype generation. A module added downstream, in an app module, is too late: its providers
-   simply will not appear. This is the whole reason `ComposeGraph` lives in `shared-compose`
-   rather than in `shared` with app modules adding `ui` themselves.
-   *Symptom:* `[Metro/MissingBinding] No binding found for …`.
-2. **Contributing modules must be `api`, not `implementation`, on the graph module.** Contributed
-   interfaces become *supertypes* of the generated graph, so anything consuming the graph has to
-   see them too.
-   *Symptom:* `Cannot access '…NetworkProviders' which is a supertype of 'ComposeGraph'`.
+`web`, `desktop` and `apple` apply no `kmp-library` — it adds targets they have no use for and never
+calls `binaries.executable()`. What each one breaks silently is in its path rule (`web.md`,
+`desktop.md`, `swift-export.md`, `app-icons.md`); the two Metro aggregation rules, with the errors
+they produce, are in `metro-graph.md`.
 
 ## Conventions
 
@@ -340,64 +264,27 @@ front when adding a module or a new graph:
   optional parameter, and applies it to its **root** element — not to something nested inside.
   Composables that emit nothing are the exception: `AppTheme` (a wrapper) and
   `DataError.toUserMessage()` (returns a `String`) correctly have none.
-  `detekt/detekt.yml` already enables `ModifierMissing` and `ModifierNotUsedAtRoot`, but detekt
-  is currently only wired up for `build-logic`, so nothing enforces this in the modules yet.
-- **Every composable that emits UI has a `@Preview`** — see the `compose-previews` skill for the
-  import, the two project multipreview annotations, and the fixtures to reuse. Preview the states
-  that are easy to break, not just the happy path: loading, loaded, error, empty.
+  detekt enforces this — the `detekt` convention applies `config/detekt/detekt.yml`, with
+  `ModifierMissing` and `ModifierNotUsedAtRoot` active, to every module, and CI's `./gradlew build`
+  runs it.
+- **Every composable that emits UI has a `@Preview`.** Nothing enforces this one; the
+  `compose-conventions` subagent audits it. The import, the two project multipreviews and the
+  fixtures are in `.claude/rules/compose-ui.md`. Preview the states that are easy to break, not just
+  the happy path: loading, loaded, error, empty.
 
 ## Build setup
 
-`settings.gradle.kts` applies the `org.gradle.toolchains.foojay-resolver-convention`
-plugin so Gradle can auto-provision missing JDKs.
-
-The daemon JVM is pinned in the root `build.gradle.kts`:
-
-```kotlin
-tasks.named<UpdateDaemonJvm>("updateDaemonJvm") {
-  languageVersion = JavaLanguageVersion.of(25)
-  vendor.set(JvmVendorSpec.AMAZON)
-}
-```
-
-Run `./gradlew updateDaemonJvm` to regenerate `gradle/gradle-daemon-jvm.properties`
-after changing that block. The generated properties file is committed.
-
-Note that the daemon JVM is independent of what the modules compile against:
-**all modules target Java 17** (`compileOptions` / Kotlin `jvmTarget`).
-
-That 17 has one source, `Versions` in `build-logic`, and **a module build script can import it** —
-`import io.github.solcott.countries.build.Versions`. It is not restricted to the convention plugins,
-because `Versions.class` rides in the same `build-logic.jar` as the plugin descriptors, so applying
-any convention from that build (every non-convention module applies at least `formatting`) puts it
-on the script's own classpath. `:desktop` and `:apple` use it that way.
-
-So a one-off module needing a shared version **imports it rather than earning a convention** — which
-is why `kmp-library` and `app` are still the only two. Note `build-logic/build.gradle.kts`'s own
-`jvmToolchain(25)` is a different fact: that is the JVM the convention plugins themselves compile
-against, matching the daemon, not the modules' target.
-
-AGP 9 has built-in Kotlin support, so Android modules must **not** apply
-`org.jetbrains.kotlin.android` — AGP fails the build if they do. The root buildscript
-classpath forces the KGP and Compose compiler plugin versions Metro needs; modules apply
-the remaining Kotlin-family plugins (`plugin.compose`, `plugin.parcelize`) by id with no
-version, picking up those classpath versions.
+The daemon JVM is pinned in the root `build.gradle.kts`. After changing that block, run
+`./gradlew updateDaemonJvm` and commit the regenerated `gradle/gradle-daemon-jvm.properties`. The
+daemon JVM is independent of what the modules compile against: **all modules target Java 17**.
 
 Metro's Circuit codegen is switched on by `metro.enableCircuitCodegen=true` in
 `gradle.properties`, which generates the `Presenter.Factory` / `Ui.Factory` multibindings
 from `@CircuitInject`. No separate Circuit KSP processor is needed.
 
-`settings.gradle.kts` uses `RepositoriesMode.PREFER_SETTINGS`, not `FAIL_ON_PROJECT_REPOS`.
-The Kotlin plugin unconditionally registers project-level repositories for the js/wasmJs
-toolchain downloads, which `FAIL_ON_PROJECT_REPOS` rejects at registration time. Those
-downloads (Node, Yarn, Binaryen) are declared as content-filtered `ivy` repositories in the
-settings `repositories` block instead, so every dependency still resolves from there.
-
-`kotlin-js-store/` holds **two** committed lockfiles, because js and wasmJs have separate npm
-stores: `yarn.lock` for js and `wasm/yarn.lock` for wasmJs. Regenerate them with
-`./gradlew kotlinUpgradeYarnLock` and `./gradlew kotlinWasmUpgradeYarnLock` rather than editing
-them. A build that touches only one store fails with "Lock file was changed" naming the task it
-needs, so it is easy to fix one and forget the other.
+Everything else about the build scripts — importing `Versions` into a module script, AGP 9's
+built-in Kotlin, plugins applied by id, `RepositoriesMode.PREFER_SETTINGS`, the two npm lockfiles —
+is in `.claude/rules/build-scripts.md`, which loads with any build script.
 
 ## Commands
 
@@ -409,58 +296,11 @@ needs, so it is easy to fix one and forget the other.
 
 ./gradlew :model:assemble   # build a KMP module for every target
 ./gradlew :model:allTests   # run a KMP module's tests on every target
-
-# Browser app — serves on http://localhost:8080
-./gradlew :web:wasmJsBrowserDevelopmentRun
-./gradlew :web:jsBrowserDevelopmentRun
-./gradlew :web:wasmJsBrowserDistribution   # → web/build/dist/wasmJs/productionExecutable
-./gradlew :web:jsBrowserDistribution       # → web/build/dist/js/productionExecutable
-
-# Desktop app
-./gradlew :desktop:run
-./gradlew :desktop:packageUberJarForCurrentOS      # → desktop/build/compose/jars
-./gradlew :desktop:packageDistributionForCurrentOS # → desktop/build/compose/binaries
-
-# Desktop app under Compose Hot Reload. Edits anywhere in `:ui` land in the running window in
-# about a second, which is the fastest way to see a UI change on any platform here. The MCP server
-# is what lets an agent look at that window — screenshots, the semantics tree, clicks and typing.
-# It is wired up in `.mcp.json`, so an agent starts and stops it itself.
-./gradlew :desktop:hotRun --autoReload
-./gradlew :desktop:hotMcpServer
-
-# Apple bridge — the Kotlin half of the SwiftUI app
-./gradlew :apple:macosArm64Test :apple:iosSimulatorArm64Test
-
-# Inspect the generated Swift without going through Xcode. Swift export registers its tasks only
-# when Xcode's environment variables are present, hence the prefix. Output lands in
-# apple/build/SwiftExport/<target>/Debug/files/.
-CONFIGURATION=Debug SDK_NAME=macosx ARCHS=arm64 TARGET_BUILD_DIR=/tmp/se \
-FRAMEWORKS_FOLDER_PATH=Frameworks ./gradlew :apple:macosArm64DebugSwiftExport
-
-# iOS / iPadOS / macOS app. Xcode runs the Gradle export itself, so open the project and hit run
-# rather than building anything first.
-open iosApp/Countries.xcodeproj
-xcodebuild -project iosApp/Countries.xcodeproj -scheme Countries \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
-xcodebuild -project iosApp/Countries.xcodeproj -scheme Countries \
-  -destination 'platform=macOS,arch=arm64' build
-
-# Unit tests and UI tests together. Run both destinations — several UI tests are device-shape
-# specific and skip themselves on the shape they do not describe.
-xcodebuild test -project iosApp/Countries.xcodeproj -scheme Countries \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
-xcodebuild test -project iosApp/Countries.xcodeproj -scheme Countries \
-  -destination 'platform=iOS Simulator,name=iPad mini (A17 Pro),OS=18.4'
 ```
 
-**Tests run on iOS simulators only; the macOS destination is build-and-run.** `xcodebuild test` for
-macOS fails with "Signing for CountriesUITests requires a development team" — Xcode builds every
-testable in the scheme regardless of the target's `SUPPORTED_PLATFORMS` or of `-only-testing`, and a
-macOS UI-test runner cannot be ad-hoc signed. Nothing is lost: the unit tests are pure functions
-with no platform-specific behaviour, and they run on the simulator.
-
-Both desktop packaging tasks produce a build for the **host** OS only — see
-the `desktop-app` skill.
+Platform commands — the browser dev server and distributions, desktop packaging and hot reload,
+the Swift export and `xcodebuild` invocations — are in the matching rule (`web.md`, `desktop.md`,
+`swift-export.md`).
 
 `ktfmtCheck` at the root does not cover `build-logic` — that is a separate included build.
 Run it from inside `build-logic/` to check the convention plugins.
@@ -494,52 +334,7 @@ are `@ExperimentalKermitApi`, so test classes using them need
 
 ### Testing KMP modules
 
-Tests go in `src/commonTest/kotlin` and run on **every** target — `allTests` drives six runners:
-`jvmTest`, `testAndroidHostTest`, `jsBrowserTest`, `wasmJsBrowserTest`, `macosArm64Test` and
-`iosSimulatorArm64Test`. `kotlin("test")` is wired into `commonTest` by the convention plugin;
-add `libs.kotlinx.coroutines.test` per module if you need `runTest`.
-
-**The web targets are `browser()` only — there is deliberately no `nodejs()`.** The web targets
-exist for a browser app, and Node could not run the whole suite anyway: Compose/Molecule's frame
-clock lives in Molecule's `browserMain` source set, so under Node recomposition never advances and
-a presenter test awaiting a second emission fails. Adding `nodejs()` back to `kmp-library` would
-reintroduce two runners that cannot pass.
-
-Consequences worth knowing before you add the first test to a module:
-
-- The browser runners need **Chrome** installed; the Apple runners need **Xcode**, and
-  `iosSimulatorArm64Test` boots a simulator.
-- Use camelCase test names, not backticked names with spaces — that is the portable choice
-  across the JS and native runners.
-- Adding tests can change `kotlin-js-store/yarn.lock`, because the JS test link pulls in
-  packages the main compilation did not. If a build fails with "Lock file was changed", run
-  `./gradlew kotlinUpgradeYarnLock` and commit the result.
-- JUnit is JVM-only. Do not add `testImplementation(libs.junit)` to a migrated module; use
-  `kotlin.test` assertions instead.
-- **`SnapshotStateList.equals` is structural on JVM/Android but identity-based on native and
-  Kotlin/JS.** Asserting `assertEquals(listOf(x), someSnapshotStateList)` passes on JVM and fails
-  everywhere else. Call `.toList()` first. Expect other JVM-only accidents like this to surface
-  the first time a module's tests run cross-platform.
-- **`testAndroidHostTest` links the android.jar stubs**, so anything backed by a real framework
-  class is inert there. `SavedState` is the live example: it is an `android.os.Bundle`, whose
-  `put`/`get` are no-ops on that runner, so a value "saves" into a Bundle that kept nothing and
-  restores as null. Nothing warns — you get a bare `expected:<X> but was:<null>` on one runner out
-  of six. `ComposeGraphSaverRoundTripTest` sits in `:shared-compose`'s `jvmTest` for this reason;
-  there is no intermediate source set for "every target but the Android host".
-- **The first test in a Compose module needs `js { binaries.executable() }`, `wasmJs { … }` and the
-  Compose Multiplatform plugin** — even if the module declares no Compose dependency of its own and
-  only reaches one transitively. Without them the browser test bundle cannot load skiko, and the
-  task reports *"did not discover any tests"* rather than naming the cause. `:shared-compose` is a
-  module that needed all three the moment it gained a test.
-- **A heavy browser test bundle blows karma's 30s `browserNoActivityTimeout` on CI**, and reports
-  the *same* *"did not discover any tests"* — the browser disconnects with "no message in 30000 ms"
-  before the first test reports, having spent the whole window just downloading skiko. It passes
-  locally, where Chrome is fast, and fails only on a CI runner. `:shared-compose:jsBrowserTest` is
-  the live case (it drags in `:ui`, so its bundle is ~15 MB); the timeout is raised in
-  `shared-compose/karma.config.d/`. `:presenter` and `:ui` load under the default today — add the
-  same snippet if they start disconnecting.
-- **The first *native* test binary to link the whole graph needs `linkerOpts("-lsqlite3")`.** The
-  Apollo plugin adds it to `:network`'s own targets and the Apple app gets it from Xcode's
-  `OTHER_LDFLAGS`, but a Kotlin/Native klib records no linker options, so a downstream test
-  executable inherits neither and fails at link with a wall of undefined `_sqlite3_*` symbols. See
-  `shared-compose/build.gradle.kts`.
+Tests go in `src/commonTest/kotlin` and run on **every** target — `allTests` drives six runners.
+The web targets are `browser()` only, deliberately. The portability traps (camelCase names,
+`SnapshotStateList`, the Android host runner's stub `Bundle`, what the first test in a Compose
+module needs) are in `.claude/rules/kmp-tests.md`, which loads with any test source set.
