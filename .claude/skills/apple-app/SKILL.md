@@ -8,6 +8,10 @@ description: The hand-written SwiftUI app for iOS, iPadOS and macOS and the :app
 The SwiftUI app and its Kotlin bridge. See `AGENTS.md` for the module map and the project-wide
 conventions this sits inside.
 
+The short list of what must not break — sealed class vs interface, no Compose in the exported API,
+the iOS 18 floor, the SQLite C file — is `.claude/rules/swift-export.md`, which loads by itself for
+`apple/`, `iosApp/` and `model/`. This skill is the reasoning and history behind it.
+
 ## The `apple` module
 
 The Kotlin half of the SwiftUI app, exported to Swift and linked by

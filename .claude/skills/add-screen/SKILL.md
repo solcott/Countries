@@ -7,8 +7,8 @@ description: End-to-end recipe for adding a Circuit screen to this project — S
 
 Two screens exist today: `CountryListScreen` and `CountryDetailScreen`. **Copy the closer of the
 two rather than working from this file alone** — it names the moving parts, but the existing pair is
-the real reference. See `AGENTS.md` for the module map and `compose-previews` for the preview
-annotations.
+the real reference. See `AGENTS.md` for the module map. The rules in `.claude/rules/` for
+`presenter/`, `ui/` and `composeResources/` load by themselves as you open those files.
 
 ## 1. Screen, state and events — `:presenter`
 
@@ -126,7 +126,7 @@ fun ThingUi(state: ThingScreen.State, modifier: Modifier = Modifier) {
 
 - **`modifier: Modifier = Modifier` is the first optional parameter, and it goes on the root
   element** — not on something nested. This holds for every private helper in the file too, and
-  nothing in the build enforces it; the `compose-conventions` subagent is the check.
+  detekt's `ModifierMissing`/`ModifierNotUsedAtRoot` enforce it in `./gradlew build`.
 - **`:ui` has no `android.*` imports at all.** Keep it that way — there is no `AndroidView` escape
   hatch on five of the six platforms.
 - The one platform seam in `:ui` is `LocalFlagFontFamily`, null everywhere but desktop. Do not add
@@ -136,40 +136,16 @@ fun ThingUi(state: ThingScreen.State, modifier: Modifier = Modifier) {
 
 ## 4. Strings and drawables
 
-`ui/src/commonMain/composeResources/values/strings.xml` and `.../drawable/*.xml`, reached through
-the generated `Res`, never AGP's `R`:
+`ui/src/commonMain/composeResources/`, reached through the generated `Res`, never AGP's `R`.
+`.claude/rules/compose-resources.md` loads when you open that directory. It covers the vector
+drawable rules that fail only at runtime. Copy an existing drawable rather than importing one.
 
-```kotlin
-import io.github.solcott.countries.ui.resources.Res
-import io.github.solcott.countries.ui.resources.capital
-import org.jetbrains.compose.resources.stringResource
+## 5. Previews: required, and not only the happy path
 
-stringResource(Res.string.capital, country.capital)
-painterResource(Res.drawable.globe_24px)
-```
-
-`strings.xml` keeps the ordinary Android format, `%1$s` placeholders included.
-
-**A vector drawable must contain no `?attr/…` theme attributes and no `@android:…` references.**
-CMP's parser cannot resolve either, and **both fail at runtime rather than at build time.** Use
-literal colours (`#FFFFFFFF`) and let `Icon` supply the real colour from `LocalContentColor`. The
-existing drawables in that directory are all in the correct shape — copy one.
-
-## 5. Previews — required, and not just the happy path
-
-Every composable that emits UI needs a `@Preview`. Import
-`androidx.compose.ui.tooling.preview.Preview`; use the project multipreviews from
-`PreviewSupport.kt`:
-
-- `@AppScreenPreviews` on the whole screen — the full device-size sweep, once, for the happy path.
-- `@PreviewLightDark` at phone size for the other states.
-- `@ComponentWidthPreviews` on a strip inside a screen.
-
-**Preview the states that are easy to break: loading, loaded, error, empty.** Reuse the fixtures in
-`PreviewSupport.kt` (`loadedState`, `loadingState`, `refreshingState`, `failedState`,
-`PreviewSurface`, and the sample `Country`/`CountryDetail`) — the sample list deliberately includes
-a country with a wrapping name and a null capital, which is what breaks a row first. Read
-`compose-previews` before adding one.
+Every composable that emits UI needs a `@Preview`. `.claude/rules/compose-ui.md` loads with any
+`:ui` source file and has the import, the two project multipreviews, the render budget and the
+fixtures in `PreviewSupport.kt`. As a minimum, a new screen gets `@AppScreenPreviews` for the loaded
+state and `@PreviewLightDark` for loading, error and empty.
 
 ## 6. Test the presenter — `:presenter`
 
@@ -192,7 +168,7 @@ There is no Ui test layer in the Kotlin modules; UI behaviour is covered by the 
 Add the destination to whatever navigates to it — usually a `navigator.goTo(ThingScreen(id))` from
 another presenter's event sink. If the screen should be reachable by URL in the browser, add it to
 `Routes.kt` in `:web` and to the precedence table in `historyAction()`; that function is pure and
-tested, so **change the navigation rules there, not in `BrowserHistory`.** See `web-app`.
+tested, so **change the navigation rules there, not in `BrowserHistory`.** See `.claude/rules/web.md`.
 
 ## 8. Verify
 
