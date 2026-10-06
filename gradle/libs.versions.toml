@@ -71,7 +71,7 @@ composeMaterial3 = "1.12.0-alpha03"
 # commonMain; JetBrains' repackage publishes android, jvm, iosArm64, iosSimulatorArm64, macosArm64,
 # js and wasmJs — this project's exact target set. It requires compose 1.10.0, which resolves up to
 # our 1.12.0, and depends on no material3 at all, so it cannot drag material3 backwards.
-composeMaterial3Adaptive = "1.3.0-rc01"
+composeMaterial3Adaptive = "1.3.0"
 
 # AndroidX
 coreKtx = "1.19.1"
