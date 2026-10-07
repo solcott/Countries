@@ -43,7 +43,7 @@ composeBom = "2026.09.00"
 # `material3` is the deliberate exception to the BOM. The BOM manages material3 at 1.4.0, which is
 # older than the alpha line this project tracks; a direct dependency with an explicit version beats
 # a BOM constraint when it is higher, so this wins. Check that it still does after a BOM bump.
-material3 = "1.5.0-alpha29"
+material3 = "1.5.0-beta01"
 
 # Still needed alongside the BOM, for the two coordinates it cannot reach from an Android-only
 # scope: `androidx-compose-ui` in :app, and `androidx-compose-runtime-retain`, which is declared in
