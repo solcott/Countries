@@ -1,7 +1,7 @@
 [versions]
 # Build tooling. AGP 9.x ships built-in Kotlin support pinned to an older KGP; the root
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
-agp = "9.4.1"
+agp = "9.5.0"
 kotlin = "2.4.21"
 metro = "1.5.1"
 apollo = "5.2.0"
