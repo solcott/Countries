@@ -6,6 +6,21 @@
 
   packageRules: [
     {
+      // settings.gradle.kts lists Maven Central's snapshot repository, so Renovate can see
+      // -SNAPSHOT versions there. A snapshot is a moving target, never something to pin a PR to.
+      description: "Never propose a -SNAPSHOT as an update.",
+      matchDatasources: ["maven"],
+      allowedVersions: "!/-SNAPSHOT$/",
+    },
+    {
+      // A catalog entry on a -SNAPSHOT is deliberate: trying an unreleased build of a library
+      // (kmp-dataresult, say) before it ships. Leave it until it is moved back to a release by hand.
+      description: "Leave dependencies currently on a -SNAPSHOT alone.",
+      matchDatasources: ["maven"],
+      matchCurrentVersion: "/-SNAPSHOT$/",
+      enabled: false,
+    },
+    {
       // The `sqldelight` version.ref is deliberately pinned to whatever
       // com.apollographql.cache:normalized-cache-sqlite depends on (2.1.0 for cache 1.0.7), not to
       // the latest -- the web-worker-driver and the hand-written SQL.js worker's message protocol
