@@ -149,7 +149,7 @@ model           → Kotlin domain types: Country, CountryDetail, Language, Conti
 `LoadStatus` and `applyEmission` (view state for content from a data source) used to be the
 `:dataresult` and `:uistate` modules at the bottom of this build. They are now
 [kmp-dataresult](https://github.com/solcott/kmp-dataresult), so `Recipes` can share them, and they
-arrive as `libs.dataresult` and `libs.uistate` from GitHub Packages. Packages dropped the
+arrive as `libs.dataresult` and `libs.uistate` from Maven Central. Packages dropped the
 `.countries.` segment: `io.github.solcott.dataresult` and `io.github.solcott.uistate`.
 
 The ApolloResponse → `Outcome` mapping went with them, as `libs.dataresultApollo`. What is left in
@@ -165,10 +165,10 @@ library, not here.
 
 Three consequences worth knowing:
 
-- **Resolving them needs a token.** GitHub Packages authenticates even public reads, so a build
-  needs `gpr.user`/`gpr.key` in `~/.gradle/gradle.properties` (a classic PAT with `read:packages`).
-  `settings.gradle.kts` also lists `mavenLocal()` ahead of it, so `publishToMavenLocal` from the
-  library repo is how to try a change before releasing it.
+- **Trying an unreleased build needs no release.** `settings.gradle.kts` lists Maven Central's
+  snapshot repository (snapshots only) and `mavenLocal()` (`io.github.solcott` only), so pointing
+  the `dataresult` version at a `-SNAPSHOT` picks up either a published snapshot or one from
+  `publishToMavenLocal` in the library repo.
 - **The Swift export constraints did not move with the code.** `:apple` still exports both in full,
   now by coordinate rather than by project. They remain safe to export only because neither
   contains a Compose type or a generic sealed *interface* — adding one breaks the iOS build with no
