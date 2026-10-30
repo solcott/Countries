@@ -6,11 +6,6 @@
 
   packageRules: [
     {
-      description: "kmp-dataresult is a -SNAPSHOT on GitHub Packages, which Renovate can't read without a token. Bump it by hand.",
-      matchPackageNames: ["io.github.solcott:dataresult*", "io.github.solcott:uistate*"],
-      enabled: false,
-    },
-    {
       // The `sqldelight` version.ref is deliberately pinned to whatever
       // com.apollographql.cache:normalized-cache-sqlite depends on (2.1.0 for cache 1.0.7), not to
       // the latest -- the web-worker-driver and the hand-written SQL.js worker's message protocol

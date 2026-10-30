@@ -31,21 +31,18 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
 
-        // io.github.solcott:dataresult / :uistate / :dataresult-apollo, which used to be the
-        // :dataresult and :uistate modules in this build. mavenLocal() first so a locally
-        // published SNAPSHOT wins while iterating on the library.
-        mavenLocal {
-            content { includeGroup("io.github.solcott") }
+        // Maven Central's snapshot repository (Central Portal). Releases come from mavenCentral()
+        // above; this only serves -SNAPSHOT versions, so pointing a catalog entry at one is all it
+        // takes to try a library's unreleased build.
+        maven("https://central.sonatype.com/repository/maven-snapshots/") {
+            name = "MavenCentralSnapshots"
+            mavenContent { snapshotsOnly() }
         }
-        maven("https://maven.pkg.github.com/solcott/kmp-dataresult") {
-            name = "GitHubPackages"
-            // GitHub Packages authenticates even public reads, so this needs a classic PAT with
-            // the read:packages scope in ~/.gradle/gradle.properties. See the library's README.
-            credentials {
-                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
-                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
-            }
-            // Nothing else may resolve here, so a credential problem can't cascade.
+
+        // io.github.solcott:dataresult / :uistate / :dataresult-apollo, which used to be the
+        // :dataresult and :uistate modules in this build, resolve from mavenCentral(). mavenLocal()
+        // serves a SNAPSHOT published locally while iterating on the library.
+        mavenLocal {
             content { includeGroup("io.github.solcott") }
         }
 

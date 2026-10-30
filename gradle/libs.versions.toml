@@ -12,8 +12,8 @@ sqldelight = "2.1.0"
 ktfmt = "0.27.0"
 
 # Outcome/DataError/ContentState, extracted out of this project so :Recipes can share them.
-# github.com/solcott/kmp-dataresult -- see the GitHub Packages repo in settings.gradle.kts.
-dataresult = "0.1.0-SNAPSHOT"
+# github.com/solcott/kmp-dataresult, published to Maven Central.
+dataresult = "0.1.0"
 
 # @Parcelize/Parcelable usable from commonMain: real android.os.Parcelable on Android,
 # no-ops elsewhere. kotlin-parcelize itself does not support the KMP Android library plugin.
