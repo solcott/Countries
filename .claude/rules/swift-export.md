@@ -65,14 +65,14 @@ FRAMEWORKS_FOLDER_PATH=Frameworks ./gradlew :apple:macosArm64DebugSwiftExport
 # rather than building anything first.
 open iosApp/Countries.xcodeproj
 xcodebuild -project iosApp/Countries.xcodeproj -scheme Countries \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro' build
 xcodebuild -project iosApp/Countries.xcodeproj -scheme Countries \
   -destination 'platform=macOS,arch=arm64' build
 
 # Unit tests and UI tests together. Run both destinations — several UI tests are device-shape
 # specific and skip themselves on the shape they do not describe.
 xcodebuild test -project iosApp/Countries.xcodeproj -scheme Countries \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
 xcodebuild test -project iosApp/Countries.xcodeproj -scheme Countries \
   -destination 'platform=iOS Simulator,name=iPad mini (A17 Pro),OS=18.4'
 ```

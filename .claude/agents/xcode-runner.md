@@ -17,15 +17,15 @@ you exist. Return a verdict, not a transcript.
 ```
 # Build
 xcodebuild -project iosApp/Countries.xcodeproj -scheme Countries \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro' build
 xcodebuild -project iosApp/Countries.xcodeproj -scheme Countries \
   -destination 'platform=macOS,arch=arm64' build
 
 # Test — simulators only, both destinations
 xcodebuild test -project iosApp/Countries.xcodeproj -scheme Countries \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
 xcodebuild test -project iosApp/Countries.xcodeproj -scheme Countries \
-  -destination 'platform=iPad mini (A17 Pro),OS=18.4'
+  -destination 'platform=iOS Simulator,name=iPad mini (A17 Pro),OS=18.4'
 ```
 
 Two suites: `CountriesTests` (unit — `PresentationTests.swift`) and `CountriesUITests`
@@ -55,7 +55,9 @@ generate Swift that does not compile, and the caller needs to know which side br
 **Simulator availability is an environment problem, not a code defect.** "Unable to find a device
 matching the provided destination specifier" means the named simulator is not installed. Report it
 as such and list what `xcrun simctl list devices available` actually offers rather than reporting a
-build failure.
+build failure. A destination with no `OS=` resolves against the **newest** installed runtime only, so
+a phone that exists on older runtimes still fails once a new Xcode ships a runtime without it — the
+iPhone destination names that runtime's model and is renamed when Xcode moves on.
 
 **A first build after a Gradle change is slow and that is normal.** The Swift export runs a full
 Kotlin/Native compile. Do not report a long build as a hang; if you time out, say how long you
