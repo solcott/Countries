@@ -9,7 +9,7 @@ apollo-normalized-cache = "1.0.9"
 # What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
 #noinspection NewerVersionAvailable
 sqldelight = "2.1.0"
-ktfmt = "0.27.0"
+ktfmt = "0.28.0"
 
 # Outcome/DataError/ContentState, extracted out of this project so :Recipes can share them.
 # github.com/solcott/kmp-dataresult, published to Maven Central.
