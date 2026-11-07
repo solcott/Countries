@@ -103,7 +103,7 @@ internal constructor(
       when (outerEvent) {
         is SearchAndFilterScreen.OuterEvent.FilterChanged ->
           listState.eventSink(
-            CountryListScreen.Event.FilterChanged(outerEvent.name, outerEvent.continents)
+            CountryListScreen.Event.FilterChanged(outerEvent.name, outerEvent.continents),
           )
       }
     }

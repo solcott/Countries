@@ -22,7 +22,7 @@ internal fun Project.composeReportCompileTask(): TaskProvider<*> {
   val kotlin =
     extensions.findByName("kotlin") as? KotlinProjectExtension
       ?: error(
-        "No Kotlin extension in :$name -- compose.stability needs one to find a compilation."
+        "No Kotlin extension in :$name -- compose.stability needs one to find a compilation.",
       )
   val targets =
     when (kotlin) {

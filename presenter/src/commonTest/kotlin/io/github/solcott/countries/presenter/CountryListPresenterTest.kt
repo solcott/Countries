@@ -109,7 +109,7 @@ class CountryListPresenterTest {
           } else {
             flowOf(data(countries))
           }
-        }
+        },
       )
 
     presenterTestOf({ countryListPresenter(navigator, repository) }) {
@@ -145,7 +145,7 @@ class CountryListPresenterTest {
         countriesAsFlow = { _, _ ->
           queries++
           flowOf(data(countries))
-        }
+        },
       )
 
     val scheduler = testScheduler
@@ -243,7 +243,7 @@ class CountryListPresenterTest {
     val navigator = FakeNavigator(CountryListScreen)
     val repository =
       FakeCountryRepository(
-        countriesAsFlow = { _, _ -> flowOf(Outcome.Error(DataError.Network, Origin.Network)) }
+        countriesAsFlow = { _, _ -> flowOf(Outcome.Error(DataError.Network, Origin.Network)) },
       )
 
     presenterTestOf({ countryListPresenter(navigator, repository) }) {
@@ -273,7 +273,7 @@ class CountryListPresenterTest {
           } else {
             flowOf(data(countries))
           }
-        }
+        },
       )
 
     presenterTestOf({ countryListPresenter(navigator, repository) }) {

@@ -12,7 +12,7 @@ apollo {
       schemaFile.set(file("src/commonMain/graphql/schema.graphqls"))
     }
     plugin(
-      "com.apollographql.cache:normalized-cache-apollo-compiler-plugin:${libs.versions.apollo.normalized.cache.get()}"
+      "com.apollographql.cache:normalized-cache-apollo-compiler-plugin:${libs.versions.apollo.normalized.cache.get()}",
     )
     pluginArgument("com.apollographql.cache.packageName", packageName.get())
   }

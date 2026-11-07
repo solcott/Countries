@@ -51,7 +51,7 @@ class PresenterHolderTest {
         navigator = SwiftNavigator(onShowCountry = {}, onPop = {}),
         countryRepository =
           FakeCountryRepository(
-            countriesAsFlow = { _, _ -> flowOf(Outcome.Data(listOf(canada), Origin.Network)) }
+            countriesAsFlow = { _, _ -> flowOf(Outcome.Data(listOf(canada), Origin.Network)) },
           ),
         continentRepository = FakeContinentRepository(),
         scope = backgroundScope,
@@ -78,7 +78,7 @@ class PresenterHolderTest {
         countryRepository = FakeCountryRepository(),
         continentRepository =
           FakeContinentRepository(
-            continentsAsFlow = { flowOf(Outcome.Data(listOf(europe), Origin.Network)) }
+            continentsAsFlow = { flowOf(Outcome.Data(listOf(europe), Origin.Network)) },
           ),
         scope = backgroundScope,
       )
@@ -106,7 +106,7 @@ class PresenterHolderTest {
             countriesAsFlow = { name, _ ->
               val matches = if (name.startsWith("c")) listOf(canada) else emptyList()
               flowOf(Outcome.Data(matches, Origin.Network))
-            }
+            },
           ),
         continentRepository = FakeContinentRepository(),
         scope = backgroundScope,
@@ -139,11 +139,11 @@ class PresenterHolderTest {
             countriesAsFlow = { _, codes ->
               val matches = if (codes.contains(europe.code)) listOf(canada) else emptyList()
               flowOf(Outcome.Data(matches, Origin.Network))
-            }
+            },
           ),
         continentRepository =
           FakeContinentRepository(
-            continentsAsFlow = { flowOf(Outcome.Data(listOf(europe), Origin.Network)) }
+            continentsAsFlow = { flowOf(Outcome.Data(listOf(europe), Origin.Network)) },
           ),
         scope = backgroundScope,
       )
@@ -172,7 +172,7 @@ class PresenterHolderTest {
         navigator = SwiftNavigator(onShowCountry = { navigatedTo = it }, onPop = {}),
         countryRepository =
           FakeCountryRepository(
-            countriesAsFlow = { _, _ -> flowOf(Outcome.Data(listOf(canada), Origin.Network)) }
+            countriesAsFlow = { _, _ -> flowOf(Outcome.Data(listOf(canada), Origin.Network)) },
           ),
         continentRepository = FakeContinentRepository(),
         scope = backgroundScope,
@@ -208,7 +208,7 @@ private class FakeCountryRepository(
 }
 
 private class FakeContinentRepository(
-  private val continentsAsFlow: () -> Flow<Outcome<List<Continent>>> = { emptyFlow() }
+  private val continentsAsFlow: () -> Flow<Outcome<List<Continent>>> = { emptyFlow() },
 ) : ContinentRepository {
   override fun continentsAsFlow(): Flow<Outcome<List<Continent>>> = continentsAsFlow.invoke()
 }

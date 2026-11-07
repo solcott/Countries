@@ -238,14 +238,14 @@ private fun ListPreview(
   PreviewSurface {
     CompositionLocalProvider(
       LocalSubCircuit provides
-        previewSubCircuit(nameStartsWith, continentsState, selectedContinents)
+        previewSubCircuit(nameStartsWith, continentsState, selectedContinents),
     ) {
       CountryListUi(
         CountryListScreen.State(
           countriesState = countriesState,
           selectedCountryCode = selectedCountryCode,
           eventSink = {},
-        )
+        ),
       )
     }
   }
@@ -322,7 +322,7 @@ private fun CountriesListPreview() {
             countriesState = loadedState(previewCountries),
             selectedCountryCode = previewCountries.first().code,
             eventSink = {},
-          )
+          ),
       )
     }
   }
@@ -373,7 +373,7 @@ private fun CountriesListDesktopSkinPreview() {
             countriesState = loadedState(previewCountries),
             selectedCountryCode = previewCountries.first().code,
             eventSink = {},
-          )
+          ),
       )
     }
   }

@@ -36,7 +36,7 @@ class SearchAndFilterPresenter(private val continentRepository: ContinentReposit
 
   @Composable
   override fun present(
-    outerEventSink: (SearchAndFilterScreen.OuterEvent) -> Unit
+    outerEventSink: (SearchAndFilterScreen.OuterEvent) -> Unit,
   ): SearchAndFilterScreen.State {
     val nameStartsWithText = rememberTextFieldState()
     val selectedContinents: SnapshotStateList<Continent> = rememberSaveable { mutableStateListOf() }

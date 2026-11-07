@@ -21,5 +21,5 @@ internal actual fun persistentSqlJsDriver(): SqlDriver = WebWorkerDriver(persist
  */
 private fun persistentSqlJsWorker(): Worker =
   js(
-    """new Worker(new URL("countries-sqljs-idb-worker/worker.js", import.meta.url), { name: "countries.db" })"""
+    """new Worker(new URL("countries-sqljs-idb-worker/worker.js", import.meta.url), { name: "countries.db" })""",
   )

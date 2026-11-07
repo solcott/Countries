@@ -27,5 +27,5 @@ private fun registerServiceWorkerImpl(): Unit =
           console.warn('Service worker registration failed; the app will not work offline', e);
         });
       }
-    }"""
+    }""",
   )

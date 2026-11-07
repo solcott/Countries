@@ -62,7 +62,7 @@ abstract class ComposeStabilityCheckTask : DefaultTask() {
       throw GradleException(
         "No Compose reports found for :${moduleName.get()}. The compiler writes them only when " +
           "composeCompiler.reportsDestination is set -- check the compose.stability convention " +
-          "plugin is applied to this project."
+          "plugin is applied to this project.",
       )
     }
 
@@ -90,7 +90,7 @@ abstract class ComposeStabilityCheckTask : DefaultTask() {
 
     if (classFailures.isNotEmpty() || composableFailures.isNotEmpty()) {
       throw GradleException(
-        buildFailureMessage(classFailures, composableFailures).also { logger.error(it) }
+        buildFailureMessage(classFailures, composableFailures).also { logger.error(it) },
       )
     }
   }
@@ -107,7 +107,7 @@ abstract class ComposeStabilityCheckTask : DefaultTask() {
       classFailures.forEach { appendLine("    ${it.name}  [${it.report.name}]") }
       appendLine(
         "  Make every property a val of a stable type, or annotate the class @Immutable " +
-          "(nothing ever changes) or @Stable (mutable properties are backed by snapshot state)."
+          "(nothing ever changes) or @Stable (mutable properties are backed by snapshot state).",
       )
       appendLine("  To accept one, add to ${allowlistPath(unstableClassAllowlist.orNull?.asFile)}:")
       classFailures.forEach { appendLine("    $module:${it.name}") }
@@ -118,10 +118,10 @@ abstract class ComposeStabilityCheckTask : DefaultTask() {
       composableFailures.forEach { appendLine("    ${it.name}  [${it.report.name}]") }
       appendLine(
         "  Every unskippable composable re-runs on each recomposition of its parent. Make its " +
-          "parameters stable, or accept it below with a comment saying why."
+          "parameters stable, or accept it below with a comment saying why.",
       )
       appendLine(
-        "  To accept one, add to ${allowlistPath(unskippableComposableAllowlist.orNull?.asFile)}:"
+        "  To accept one, add to ${allowlistPath(unskippableComposableAllowlist.orNull?.asFile)}:",
       )
       composableFailures.forEach { appendLine("    $module:${it.name}") }
     }
@@ -137,7 +137,7 @@ abstract class ComposeStabilityCheckTask : DefaultTask() {
         "Compose stability allowlist for :${moduleName.get()} has ${stale.size} entries that no " +
           "longer appear in the report (${stale.sorted().joinToString()}). Remove them from " +
           "${allowlistPath(file)} unless they are declared in a source set this target does not " +
-          "compile."
+          "compile.",
       )
     }
   }
@@ -156,15 +156,15 @@ abstract class ComposeStabilityCheckTask : DefaultTask() {
         appendLine("Compose stability -- :${moduleName.get()}")
         appendLine("reports read: ${reportFiles.joinToString { it.name }}")
         appendLine(
-          "unstable classes: ${unstableClasses.size} (${classFailures.size} not allowlisted)"
+          "unstable classes: ${unstableClasses.size} (${classFailures.size} not allowlisted)",
         )
         unstableClasses.forEach { appendLine("  ${it.name}") }
         appendLine(
           "restartable, not skippable: ${unskippable.size} " +
-            "(${composableFailures.size} not allowlisted)"
+            "(${composableFailures.size} not allowlisted)",
         )
         unskippable.forEach { appendLine("  ${it.name}") }
-      }
+      },
     )
   }
 
