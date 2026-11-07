@@ -1,9 +1,9 @@
 [versions]
 # Build tooling. AGP 9.x ships built-in Kotlin support pinned to an older KGP; the root
 # buildscript classpath overrides it to the Kotlin version Metro and Compose need.
-agp = "9.5.0"
+agp = "9.5.1"
 kotlin = "2.4.21"
-metro = "1.5.1"
+metro = "1.5.2"
 apollo = "5.2.0"
 apollo-normalized-cache = "1.0.9"
 # What normalized-cache-sqlite depends on — the web driver and the npm worker must agree with it.
@@ -43,7 +43,7 @@ composeBom = "2026.09.00"
 # `material3` is the deliberate exception to the BOM. The BOM manages material3 at 1.4.0, which is
 # older than the alpha line this project tracks; a direct dependency with an explicit version beats
 # a BOM constraint when it is higher, so this wins. Check that it still does after a BOM bump.
-material3 = "1.5.0-beta02"
+material3 = "1.5.0-rc01"
 
 # Still needed alongside the BOM, for the two coordinates it cannot reach from an Android-only
 # scope: `androidx-compose-ui` in :app, and `androidx-compose-runtime-retain`, which is declared in
