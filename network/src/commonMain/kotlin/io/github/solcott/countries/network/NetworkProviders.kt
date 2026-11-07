@@ -33,6 +33,6 @@ internal expect fun ApolloClient.Builder.platformConfiguration(): ApolloClient.B
 
 /** Two-tier cache shared by every platform: an in-memory tier in front of [persistent]. */
 internal fun ApolloClient.Builder.memoryCacheBackedBy(
-  persistent: NormalizedCacheFactory
+  persistent: NormalizedCacheFactory,
 ): ApolloClient.Builder =
   cache(MemoryCacheFactory(maxSizeBytes = MEMORY_CACHE_MAX_SIZE_BYTES).chain(persistent))

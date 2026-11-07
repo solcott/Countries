@@ -175,7 +175,7 @@ internal fun previewCircuit(): Circuit =
     .addPresenter<CountryListScreen, CountryListScreen.State>(
       presenterOf {
         CountryListScreen.State(countriesState = loadedState(previewCountries), eventSink = {})
-      }
+      },
     )
     .addUi<CountryListScreen, CountryListScreen.State> { state, modifier ->
       CountryListUi(state, modifier)
@@ -186,7 +186,7 @@ internal fun previewCircuit(): Circuit =
           content = loadedState<CountryDetail?>(previewCountryDetail),
           eventSink = {},
         )
-      }
+      },
     )
     // addUi passes only (state, modifier); CountryDetailUi also takes its Screen, so this one goes
     // through the factory directly.
@@ -238,7 +238,7 @@ internal fun previewSubCircuit(
         object : SubPresenter<SearchAndFilterScreen.OuterEvent, SearchAndFilterScreen.State> {
           @Composable
           override fun present(
-            outerEventSink: (SearchAndFilterScreen.OuterEvent) -> Unit
+            outerEventSink: (SearchAndFilterScreen.OuterEvent) -> Unit,
           ): SearchAndFilterScreen.State = remember {
             searchAndFilterState(nameStartsWith, continentsState, selectedContinents)
           }
@@ -280,7 +280,7 @@ internal val twoPaneDirective =
       defaultPanePreferredWidth = 360.dp,
       defaultPanePreferredHeight = 420.dp,
       excludedBounds = emptyList(),
-    )
+    ),
   )
 
 /** See [twoPaneDirective]. */
@@ -295,5 +295,5 @@ internal val singlePaneDirective =
       defaultPanePreferredWidth = 360.dp,
       defaultPanePreferredHeight = 420.dp,
       excludedBounds = emptyList(),
-    )
+    ),
   )

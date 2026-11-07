@@ -30,7 +30,7 @@ class SearchAndFilterPresenterTest {
   fun loadsContinentsAndEmitsLoadedState() = runTest {
     val presenter =
       SearchAndFilterPresenter(
-        FakeContinentRepository(continentsAsFlow = { flowOf(data(continents)) })
+        FakeContinentRepository(continentsAsFlow = { flowOf(data(continents)) }),
       )
 
     presenter.test {
@@ -48,8 +48,8 @@ class SearchAndFilterPresenterTest {
     val presenter =
       SearchAndFilterPresenter(
         FakeContinentRepository(
-          continentsAsFlow = { flowOf(Outcome.Error(DataError.Network, Origin.Network)) }
-        )
+          continentsAsFlow = { flowOf(Outcome.Error(DataError.Network, Origin.Network)) },
+        ),
       )
 
     presenter.test {
@@ -164,7 +164,7 @@ private suspend fun ReceiveTurbine<SearchAndFilterScreen.State>.awaitContinentsS
 }
 
 class FakeContinentRepository(
-  private val continentsAsFlow: () -> Flow<Outcome<List<Continent>>> = { emptyFlow() }
+  private val continentsAsFlow: () -> Flow<Outcome<List<Continent>>> = { emptyFlow() },
 ) : ContinentRepository {
   override fun continentsAsFlow(): Flow<Outcome<List<Continent>>> = continentsAsFlow.invoke()
 }

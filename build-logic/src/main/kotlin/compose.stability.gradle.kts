@@ -38,7 +38,7 @@ plugins.withId("org.jetbrains.kotlin.plugin.compose") {
     reports.from(
       reportsDirectory.map {
         it.asFileTree.matching { include("*-classes.txt", "*-composables.txt") }
-      }
+      },
     )
     unstableClassAllowlist =
       rootProject.layout.projectDirectory.file("config/compose/unstable-classes.txt")

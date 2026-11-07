@@ -92,7 +92,7 @@ private fun startApplication() = application {
         WindowBoundsProvider(
           sizeProvider = WindowSizeProvider.Fixed(INITIAL_SIZE),
           positionProvider = WindowPositionProvider.CenteredOnScreen,
-        )
+        ),
     )
 
   Window(

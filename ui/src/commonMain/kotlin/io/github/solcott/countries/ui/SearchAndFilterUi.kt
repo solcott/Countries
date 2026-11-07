@@ -60,7 +60,7 @@ fun SearchAndFilterUi(state: SearchAndFilterScreen.State, modifier: Modifier = M
     modifier
       .fillMaxWidth()
       .background(listPaneColor())
-      .padding(vertical = 8.dp, horizontal = LocalAppSkin.current.rowHorizontalPadding)
+      .padding(vertical = 8.dp, horizontal = LocalAppSkin.current.rowHorizontalPadding),
   ) {
     Row(
       Modifier.fillMaxWidth(),
@@ -90,9 +90,9 @@ private fun ContinentsDropdownMenuBox(state: SearchAndFilterScreen.State) {
       IconButton(
         onClick = {
           state.eventSink(
-            SearchAndFilterScreen.Event.DropdownExpandedChanged(!state.continentDropdownExpanded)
+            SearchAndFilterScreen.Event.DropdownExpandedChanged(!state.continentDropdownExpanded),
           )
-        }
+        },
       ) {
         val selectedCount = state.selectedContinents.size
         // The badge is inside the button rather than around it: the button is the
@@ -231,7 +231,7 @@ private fun ActiveFilterChips(state: SearchAndFilterScreen.State, modifier: Modi
 private fun SearchAndFilterUiPreview() {
   PreviewSurface {
     SearchAndFilterUi(
-      searchAndFilterState(nameStartsWith = "Fra", selectedContinents = previewContinents.take(1))
+      searchAndFilterState(nameStartsWith = "Fra", selectedContinents = previewContinents.take(1)),
     )
   }
 }
@@ -264,7 +264,7 @@ private fun SearchAndFilterUiExpandedPreview() {
       searchAndFilterState(
         selectedContinents = previewContinents.filter { it.code in setOf("EU", "AS") },
         continentDropdownExpanded = true,
-      )
+      ),
     )
   }
 }
@@ -289,8 +289,8 @@ private fun ActiveFilterChipsPreview() {
   PreviewSurface {
     ActiveFilterChips(
       searchAndFilterState(
-        selectedContinents = previewContinents.filter { it.code in setOf("EU", "AS", "NA", "SA") }
-      )
+        selectedContinents = previewContinents.filter { it.code in setOf("EU", "AS", "NA", "SA") },
+      ),
     )
   }
 }
@@ -305,8 +305,8 @@ private fun SearchAndFilterUiManyFiltersPreview() {
   PreviewSurface {
     SearchAndFilterUi(
       searchAndFilterState(
-        selectedContinents = previewContinents.filter { it.code in setOf("NA", "SA", "AN") }
-      )
+        selectedContinents = previewContinents.filter { it.code in setOf("NA", "SA", "AN") },
+      ),
     )
   }
 }
@@ -320,7 +320,7 @@ private fun SearchAndFilterUiFiltersDesktopSkinPreview() {
       searchAndFilterState(
         nameStartsWith = "Fra",
         selectedContinents = previewContinents.filter { it.code in setOf("EU", "AS") },
-      )
+      ),
     )
   }
 }

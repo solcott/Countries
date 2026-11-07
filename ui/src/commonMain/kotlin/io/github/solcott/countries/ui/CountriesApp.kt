@@ -140,7 +140,9 @@ fun CountriesApp(
           // would leave those device shapes single-pane on Compose while iOS splits them.
           directive =
             countriesPaneDirective(
-              calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(currentWindowAdaptiveInfoV2())
+              calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(
+                currentWindowAdaptiveInfoV2(),
+              ),
             ),
           modifier = modifier.fillMaxSize(),
         )

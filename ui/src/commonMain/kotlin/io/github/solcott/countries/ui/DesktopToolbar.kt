@@ -112,7 +112,7 @@ private fun ToolbarNavigation(
         Icon(
           painterResource(
             if (listCollapsed) Res.drawable.left_panel_open_24px
-            else Res.drawable.left_panel_close_24px
+            else Res.drawable.left_panel_close_24px,
           ),
           contentDescription =
             stringResource(if (listCollapsed) Res.string.show_list else Res.string.hide_list),
