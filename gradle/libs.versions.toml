@@ -48,7 +48,7 @@ material3 = "1.5.0-rc01"
 # Still needed alongside the BOM, for the two coordinates it cannot reach from an Android-only
 # scope: `androidx-compose-ui` in :app, and `androidx-compose-runtime-retain`, which is declared in
 # :presenter's commonMain because it has no Compose Multiplatform equivalent.
-composeUi = "1.12.1"
+composeUi = "1.13.0"
 
 # Compose Multiplatform. androidx.compose.foundation is Android-only, so `foundation` (and the
 # TextFieldState in CountryListScreen.State) has to come from here.
