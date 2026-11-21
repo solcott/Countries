@@ -38,7 +38,7 @@ molecule = "2.2.0"
 # It is applied to Android configurations ONLY (`:app`, and androidMain in `:ui`/`:presenter`).
 # Never commonMain: androidx.compose.runtime is genuinely multiplatform, so a common-scoped BOM
 # would drag jvm/native/web onto the AndroidX line too.
-composeBom = "2026.09.00"
+composeBom = "2026.11.01"
 
 # `material3` is the deliberate exception to the BOM. The BOM manages material3 at 1.4.0, which is
 # older than the alpha line this project tracks; a direct dependency with an explicit version beats
