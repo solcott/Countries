@@ -49,8 +49,8 @@ out of `commonMain` and material3 kept out of the BOM, circuit+metro bumped toge
 module build requirements, the Kotlin pin and the two lockfiles. This skill covers what a rule
 cannot: why the split exists, and how to prove a bump did not move anything.
 
-**material3 resolves up, never back.** The BOM manages it at 1.4.0, older than the alpha line this
-project tracks, and a direct dependency with an explicit version beats a lower BOM constraint. `:app`
+**material3 resolves up, never back.** The BOM manages it too — 1.5.0 as of 2026.11.01, equal to the
+catalog pin — and a direct dependency with an explicit version beats a lower or equal BOM constraint. `:app`
 resolves the catalog's AndroidX version, and `:ui` resolves CMP's material3. The two numbers differ
 by design. **After every BOM bump, re-check that the BOM has not pinned material3 above the alpha
 line.** If it has, the BOM wins silently.
@@ -66,13 +66,17 @@ Compose through CMP):
 ```
 
 Every `androidx.compose.{ui,foundation,animation,runtime}` artifact should read the same version on
-both — currently 1.12.0. The two material3 numbers will differ; that is the expected outcome
+both — currently 1.13.0. The two material3 numbers will differ; that is the expected outcome
 described above, not a finding.
 
 **Delegate this to the `gradle-runner` subagent's dependency-verification mode.** The raw output is
 thousands of lines and the answer is six numbers.
 
 ## After any bump
+
+0. **Check the new AndroidX Compose's minCompileSdk.** 1.13.0 raised it to 37.1, and the only
+   signal is `:app:checkDebugAarMetadata` failing — library modules build fine. Raise
+   `compileSdkMinor` (or `compileSdk`) in build-logic's `Versions` to match.
 
 1. `./gradlew ktfmtCheck test assembleDebug` for the JVM and Android side.
 2. Both dependency verifications above, if Compose or the BOM moved.

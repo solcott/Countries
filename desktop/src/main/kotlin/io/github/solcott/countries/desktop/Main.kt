@@ -76,7 +76,8 @@ private fun applyApplicationName() {
 // WindowState could not express a minimum at all.
 //
 // The API's own KDoc warns it "may be moved to `androidx.compose.ui.window` before stabilization",
-// so expect the imports above to churn once. Only this file is affected.
+// so expect the imports above to churn once. Only this file is affected. It already churns between
+// releases: 1.13 renamed `WindowPositionProvider.CenteredOnScreen` to `CenteredInScreenBounds`.
 @OptIn(ExperimentalComposeUiApi::class)
 private fun startApplication() = application {
   val graph = remember { createGraph<ComposeGraph>() }
@@ -91,7 +92,7 @@ private fun startApplication() = application {
       initialBoundsProvider =
         WindowBoundsProvider(
           sizeProvider = WindowSizeProvider.Fixed(INITIAL_SIZE),
-          positionProvider = WindowPositionProvider.CenteredOnScreen,
+          positionProvider = WindowPositionProvider.CenteredInScreenBounds,
         ),
     )
 

@@ -21,8 +21,9 @@ when bumping; never delete them.** For a Compose, BOM, Kotlin or material3 bump,
 2. **material3 is on its own line — `composeMaterial3`, not `composeMultiplatform`**, and so is
    `composeMaterial3Adaptive`. CMP's `compose.material3` accessor would drag AndroidX material3
    backwards.
-3. **material3 is deliberately outside the BOM.** A direct version beats the BOM's lower 1.4.0.
-   Re-check after every BOM bump: if the BOM ever pins it *higher*, the BOM silently wins.
+3. **material3 is deliberately outside the BOM.** A direct version beats a lower or equal BOM
+   constraint (the BOM has 1.5.0 as of 2026.11.01, equal to the pin). Re-check after every BOM
+   bump: if the BOM ever pins it *higher*, the BOM silently wins.
 4. **The AndroidX Compose BOM is for Android configurations only** (`:app`, and the
    `androidMain.dependencies` of `:ui` and `:presenter`). **Never in `commonMain`** — it would drag
    jvm/native/web onto the AndroidX line.
@@ -30,6 +31,9 @@ when bumping; never delete them.** For a Compose, BOM, Kotlin or material3 bump,
    registrations. An older one compiles and contributes nothing. Run `:shared-compose:allTests`.
 6. **A `dataresult`/`uistate` bump can break the iOS build**, since both are exported to Swift in
    full. Run `:apple:macosArm64Test`, then the iOS build.
+7. **AndroidX Compose sets a minCompileSdk in its AAR metadata** — 37.1 for 1.13. Only `:app`'s
+   `checkDebugAarMetadata` notices; raise `compileSdkMinor` in `Versions` to match. Renovate groups
+   every AndroidX Compose and Compose Multiplatform coordinate into one PR for this reason.
 
 ## Build requirements for Compose modules
 

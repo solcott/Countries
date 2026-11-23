@@ -6,6 +6,22 @@
 
   packageRules: [
     {
+      // AndroidX Compose (the BOM, plus `composeUi` for ui/runtime-retain/runtime-annotation, plus
+      // material3) and Compose Multiplatform (the plugin, runtime/foundation/ui/resources, and its
+      // own material3 and adaptive lines) are one dependency as far as a build is concerned: the BOM
+      // and `composeUi` move the same androidx.compose artifacts on Android, and CMP has to follow
+      // them on every other target. Bumped separately, each PR fails on its own — Compose 1.13.0
+      // came as two PRs that both broke for the same reason (its 37.1 minCompileSdk). One PR, so
+      // the fix lands once. Hot reload is versioned independently and stays out.
+      description: "Update AndroidX Compose and Compose Multiplatform together in one PR.",
+      matchPackageNames: [
+        "/^androidx\\.compose[.:]/",
+        "/^org\\.jetbrains\\.compose[.:]/",
+        "!/^org\\.jetbrains\\.compose\\.hot-reload/",
+      ],
+      groupName: "Compose",
+    },
+    {
       // settings.gradle.kts lists Maven Central's snapshot repository, so Renovate can see
       // -SNAPSHOT versions there. A snapshot is a moving target, never something to pin a PR to.
       description: "Never propose a -SNAPSHOT as an update.",
