@@ -17,7 +17,7 @@ dataresult = "0.1.0"
 
 # @Parcelize/Parcelable usable from commonMain: real android.os.Parcelable on Android,
 # no-ops elsewhere. kotlin-parcelize itself does not support the KMP Android library plugin.
-kmp-parcelize = "1.0.4"
+kmp-parcelize = "1.1.0"
 
 # Circuit (MVI). Metro provides the @CircuitInject and @CircuitSerializable codegen, which couples
 # the two versions: 0.38 moved Screen persistence off Parcelable and onto a CircuitSaver built from
