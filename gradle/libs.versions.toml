@@ -88,7 +88,7 @@ coroutines = "1.11.0"
 # window/history/DOM types for js and wasmJs from one shared source set. The JS stdlib still ships
 # kotlinx.browser; wasmJs never did, and this is where both come from. Pinned to what Compose
 # Multiplatform and skiko already put on the web classpath rather than resolving forward.
-kotlinxBrowser = "0.5.0"
+kotlinxBrowser = "0.6.1"
 
 # Multiplatform logging. Logcat on Android, NSLog on Apple, console on js/wasm — no init needed.
 kermit = "2.2.0"
